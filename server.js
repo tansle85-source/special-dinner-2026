@@ -1,9 +1,13 @@
-const express = require('express');
-const cors = require('cors');
-const multer = require('multer');
-const csv = require('csv-parser');
-const fs = require('fs-extra');
-const path = require('path');
+import express from 'express';
+import cors from 'cors';
+import multer from 'multer';
+import csv from 'csv-parser';
+import fs from 'fs-extra';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -12,8 +16,8 @@ const DB_FILE = path.join(__dirname, 'db.json');
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'client/dist')));
+// Serve static files from the React app (now in the root dist folder)
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Initialize DB
 const initDB = async () => {
@@ -40,7 +44,6 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     .on('data', (data) => results.push({ ...data, checked_in: false }))
     .on('end', async () => {
       const db = await getDB();
-      // Simple merge logic: overwrite if exists or just replace
       db.employees = results; 
       await saveDB(db);
       await fs.remove(req.file.path);
@@ -48,13 +51,11 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     });
 });
 
-// Get all employees
 app.get('/api/employees', async (req, res) => {
   const db = await getDB();
   res.json(db.employees);
 });
 
-// Get employee by ID
 app.get('/api/employee/:id', async (req, res) => {
   const db = await getDB();
   const employee = db.employees.find(e => e.id === req.params.id);
@@ -62,7 +63,6 @@ app.get('/api/employee/:id', async (req, res) => {
   res.json(employee);
 });
 
-// Check-in employee
 app.post('/api/checkin/:id', async (req, res) => {
   const db = await getDB();
   const index = db.employees.findIndex(e => e.id === req.params.id);
@@ -76,7 +76,7 @@ app.post('/api/checkin/:id', async (req, res) => {
 
 // Catch-all to serve the React app
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client/dist/index.html'));
+  res.sendFile(path.join(__dirname, 'dist/index.html'));
 });
 
 app.listen(PORT, async () => {

@@ -1,12 +1,12 @@
 :root {
-  --primary: #8b5cf6;
-  --primary-hover: #7c3aed;
-  --bg-dark: #0f172a;
-  --card-bg: rgba(30, 41, 59, 0.7);
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --glass: rgba(255, 255, 255, 0.05);
-  --border: rgba(255, 255, 255, 0.1);
+  --primary: #0a8276;
+  --primary-hover: #086d63;
+  --bg-dark: #1d1d1d;
+  --card-bg: rgba(40, 40, 40, 0.7);
+  --text-main: #ffffff;
+  --text-muted: #a0a0a0;
+  --glass: rgba(255, 255, 255, 0.03);
+  --border: rgba(10, 130, 118, 0.2);
 }
 
 * {
@@ -41,8 +41,9 @@ nav {
 .logo {
   font-size: 1.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+  background: linear-gradient(135deg, #0ce9d3, #0a8276);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -81,7 +82,7 @@ nav {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.05), transparent);
+  background: radial-gradient(circle at top right, rgba(10, 130, 118, 0.05), transparent);
 }
 
 /* Glass Card */
@@ -209,5 +210,5 @@ input[type="file"] {
 }
 
 .upload-label:hover {
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(10, 130, 118, 0.1);
 }

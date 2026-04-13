@@ -15,11 +15,8 @@ const DB_FILE = path.join(__dirname, 'db.json');
 
 app.use(cors());
 app.use(express.json());
-
-// Serve static files from the React app (now in the root dist folder)
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Initialize DB
 const initDB = async () => {
   if (!await fs.pathExists(DB_FILE)) {
     await fs.writeJson(DB_FILE, { employees: [] });
@@ -29,19 +26,26 @@ const initDB = async () => {
 const getDB = () => fs.readJson(DB_FILE);
 const saveDB = (data) => fs.writeJson(DB_FILE, data);
 
-// Multer setup for CSV uploads
 const upload = multer({ dest: 'uploads/' });
 
-// API Endpoints
-
-// Upload CSV
 app.post('/api/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded.');
 
   const results = [];
   fs.createReadStream(req.file.path)
     .pipe(csv())
-    .on('data', (data) => results.push({ ...data, checked_in: false }))
+    .on('data', (data) => {
+      // Normalize keys based on user's image
+      const employee = {
+        name: data['Name'] || data['name'],
+        id: data['Employee ID'] || data['Employee I'] || data['id'],
+        email: data['Email'] || data['email'],
+        department: data['Department'] || data['department'],
+        diet: data['Diet'] || data['diet'],
+        checked_in: false
+      };
+      if (employee.id) results.push(employee);
+    })
     .on('end', async () => {
       const db = await getDB();
       db.employees = results; 
@@ -74,7 +78,6 @@ app.post('/api/checkin/:id', async (req, res) => {
   res.json({ message: 'Checked in successfully', employee: db.employees[index] });
 });
 
-// Catch-all to serve the React app
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist/index.html'));
 });

@@ -100,8 +100,8 @@ const Scanner = () => {
             </div>
             
             <div className="details-row">
-              <div className="label">Seating</div>
-              <div className="value">{employee.seating}</div>
+              <div className="label">Dietary Req.</div>
+              <div className="value">{employee.diet || 'None'}</div>
             </div>
             
             <div className="details-row">

@@ -1,4 +1,4 @@
-id,name,department,seating,email
-EMP001,John Doe,Engineering,Table 5 - Seat A,john.doe@company.com
-EMP002,Jane Smith,Marketing,Table 2 - Seat B,jane.smith@company.com
-EMP003,Bob Wilson,Operations,Table 10 - Seat C,bob.wilson@company.com
+Name,Employee ID,Email,Department,Diet
+John Doe,EMP001,john.doe@company.com,Engineering,Vegetarian
+Jane Smith,EMP002,jane.smith@company.com,Marketing,No Seafood
+Bob Wilson,EMP003,bob.wilson@company.com,Operations,None

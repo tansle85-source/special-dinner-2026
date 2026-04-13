@@ -3,12 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "install:all": "npm install --prefix server && npm install --prefix client",
-    "build:client": "npm run build --prefix client",
-    "start": "node server/index.js",
-    "deploy": "npm run install:all && npm run build:client && npm start"
+    "postinstall": "npm install --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "node index.js"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "csv-parser": "^3.2.0",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.4",
+    "multer": "^2.1.1"
   }
 }

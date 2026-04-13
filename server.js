@@ -34,8 +34,11 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   const results = [];
   fs.createReadStream(req.file.path)
     .pipe(csv())
-    .on('data', (data) => {
-      // Normalize keys based on user's image
+    .on('data', (row) => {
+      // Normalize and trim keys
+      const data = {};
+      Object.keys(row).forEach(key => data[key.trim()] = row[key].trim());
+      
       const employee = {
         name: data['Name'] || data['name'],
         id: data['Employee ID'] || data['Employee I'] || data['id'],

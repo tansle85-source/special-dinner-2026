@@ -1,0 +1,4 @@
+id,name,department,seating,email
+EMP001,John Doe,Engineering,Table 5 - Seat A,john.doe@company.com
+EMP002,Jane Smith,Marketing,Table 2 - Seat B,jane.smith@company.com
+EMP003,Bob Wilson,Operations,Table 10 - Seat C,bob.wilson@company.com

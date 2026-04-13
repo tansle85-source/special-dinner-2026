@@ -1,4 +1,6 @@
 Name,Employee ID,Email,Department,Diet
-John Doe,EMP001,john.doe@company.com,Engineering,Vegetarian
-Jane Smith,EMP002,jane.smith@company.com,Marketing,No Seafood
-Bob Wilson,EMP003,bob.wilson@company.com,Operations,None
+Mohd Kassim Bin Zakaria,30143170,kassim.zakaria@infineon.com,DES DOS IP LAY APT PWR,Non-Veg
+Steven Foo,30143244,Steven.Foo@infineon.com,CLM,Non-Veg
+Clament Wong,30202799,Clament.Wong@infineon.com,Cyber,Non-Veg
+Muhamad Faizal Bin Shamsuddin,30143282,MuhamadFaizal.BinShamsuddin@infineon.com,CSC CLM AP AM4,Non-Veg
+Chang Kye Syen,30143338,KyeSyen.Chang@infineon.com,F ACT GFS MYS CS IPRC,Non-Veg

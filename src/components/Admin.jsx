@@ -16,7 +16,7 @@ const Admin = () => {
 
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/employees');
+      const res = await axios.get('/api/employees');
       setEmployees(res.data);
     } catch (err) {
       console.error('Failed to fetch employees');
@@ -33,7 +33,7 @@ const Admin = () => {
     try {
       setLoading(true);
       setUploadStatus('Uploading...');
-      await axios.post('http://localhost:5000/api/upload', formData, {
+      await axios.post('/api/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setUploadStatus('Upload successful!');

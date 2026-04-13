@@ -38,7 +38,7 @@ const Scanner = () => {
     if (loading) return;
     try {
       setLoading(true);
-      const res = await axios.get(`http://localhost:5000/api/employee/${decodedText}`);
+      const res = await axios.get(`/api/employee/${decodedText}`);
       setEmployee(res.data);
       setMessage('');
     } catch (err) {
@@ -58,7 +58,7 @@ const Scanner = () => {
     if (!employee || employee.checked_in) return;
     try {
       setLoading(true);
-      const res = await axios.post(`http://localhost:5000/api/checkin/${employee.id}`);
+      const res = await axios.post(`/api/checkin/${employee.id}`);
       setEmployee(res.data.employee);
       setMessage('Check-in Successful!');
     } catch (err) {

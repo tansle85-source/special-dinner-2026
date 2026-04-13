@@ -127,7 +127,7 @@ const Scanner = () => {
             {message && <div style={{ marginTop: '1rem', textAlign: 'center', color: message.includes('Success') ? '#4ade80' : '#f87171' }}>{message}</div>}
           </div>
         ) : (
-          <div className="glass-card" style={{ textAlign: 'center', color: var(--text-muted) }}>
+          <div className="glass-card" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
             <h3>Waiting for Scan...</h3>
             <p>Please present your QR code to the camera.</p>
             {message && <div style={{ marginTop: '2rem', color: '#f87171' }}>{message}</div>}

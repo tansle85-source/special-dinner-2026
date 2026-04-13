@@ -12,6 +12,9 @@ const DB_FILE = path.join(__dirname, 'db.json');
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../client/dist')));
+
 // Initialize DB
 const initDB = async () => {
   if (!await fs.pathExists(DB_FILE)) {
@@ -69,6 +72,11 @@ app.post('/api/checkin/:id', async (req, res) => {
   db.employees[index].checkin_time = new Date().toISOString();
   await saveDB(db);
   res.json({ message: 'Checked in successfully', employee: db.employees[index] });
+});
+
+// Catch-all to serve the React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
 app.listen(PORT, async () => {

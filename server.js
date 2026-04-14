@@ -144,6 +144,15 @@ app.get('/api/employees', async (req, res) => {
   res.json(rows);
 });
 
+app.get('/api/eligible-employees', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT name FROM employees WHERE won_prize IS NULL');
+    res.json(rows.map(r => r.name));
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
 app.get('/api/prizes', async (req, res) => {
   const [rows] = await pool.query('SELECT id, session, rank_level as rank, name, quantity FROM prizes ORDER BY rank_level ASC');
   res.json(rows);

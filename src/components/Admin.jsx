@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import LuckyDrawWheel from './LuckyDrawWheel';
 
 const Admin = () => {
   const [employees, setEmployees] = useState([]);
@@ -12,6 +13,7 @@ const Admin = () => {
   const [drawResult, setDrawResult] = useState(null);
   const [drawing, setDrawing] = useState(false);
   const [activeTab, setActiveTab] = useState('winners');
+  const [showStageView, setShowStageView] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -61,19 +63,21 @@ const Admin = () => {
       alert("Please select a prize first.");
       return;
     }
-    setDrawing(true);
-    setDrawResult(null);
-    setTimeout(async () => {
-      try {
-        const res = await axios.post('/api/draw', { prizeId: selectedPrizeId });
-        setDrawResult(res.data);
-        fetchData();
-      } catch (err) {
-        alert(err.response?.data?.error || "Draw failed.");
-      } finally {
-        setDrawing(false);
-      }
-    }, 1500);
+    
+    try {
+      setDrawing(true);
+      const res = await axios.post('/api/draw', { prizeId: selectedPrizeId });
+      setDrawResult(res.data);
+      setShowStageView(true); // Launch the Wheel
+    } catch (err) {
+      alert(err.response?.data?.error || "Draw failed.");
+      setDrawing(false);
+    }
+  };
+
+  const handleWheelFinish = () => {
+    setDrawing(false);
+    fetchData(); // Update inventory and winners
   };
 
   const resetDraws = async () => {
@@ -95,6 +99,15 @@ const Admin = () => {
 
   return (
     <div className="admin-container">
+      {showStageView && drawResult && (
+        <LuckyDrawWheel 
+          prize={drawResult.prize}
+          winner={drawResult.winner}
+          onFinish={handleWheelFinish}
+          onClose={() => setShowStageView(false)}
+        />
+      )}
+
       <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1>Lucky Draw Dashboard</h1>
@@ -150,16 +163,12 @@ const Admin = () => {
             </select>
           </div>
           <button className="btn giant-draw-btn" onClick={conductDraw} disabled={drawing || !selectedPrizeId}>
-            {drawing ? 'Drawing...' : 'DRAW WINNER!'}
+            {drawing ? 'Launching Wheel...' : 'OPEN STAGE VIEW & DRAW'}
           </button>
-          {drawResult && !drawing && (
-            <div className="draw-result-box">
-              <h3>🎉 Winner Selected! 🎉</h3>
-              <div className="winner-name">{drawResult.winner.name}</div>
-              <div className="winner-dept">{drawResult.winner.department}</div>
-              <div className="winner-prize">Won: {drawResult.prize.name}</div>
-            </div>
-          )}
+          
+          <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+            Clicking the button will open a full-screen spinning wheel for the lucky draw!
+          </p>
         </div>
       </div>
 

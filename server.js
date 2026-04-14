@@ -19,12 +19,26 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
 const initDB = async () => {
-  if (!await fs.pathExists(DB_FILE)) {
-    await fs.writeJson(DB_FILE, { employees: [], prizes: [] });
-  } else {
-    const db = await getDB();
-    if (!db.prizes) db.prizes = [];
-    await saveDB(db);
+  try {
+    // Ensure uploads directory exists
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (!await fs.pathExists(uploadsDir)) {
+      await fs.ensureDir(uploadsDir);
+    }
+
+    if (!await fs.pathExists(DB_FILE)) {
+      await fs.writeJson(DB_FILE, { employees: [], prizes: [] });
+    } else {
+      const db = await getDB();
+      if (!db || typeof db !== 'object') {
+        await fs.writeJson(DB_FILE, { employees: [], prizes: [] });
+      } else if (!db.prizes) {
+        db.prizes = [];
+        await saveDB(db);
+      }
+    }
+  } catch (err) {
+    console.error('Database initialization failed:', err);
   }
 };
 

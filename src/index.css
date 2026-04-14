@@ -1,12 +1,13 @@
 :root {
   --primary: #0a8276;
   --primary-hover: #086d63;
-  --bg-dark: #ffffff;
-  --card-bg: rgba(255, 255, 255, 0.95);
-  --text-main: #1d1d1d;
-  --text-muted: #666666;
-  --glass: rgba(0, 0, 0, 0.03);
-  --border: rgba(10, 130, 118, 0.15);
+  --bg-dark: #f8fafc; /* very light gray to make white cards pop */
+  --card-bg: #ffffff;
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --glass: #ffffff;
+  --border: #e5e7eb;
+  --secondary-btn: #1e293b;
 }
 
 * {
@@ -40,22 +41,32 @@ nav {
 
 .logo {
   font-size: 1.5rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #0ce9d3, #0a8276);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.logo span {
+  font-weight: 800;
+  color: var(--primary);
 }
 
 .nav-links a {
-  color: var(--text-muted);
+  color: var(--text-main);
   text-decoration: none;
-  margin-left: 2rem;
-  transition: color 0.3s;
+  margin-left: 1.5rem;
+  font-weight: 500;
+  padding: 0.6rem 1.2rem;
+  border-radius: 99px;
+  transition: all 0.3s;
 }
 
-.nav-links a:hover, .nav-links a.active {
-  color: var(--primary);
+.nav-links a:hover {
+  background: #f3f4f6;
+}
+
+.nav-links a.active {
+  background: var(--primary);
+  color: white;
 }
 
 /* Scanner Layout */
@@ -92,7 +103,7 @@ nav {
   border: 1px solid var(--border);
   border-radius: 24px;
   padding: 2.5rem;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
 /* Scanner Box */

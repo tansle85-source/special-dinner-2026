@@ -100,7 +100,7 @@ const Admin = () => {
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
           <button 
             className="btn" 
-            style={{ background: '#3b82f6' }}
+            style={{ background: 'var(--secondary-btn)' }}
             onClick={downloadAllQRCodes}
             disabled={qrLoading || employees.length === 0}
           >

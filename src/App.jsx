@@ -8,7 +8,7 @@ const App = () => {
   return (
     <div className="app-container">
       <nav>
-        <div className="logo">DINNER CONNECT v2</div>
+        <div className="logo">Appreciation Night <span>2026</span></div>
         <div className="nav-links">
           <a 
             href="#" 

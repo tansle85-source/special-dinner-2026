@@ -80,6 +80,7 @@ app.post('/api/upload-prizes', upload.single('file'), (req, res) => {
       if (data['Prize Name'] || data['prize']) {
         results.push({
           id: crypto.randomUUID(),
+          session: data['Session'] || data['session'] || 'Session 1',
           rank: parseInt(data['Rank'] || data['rank'] || '0'),
           name: data['Prize Name'] || data['prize'],
           quantity: parseInt(data['Quantity'] || data['quantity'] || '1')

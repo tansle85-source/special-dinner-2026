@@ -1,73 +1,177 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const LuckyDraw = () => {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [prizes, setPrizes] = useState([]);
+  const [activeSession, setActiveSession] = useState('Session 1');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  // Fetch all data for the live dashboard
+  useEffect(() => {
+    fetchDashboardData();
+    // Refresh the dashboard every 5 seconds to show live updates during the event!
+    const interval = setInterval(fetchDashboardData, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-    setLoading(true);
+  const fetchDashboardData = async () => {
     try {
-      const res = await axios.get(`/api/search?query=${encodeURIComponent(query)}`);
-      setResults(res.data);
-      setHasSearched(true);
+      const [empRes, prizeRes] = await Promise.all([
+        axios.get('/api/employees'),
+        axios.get('/api/prizes')
+      ]);
+      setEmployees(empRes.data);
+      setPrizes(prizeRes.data);
     } catch (err) {
-      console.error('Search failed', err);
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch dashboard data', err);
     }
   };
 
+  // Calculations
+  const eligibleCount = employees.filter(e => !e.won_prize).length;
+  
+  // Extract unique sessions from prizes
+  const sessions = Array.from(new Set(prizes.map(p => p.session))).sort();
+  if (sessions.length === 0) sessions.push('Session 1');
+
+  // We want to list every single *drawn* prize and *pending* prize for the active session
+  // Since a prize can have multiple quantities (e.g. 5 headphones), we want to show 5 rows.
+  const tableRows = [];
+  const sessionPrizes = prizes.filter(p => p.session === activeSession).sort((a, b) => a.rank - b.rank);
+  
+  sessionPrizes.forEach(prize => {
+    // Find all winners for this specific prize
+    const winners = employees.filter(e => e.won_prize === prize.name);
+    
+    // Create a row for every winner
+    winners.forEach(winner => {
+      tableRows.push({
+        prizeId: prize.id,
+        rank: prize.rank,
+        prizeName: prize.name,
+        winnerName: winner.name,
+        department: winner.department,
+        status: 'Drawn'
+      });
+    });
+
+    // Create remaining "Pending" rows until we hit the quantity
+    const remaining = prize.quantity - winners.length;
+    for (let i = 0; i < remaining; i++) {
+      tableRows.push({
+        prizeId: prize.id,
+        rank: prize.rank,
+        prizeName: prize.name,
+        winnerName: '-',
+        department: '-',
+        status: 'Pending'
+      });
+    }
+  });
+
+  // Filter based on search query
+  const filteredRows = tableRows.filter(row => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      row.winnerName.toLowerCase().includes(q) || 
+      row.department.toLowerCase().includes(q) ||
+      row.prizeName.toLowerCase().includes(q)
+    );
+  });
+
+  const drawnCountForSession = tableRows.filter(r => r.status === 'Drawn').length;
+
   return (
-    <div className="lucky-draw-container">
-      <div className="search-header">
-        <h1>Did You Win?</h1>
-        <p>Enter your full name to check if you are a lucky winner!</p>
+    <div className="lucky-draw-dashboard">
+      <div className="dashboard-header">
+        <h1>Lucky Draw Winners</h1>
+        <p>Watch as winners are drawn by the administrators!</p>
+        <div className="eligible-counter">
+          Current Eligible (Checked-in): <strong>{eligibleCount}</strong>
+        </div>
       </div>
 
-      <form onSubmit={handleSearch} className="search-form">
-        <input 
-          type="text" 
-          placeholder="Search by your name..." 
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="search-input"
-        />
-        <button type="submit" className="btn search-btn" disabled={loading}>
-          {loading ? 'Searching...' : 'Search'}
-        </button>
-      </form>
-
-      <div className="search-results">
-        {hasSearched && results.length === 0 && (
-          <div className="glass-card result-card empty-result">
-            <p>No employee found matching "{query}". Please try your full name.</p>
-          </div>
-        )}
-
-        {results.map((emp, idx) => (
-          <div key={idx} className={`glass-card result-card ${emp.won_prize ? 'winner-card' : ''}`}>
-            <h3>{emp.name}</h3>
-            <p className="dept">{emp.department}</p>
-            
-            {emp.won_prize ? (
-              <div className="winner-announcement">
-                <div className="confetti">🎉</div>
-                <h2 className="prize-won-text">Winner!</h2>
-                <p className="prize-name">{emp.won_prize}</p>
-              </div>
-            ) : (
-              <div className="no-prize">
-                <p>No prize won yet. Keep your fingers crossed! 🤞</p>
-              </div>
-            )}
-          </div>
+      <div className="session-tabs">
+        {sessions.map(sess => (
+          <button 
+            key={sess} 
+            className={`session-tab ${activeSession === sess ? 'active' : ''}`}
+            onClick={() => setActiveSession(sess)}
+          >
+            {sess}
+          </button>
         ))}
+      </div>
+
+      <div className="dashboard-card">
+        <div className="card-header">
+          <div className="card-title">
+            <span style={{ fontSize: '1.2rem', marginRight: '0.5rem' }}>🏆</span> 
+            Lucky Winners
+          </div>
+          <div className="search-box">
+            <input 
+              type="text" 
+              placeholder="Search by Name, ID, or Dept..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button className="search-icon-btn">🔍 Search</button>
+          </div>
+        </div>
+
+        <div className="table-container">
+          <table className="dashboard-table">
+            <thead>
+              <tr>
+                <th>RANK</th>
+                <th>PRIZE</th>
+                <th>WINNER</th>
+                <th>STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.length > 0 ? (
+                filteredRows.map((row, idx) => (
+                  <tr key={idx} className={row.status === 'Drawn' ? 'drawn-row' : 'pending-row'}>
+                    <td className="rank-col">{row.rank}</td>
+                    <td className="prize-col">{row.prizeName}</td>
+                    <td className="winner-col">
+                      {row.winnerName !== '-' ? (
+                        <div>
+                          <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{row.winnerName}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{row.department}</div>
+                        </div>
+                      ) : (
+                        <span style={{ color: '#d1d5db' }}>Awaiting draw...</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`status-pill ${row.status === 'Drawn' ? 'drawn' : 'pending'}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    No prizes match your search for {activeSession}.
+                  </td>
+                </tr>
+              )}
+              {filteredRows.length === 0 && !searchQuery && tableRows.length === 0 && (
+                <tr>
+                  <td colSpan="4" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    No prizes configured for {activeSession}.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

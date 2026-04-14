@@ -1,6 +1,7 @@
-Rank,Prize Name,Quantity
-1,iPhone 15 Pro,1
-2,iPad Air,2
-3,Sony WH-1000XM5 Headphones,3
-4,Apple Watch Series 9,5
-5,$50 Shopping Voucher,10
+Session,Rank,Prize Name,Quantity
+Session 1,1,iPhone 15 Pro,1
+Session 1,2,iPad Air,2
+Session 2,3,Sony Headphones,5
+Session 2,4,Apple Watch,5
+Session 3,5,Shopping Voucher,10
+Session 4,6,Mystery Gift,20

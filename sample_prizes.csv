@@ -1,7 +1,7 @@
-Session,Rank,Prize Name,Quantity
-Session 1,1,iPhone 15 Pro,1
-Session 1,2,iPad Air,2
-Session 2,3,Sony Headphones,5
-Session 2,4,Apple Watch,5
-Session 3,5,Shopping Voucher,10
-Session 4,6,Mystery Gift,20
+Session,Prize Name,Quantity,Rank
+Session 1,iPhone 15 Pro,1,1
+Session 1,iPad Air,2,2
+Session 2,Sony Headphones,5,3
+Session 2,Apple Watch,5,4
+Session 3,Shopping Voucher,10,5
+Session 4,Mystery Gift,20,6

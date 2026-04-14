@@ -76,17 +76,19 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     .pipe(csv())
     .on('data', (row) => {
       const data = {};
-      Object.keys(row).forEach(key => data[key.trim()] = row[key].trim());
-      const name = data['Name'] || data['name'] || data['Employee name'] || data['Employee Name'];
-      const department = data['Department'] || data['department'];
+      Object.keys(row).forEach(key => data[key.trim().toLowerCase()] = row[key].trim());
+      
+      const name = data['name'] || data['employee name'] || data['full name'] || data['guest name'];
+      const department = data['department'] || data['dept'] || data['unit'];
+      
       if (name) results.push([crypto.randomUUID(), name, department, null]);
     })
     .on('end', async () => {
       try {
-        if (results.length === 0) throw new Error('No valid data found');
+        if (results.length === 0) throw new Error('No valid employee names found. Please check your CSV headers (e.g., Name, Department).');
         
         const connection = await pool.getConnection();
-        await connection.query('DELETE FROM employees'); // Clear current guests
+        await connection.query('DELETE FROM employees'); 
         await connection.query('INSERT INTO employees (id, name, department, won_prize) VALUES ?', [results]);
         connection.release();
         
@@ -107,21 +109,22 @@ app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
     .pipe(csv())
     .on('data', (row) => {
       const data = {};
-      Object.keys(row).forEach(key => data[key.trim()] = row[key].trim());
-      const prizeName = data['Prize Name'] || data['prize'];
+      Object.keys(row).forEach(key => data[key.trim().toLowerCase()] = row[key].trim());
+      
+      const prizeName = data['prize name'] || data['prize'] || data['item'] || data['gift'];
       if (prizeName) {
         results.push([
           crypto.randomUUID(),
-          data['Session'] || data['session'] || 'Session 1',
-          parseInt(data['Rank'] || data['rank'] || '0'),
+          data['session'] || data['stage'] || 'Session 1',
+          parseInt(data['rank'] || data['order'] || data['rank_level'] || '0'),
           prizeName,
-          parseInt(data['Quantity'] || data['quantity'] || '1')
+          parseInt(data['quantity'] || data['qty'] || data['count'] || '1')
         ]);
       }
     })
     .on('end', async () => {
       try {
-        if (results.length === 0) throw new Error('No valid data found');
+        if (results.length === 0) throw new Error('No valid prizes found. Please check your CSV headers (e.g., Session, Prize Name, Quantity, Rank).');
         
         const connection = await pool.getConnection();
         await connection.query('DELETE FROM prizes'); // Clear current prizes

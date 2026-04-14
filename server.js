@@ -71,8 +71,11 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       }
     })
     .on('end', async () => {
+      if (results.length === 0) {
+        await fs.remove(req.file.path);
+        return res.status(400).send('No valid data found in CSV.');
+      }
       const db = await getDB();
-      // Only keep existing prizes, replace employees
       db.employees = results; 
       await saveDB(db);
       await fs.remove(req.file.path);
@@ -91,20 +94,24 @@ app.post('/api/upload-prizes', upload.single('file'), (req, res) => {
       const data = {};
       Object.keys(row).forEach(key => data[key.trim()] = row[key].trim());
       
-      if (data['Prize Name'] || data['prize']) {
+      const prizeName = data['Prize Name'] || data['prize'];
+      if (prizeName) {
         results.push({
           id: crypto.randomUUID(),
           session: data['Session'] || data['session'] || 'Session 1',
           rank: parseInt(data['Rank'] || data['rank'] || '0'),
-          name: data['Prize Name'] || data['prize'],
+          name: prizeName,
           quantity: parseInt(data['Quantity'] || data['quantity'] || '1')
         });
       }
     })
     .on('end', async () => {
+      if (results.length === 0) {
+        await fs.remove(req.file.path);
+        return res.status(400).send('No valid prizes found in CSV.');
+      }
       const db = await getDB();
       db.prizes = results; 
-      // Reset all employee wins if new prizes uploaded? No, let admin decide to reset.
       await saveDB(db);
       await fs.remove(req.file.path);
       res.json({ message: 'Success', count: results.length });

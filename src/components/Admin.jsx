@@ -108,7 +108,7 @@ const Admin = () => {
 
       <div className="admin-panels">
         {/* Management Panel */}
-        <div className="glass-card panel-card">
+        <div className="dashboard-card panel-card">
           <h2>Data Management</h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Upload your Employee and Prize lists (CSV format).</p>
           
@@ -138,7 +138,7 @@ const Admin = () => {
         </div>
 
         {/* Conduct Draw Panel */}
-        <div className="glass-card panel-card highlight-panel">
+        <div className="dashboard-card panel-card highlight-panel">
           <h2>Conduct Lucky Draw</h2>
           
           <div style={{ marginTop: '1.5rem' }}>
@@ -180,9 +180,9 @@ const Admin = () => {
         </div>
       </div>
 
-      <div className="glass-card" style={{ marginTop: '3rem', padding: '0' }}>
+      <div className="dashboard-card" style={{ marginTop: '3rem', padding: '0' }}>
         <h3 style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>Winner List</h3>
-        <table className="admin-table">
+        <table className="dashboard-table">
           <thead>
             <tr>
               <th>Employee Name</th>

@@ -5,50 +5,70 @@ import csv from 'csv-parser';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import crypto from 'crypto'; // For generating unique IDs
+import crypto from 'crypto';
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const DB_FILE = path.join(__dirname, 'db.json');
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// MySQL Connection Pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+// Initialize Database Tables
 const initDB = async () => {
   try {
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(__dirname, 'uploads');
-    if (!await fs.pathExists(uploadsDir)) {
-      await fs.ensureDir(uploadsDir);
-    }
+    const connection = await pool.getConnection();
+    
+    // Create Employees Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS employees (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        department VARCHAR(255),
+        won_prize VARCHAR(255) DEFAULT NULL
+      )
+    `);
 
-    if (!await fs.pathExists(DB_FILE)) {
-      await fs.writeJson(DB_FILE, { employees: [], prizes: [] });
-    } else {
-      const db = await getDB();
-      if (!db || typeof db !== 'object') {
-        await fs.writeJson(DB_FILE, { employees: [], prizes: [] });
-      } else if (!db.prizes) {
-        db.prizes = [];
-        await saveDB(db);
-      }
-    }
+    // Create Prizes Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS prizes (
+        id VARCHAR(255) PRIMARY KEY,
+        session VARCHAR(255),
+        rank_level INT,
+        name VARCHAR(255),
+        quantity INT
+      )
+    `);
+
+    connection.release();
+    console.log('MySQL Database initialized successfully');
   } catch (err) {
-    console.error('Database initialization failed:', err);
+    console.error('Database connection failed. Please check Hostinger Environment Variables.', err.message);
   }
 };
-
-const getDB = () => fs.readJson(DB_FILE);
-const saveDB = (data) => fs.writeJson(DB_FILE, data);
 
 const upload = multer({ dest: 'uploads/' });
 
 // Upload Employees (Name, Department)
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded.');
 
   const results = [];
@@ -57,34 +77,29 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     .on('data', (row) => {
       const data = {};
       Object.keys(row).forEach(key => data[key.trim()] = row[key].trim());
-      
       const name = data['Name'] || data['name'] || data['Employee name'] || data['Employee Name'];
       const department = data['Department'] || data['department'];
-      
-      if (name) {
-        results.push({
-          id: crypto.randomUUID(),
-          name,
-          department,
-          won_prize: null
-        });
-      }
+      if (name) results.push([crypto.randomUUID(), name, department, null]);
     })
     .on('end', async () => {
-      if (results.length === 0) {
+      try {
+        if (results.length === 0) throw new Error('No valid data found');
+        
+        const connection = await pool.getConnection();
+        await connection.query('DELETE FROM employees'); // Clear current guests
+        await connection.query('INSERT INTO employees (id, name, department, won_prize) VALUES ?', [results]);
+        connection.release();
+        
         await fs.remove(req.file.path);
-        return res.status(400).send('No valid data found in CSV.');
+        res.json({ message: 'Success', count: results.length });
+      } catch (err) {
+        res.status(500).send(err.message);
       }
-      const db = await getDB();
-      db.employees = results; 
-      await saveDB(db);
-      await fs.remove(req.file.path);
-      res.json({ message: 'Success', count: results.length });
     });
 });
 
-// Upload Prizes (Rank, Prize Name, Quantity)
-app.post('/api/upload-prizes', upload.single('file'), (req, res) => {
+// Upload Prizes (Session, Prize Name, Quantity, Rank)
+app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded.');
 
   const results = [];
@@ -93,105 +108,86 @@ app.post('/api/upload-prizes', upload.single('file'), (req, res) => {
     .on('data', (row) => {
       const data = {};
       Object.keys(row).forEach(key => data[key.trim()] = row[key].trim());
-      
       const prizeName = data['Prize Name'] || data['prize'];
       if (prizeName) {
-        results.push({
-          id: crypto.randomUUID(),
-          session: data['Session'] || data['session'] || 'Session 1',
-          rank: parseInt(data['Rank'] || data['rank'] || '0'),
-          name: prizeName,
-          quantity: parseInt(data['Quantity'] || data['quantity'] || '1')
-        });
+        results.push([
+          crypto.randomUUID(),
+          data['Session'] || data['session'] || 'Session 1',
+          parseInt(data['Rank'] || data['rank'] || '0'),
+          prizeName,
+          parseInt(data['Quantity'] || data['quantity'] || '1')
+        ]);
       }
     })
     .on('end', async () => {
-      if (results.length === 0) {
+      try {
+        if (results.length === 0) throw new Error('No valid data found');
+        
+        const connection = await pool.getConnection();
+        await connection.query('DELETE FROM prizes'); // Clear current prizes
+        await connection.query('INSERT INTO prizes (id, session, rank_level, name, quantity) VALUES ?', [results]);
+        connection.release();
+        
         await fs.remove(req.file.path);
-        return res.status(400).send('No valid prizes found in CSV.');
+        res.json({ message: 'Success', count: results.length });
+      } catch (err) {
+        res.status(500).send(err.message);
       }
-      const db = await getDB();
-      db.prizes = results; 
-      await saveDB(db);
-      await fs.remove(req.file.path);
-      res.json({ message: 'Success', count: results.length });
     });
 });
 
 app.get('/api/employees', async (req, res) => {
-  const db = await getDB();
-  res.json(db.employees);
+  const [rows] = await pool.query('SELECT * FROM employees');
+  res.json(rows);
 });
 
 app.get('/api/prizes', async (req, res) => {
-  const db = await getDB();
-  res.json(db.prizes || []);
+  const [rows] = await pool.query('SELECT id, session, rank_level as rank, name, quantity FROM prizes ORDER BY rank_level ASC');
+  res.json(rows);
 });
 
-// Search functionality for frontend
 app.get('/api/search', async (req, res) => {
   const { query } = req.query;
   if (!query) return res.json([]);
-  
-  const db = await getDB();
-  const lowerQuery = query.toLowerCase();
-  
-  const matches = db.employees.filter(e => e.name.toLowerCase().includes(lowerQuery));
-  
-  // Return just what is needed
-  res.json(matches.map(e => ({
-    name: e.name,
-    department: e.department,
-    won_prize: e.won_prize
-  })));
+  const [rows] = await pool.query('SELECT name, department, won_prize FROM employees WHERE name LIKE ?', [`%${query}%`]);
+  res.json(rows);
 });
 
-// Trigger a Draw for a specific prize
 app.post('/api/draw', async (req, res) => {
   const { prizeId } = req.body;
-  if (!prizeId) return res.status(400).send('Prize ID required');
+  const connection = await pool.getConnection();
+  try {
+    const [prizeRows] = await connection.query('SELECT * FROM prizes WHERE id = ?', [prizeId]);
+    const prize = prizeRows[0];
+    if (!prize) return res.status(404).send('Prize not found');
 
-  const db = await getDB();
-  
-  const prize = db.prizes.find(p => p.id === prizeId);
-  if (!prize) return res.status(404).send('Prize not found');
+    const [winners] = await connection.query('SELECT * FROM employees WHERE won_prize = ?', [prize.name]);
+    if (winners.length >= prize.quantity) return res.status(400).json({ error: 'Quantity limit reached' });
 
-  const winnersOfThisPrize = db.employees.filter(e => e.won_prize === prize.name);
-  if (winnersOfThisPrize.length >= prize.quantity) {
-    return res.status(400).json({ error: 'All quantities for this prize have been drawn.' });
+    const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL');
+    if (eligible.length === 0) return res.status(400).json({ error: 'No eligible employees' });
+
+    const winner = eligible[Math.floor(Math.random() * eligible.length)];
+    await connection.query('UPDATE employees SET won_prize = ? WHERE id = ?', [prize.name, winner.id]);
+    
+    res.json({ winner, prize });
+  } catch (err) {
+    res.status(500).send(err.message);
+  } finally {
+    connection.release();
   }
-
-  // Find eligible employees (who haven't won anything yet)
-  const eligible = db.employees.filter(e => !e.won_prize);
-  if (eligible.length === 0) {
-    return res.status(400).json({ error: 'No eligible employees left to draw.' });
-  }
-
-  // Pick random winner
-  const winnerIndex = Math.floor(Math.random() * eligible.length);
-  const winner = eligible[winnerIndex];
-
-  // Update DB
-  const dbWinnerIndex = db.employees.findIndex(e => e.id === winner.id);
-  db.employees[dbWinnerIndex].won_prize = prize.name;
-  
-  await saveDB(db);
-
-  res.json({ winner: db.employees[dbWinnerIndex], prize });
 });
 
 app.post('/api/reset-draw', async (req, res) => {
-  const db = await getDB();
-  db.employees.forEach(e => e.won_prize = null);
-  await saveDB(db);
-  res.json({ message: 'Draw reset successfully' });
+  await pool.query('UPDATE employees SET won_prize = NULL');
+  res.json({ message: 'Success' });
 });
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist/index.html'));
 });
 
-app.listen(PORT, async () => {
-  await initDB();
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, () => {
+  initDB();
+  console.log(`Server running on port ${PORT}`);
 });

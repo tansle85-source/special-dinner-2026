@@ -1,6 +1,6 @@
-Name,Employee ID,Email,Department,Diet
-Mohd Kassim Bin Zakaria,30143170,kassim.zakaria@infineon.com,DES DOS IP LAY APT PWR,Non-Veg
-Steven Foo,30143244,Steven.Foo@infineon.com,CLM,Non-Veg
-Clament Wong,30202799,Clament.Wong@infineon.com,Cyber,Non-Veg
-Muhamad Faizal Bin Shamsuddin,30143282,MuhamadFaizal.BinShamsuddin@infineon.com,CSC CLM AP AM4,Non-Veg
-Chang Kye Syen,30143338,KyeSyen.Chang@infineon.com,F ACT GFS MYS CS IPRC,Non-Veg
+Name,Department
+Mohd Kassim Bin Zakaria,DES DOS IP LAY APT PWR
+Steven Foo,CLM
+Clament Wong,Cyber
+Muhamad Faizal Bin Shamsuddin,CSC CLM AP AM4
+Chang Kye Syen,F ACT GFS MYS CS IPRC

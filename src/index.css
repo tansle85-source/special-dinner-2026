@@ -223,3 +223,209 @@ input[type="file"] {
 .upload-label:hover {
   background: rgba(10, 130, 118, 0.1);
 }
+
+/* Lucky Draw Layout */
+.lucky-draw-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.search-header h1 {
+  font-size: 2.5rem;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.search-header p {
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+
+.search-form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 3rem;
+  justify-content: center;
+}
+
+.search-input {
+  flex: 1;
+  max-width: 400px;
+  padding: 1rem 1.5rem;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  font-size: 1.1rem;
+  outline: none;
+  background: var(--card-bg);
+}
+
+.search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(10, 130, 118, 0.2);
+}
+
+.search-btn {
+  border-radius: 99px;
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.result-card {
+  width: 100%;
+  max-width: 500px;
+  text-align: left;
+}
+
+.result-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.result-card .dept {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.winner-announcement {
+  background: rgba(10, 130, 118, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  border: 2px dashed var(--primary);
+}
+
+.confetti {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prize-won-text {
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.prize-name {
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--text-main);
+}
+
+.no-prize {
+  padding: 1rem;
+  background: #f3f4f6;
+  border-radius: 12px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-result {
+  text-align: center;
+  color: #f87171;
+}
+
+/* Admin Panels */
+.admin-panels {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+@media (max-width: 768px) {
+  .admin-panels {
+    flex-direction: column;
+  }
+}
+
+.panel-card {
+  flex: 1;
+}
+
+.highlight-panel {
+  border: 2px solid var(--primary);
+  background: rgba(10, 130, 118, 0.03);
+}
+
+.upload-group {
+  margin-bottom: 1rem;
+}
+
+.status-text {
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.stat-text {
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  color: var(--text-muted);
+}
+
+.select-input {
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 1rem;
+  background: white;
+}
+
+.giant-draw-btn {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, #0a8276, #086d63);
+  box-shadow: 0 10px 15px -3px rgba(10, 130, 118, 0.4);
+}
+
+.giant-draw-btn:hover {
+  transform: translateY(-4px) scale(1.02);
+}
+
+.draw-result-box {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  text-align: center;
+  border: 2px solid #f59e0b;
+  box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.2);
+}
+
+.draw-result-box h3 {
+  color: #d97706;
+  margin-bottom: 1rem;
+}
+
+.winner-name {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.winner-dept {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.winner-prize {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(10, 130, 118, 0.1);
+  padding: 0.5rem;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.admin-table {
+  width: 100%;
+}

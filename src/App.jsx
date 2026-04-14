@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import Scanner from './components/Scanner';
+import LuckyDraw from './components/LuckyDraw';
 import Admin from './components/Admin';
 
 const App = () => {
-  const [view, setView] = useState('scanner'); // 'scanner' or 'admin'
+  const [view, setView] = useState('luckydraw'); // 'luckydraw' or 'admin'
 
   return (
     <div className="app-container">
@@ -12,10 +12,10 @@ const App = () => {
         <div className="nav-links">
           <a 
             href="#" 
-            className={view === 'scanner' ? 'active' : ''} 
-            onClick={() => setView('scanner')}
+            className={view === 'luckydraw' ? 'active' : ''} 
+            onClick={() => setView('luckydraw')}
           >
-            Check-In Scanner
+            Lucky Draw Search
           </a>
           <a 
             href="#" 
@@ -28,7 +28,7 @@ const App = () => {
       </nav>
 
       <main style={{ flex: 1 }}>
-        {view === 'scanner' ? <Scanner /> : <Admin />}
+        {view === 'luckydraw' ? <LuckyDraw /> : <Admin />}
       </main>
     </div>
   );

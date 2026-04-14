@@ -1,179 +1,207 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import QRCode from 'qrcode';
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
 
 const Admin = () => {
   const [employees, setEmployees] = useState([]);
+  const [prizes, setPrizes] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [qrLoading, setQrLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [prizeUploadStatus, setPrizeUploadStatus] = useState('');
+  
+  const [selectedPrizeId, setSelectedPrizeId] = useState('');
+  const [drawResult, setDrawResult] = useState(null);
+  const [drawing, setDrawing] = useState(false);
 
   useEffect(() => {
-    fetchEmployees();
+    fetchData();
   }, []);
 
-  const fetchEmployees = async () => {
+  const fetchData = async () => {
     try {
-      const res = await axios.get('/api/employees');
-      setEmployees(res.data);
+      const empRes = await axios.get('/api/employees');
+      setEmployees(empRes.data);
+      
+      const prizeRes = await axios.get('/api/prizes');
+      // Sort prizes by rank
+      const sortedPrizes = prizeRes.data.sort((a, b) => a.rank - b.rank);
+      setPrizes(sortedPrizes);
     } catch (err) {
-      console.error('Failed to fetch employees');
+      console.error('Failed to fetch data');
     }
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const formData = new FormData();
     formData.append('file', file);
+    
+    const endpoint = type === 'employees' ? '/api/upload' : '/api/upload-prizes';
+    const setStatus = type === 'employees' ? setUploadStatus : setPrizeUploadStatus;
 
     try {
       setLoading(true);
-      setUploadStatus('Uploading...');
-      await axios.post('/api/upload', formData, {
+      setStatus('Uploading...');
+      await axios.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setUploadStatus('Upload successful!');
-      fetchEmployees();
+      setStatus('Upload successful!');
+      fetchData();
     } catch (err) {
-      setUploadStatus('Upload failed. Ensure CSV format is correct.');
+      setStatus('Upload failed. Ensure CSV format is correct.');
     } finally {
       setLoading(false);
+      e.target.value = null; // Clear input
     }
   };
 
-  const downloadAllQRCodes = async () => {
-    if (employees.length === 0) return;
-    setQrLoading(true);
-    const zip = new JSZip();
-    const qrFolder = zip.folder("Employee_QR_Codes");
+  const conductDraw = async () => {
+    if (!selectedPrizeId) {
+      alert("Please select a prize first.");
+      return;
+    }
 
-    try {
-      for (const emp of employees) {
-        // Generate QR code as data URL
-        const qrDataUrl = await QRCode.toDataURL(emp.id, { 
-          width: 500,
-          margin: 2,
-          color: {
-            dark: '#000000',
-            light: '#ffffff'
-          }
-        });
-        
-        // Extract base64 data
-        const base64Data = qrDataUrl.split(',')[1];
-        qrFolder.file(`${emp.id}_${emp.name.replace(/\s+/g, '_')}.png`, base64Data, { base64: true });
+    setDrawing(true);
+    setDrawResult(null);
+
+    // Simulate suspense
+    setTimeout(async () => {
+      try {
+        const res = await axios.post('/api/draw', { prizeId: selectedPrizeId });
+        setDrawResult(res.data);
+        fetchData(); // Refresh to update remaining counts and winner list
+      } catch (err) {
+        alert(err.response?.data?.error || "Draw failed.");
+      } finally {
+        setDrawing(false);
       }
+    }, 1500);
+  };
 
-      const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, "Guest_QR_Codes.zip");
-    } catch (err) {
-      console.error("Failed to generate QR codes", err);
-      alert("Error generating QR codes.");
-    } finally {
-      setQrLoading(false);
+  const resetDraws = async () => {
+    if (window.confirm('Are you sure you want to reset all draw results? This cannot be undone.')) {
+      try {
+        await axios.post('/api/reset-draw');
+        fetchData();
+        setDrawResult(null);
+        alert('All draw results reset.');
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
-  const downloadSingleQR = async (emp) => {
-    try {
-      const qrDataUrl = await QRCode.toDataURL(emp.id, { width: 500 });
-      saveAs(qrDataUrl, `${emp.id}_QR.png`);
-    } catch (err) {
-      console.error(err);
-    }
+  // Helper to count how many of a specific prize have been drawn
+  const getDrawnCount = (prizeName) => {
+    return employees.filter(e => e.won_prize === prizeName).length;
   };
-
-  const checkedInCount = employees.filter(e => e.checked_in).length;
 
   return (
     <div className="admin-container">
-      <div className="admin-header">
+      <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
-          <h1>Admin Dashboard</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Manage guest list and download QR codes</p>
+          <h1>Lucky Draw Dashboard</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Manage your prizes and conduct draws</p>
         </div>
-        
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-          <button 
-            className="btn" 
-            style={{ background: 'var(--secondary-btn)' }}
-            onClick={downloadAllQRCodes}
-            disabled={qrLoading || employees.length === 0}
-          >
-            {qrLoading ? 'Generating...' : 'Download All QR Codes (ZIP)'}
-          </button>
+      </div>
+
+      <div className="admin-panels">
+        {/* Management Panel */}
+        <div className="glass-card panel-card">
+          <h2>Data Management</h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Upload your Employee and Prize lists (CSV format).</p>
           
-          <div style={{ textAlign: 'right' }}>
+          <div className="upload-group">
             <label className="upload-label">
-              {loading ? 'Processing...' : 'Upload CSV Data'}
-              <input type="file" accept=".csv" onChange={handleFileUpload} disabled={loading} />
+              {loading ? 'Processing...' : 'Upload Eligible Employees'}
+              <input type="file" accept=".csv" onChange={(e) => handleFileUpload(e, 'employees')} disabled={loading} />
             </label>
-            <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: uploadStatus.includes('Success') ? '#4ade80' : '#f87171' }}>
-              {uploadStatus}
+            <div className="status-text">{uploadStatus}</div>
+            <div className="stat-text">Total Employees: <strong>{employees.length}</strong></div>
+          </div>
+
+          <hr style={{ margin: '1.5rem 0', borderColor: 'var(--border)' }} />
+
+          <div className="upload-group">
+            <label className="upload-label" style={{ borderColor: 'var(--secondary-btn)', color: 'var(--secondary-btn)' }}>
+              {loading ? 'Processing...' : 'Upload Prizes (Rank, Prize Name, Quantity)'}
+              <input type="file" accept=".csv" onChange={(e) => handleFileUpload(e, 'prizes')} disabled={loading} />
+            </label>
+            <div className="status-text">{prizeUploadStatus}</div>
+            <div className="stat-text">Total Prizes Configured: <strong>{prizes.length}</strong></div>
+          </div>
+          
+          <button onClick={resetDraws} style={{ marginTop: '2rem', padding: '0.5rem 1rem', background: 'transparent', border: '1px solid #f87171', color: '#f87171', borderRadius: '8px', cursor: 'pointer' }}>
+            Reset All Draw Results
+          </button>
+        </div>
+
+        {/* Conduct Draw Panel */}
+        <div className="glass-card panel-card highlight-panel">
+          <h2>Conduct Lucky Draw</h2>
+          
+          <div style={{ marginTop: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Select Prize to Draw:</label>
+            <select 
+              value={selectedPrizeId} 
+              onChange={(e) => setSelectedPrizeId(e.target.value)}
+              className="select-input"
+            >
+              <option value="">-- Choose Prize --</option>
+              {prizes.map(p => {
+                const drawnCount = getDrawnCount(p.name);
+                const remaining = p.quantity - drawnCount;
+                return (
+                  <option key={p.id} value={p.id} disabled={remaining <= 0}>
+                    {p.name} (Rank {p.rank}) - {remaining} left
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <button 
+            className="btn giant-draw-btn"
+            onClick={conductDraw}
+            disabled={drawing || !selectedPrizeId}
+          >
+            {drawing ? 'Drawing...' : 'DRAW WINNER!'}
+          </button>
+
+          {drawResult && !drawing && (
+            <div className="draw-result-box">
+              <h3>🎉 Winner Selected! 🎉</h3>
+              <div className="winner-name">{drawResult.winner.name}</div>
+              <div className="winner-dept">{drawResult.winner.department}</div>
+              <div className="winner-prize">Won: {drawResult.prize.name}</div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginBottom: '3rem' }}>
-        <div className="glass-card" style={{ padding: '1.5rem' }}>
-          <div className="label">Total Guests</div>
-          <div style={{ fontSize: '2rem', fontWeight: '700' }}>{employees.length}</div>
-        </div>
-        <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #4ade80' }}>
-          <div className="label">Checked In</div>
-          <div style={{ fontSize: '2rem', fontWeight: '700', color: '#4ade80' }}>{checkedInCount}</div>
-        </div>
-        <div className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #fbbf24' }}>
-          <div className="label">Attendance %</div>
-          <div style={{ fontSize: '2rem', fontWeight: '700', color: '#fbbf24' }}>
-            {employees.length > 0 ? Math.round((checkedInCount / employees.length) * 100) : 0}%
-          </div>
-        </div>
-      </div>
-
-      <div className="glass-card" style={{ padding: '0' }}>
-        <table>
+      <div className="glass-card" style={{ marginTop: '3rem', padding: '0' }}>
+        <h3 style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>Winner List</h3>
+        <table className="admin-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Name</th>
+              <th>Employee Name</th>
               <th>Department</th>
-              <th>Dietary Req.</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>Prize Won</th>
             </tr>
           </thead>
           <tbody>
-            {employees.map(emp => (
-              <tr key={emp.id}>
-                <td>{emp.id}</td>
-                <td>{emp.name}</td>
+            {employees.filter(e => e.won_prize).map(emp => (
+              <tr key={emp.id} className="winner-row">
+                <td style={{ fontWeight: '600' }}>{emp.name}</td>
                 <td>{emp.department}</td>
-                <td style={{ fontWeight: '500', color: 'var(--primary)' }}>{emp.diet || '-'}</td>
-                <td>
-                  <span className={`status-badge ${emp.checked_in ? 'status-checked' : 'status-pending'}`}>
-                    {emp.checked_in ? 'In' : 'Pending'}
-                  </span>
-                </td>
-                <td>
-                  <button 
-                    onClick={() => downloadSingleQR(emp)}
-                    style={{ background: 'transparent', border: '1px solid var(--primary)', color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                  >
-                    Get QR
-                  </button>
-                </td>
+                <td style={{ color: 'var(--primary)', fontWeight: '700' }}>{emp.won_prize}</td>
               </tr>
             ))}
-            {employees.length === 0 && (
+            {employees.filter(e => e.won_prize).length === 0 && (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                  No guest data available. Please upload a CSV file.
+                <td colSpan="3" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  No winners drawn yet.
                 </td>
               </tr>
             )}

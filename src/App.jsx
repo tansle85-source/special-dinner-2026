@@ -7,29 +7,43 @@ const App = () => {
 
   return (
     <div className="app-container">
-      <nav>
-        <div className="logo">Appreciation Night <span>2026</span></div>
-        <div className="nav-links">
-          <a 
-            href="#" 
+      {/* Top Header - Visible always, but Admin hidden on mobile via CSS */}
+      <nav className="top-nav">
+        <div className="logo">Dinner<span>2026</span></div>
+        <div className="nav-links desktop-menu">
+          <button 
             className={view === 'luckydraw' ? 'active' : ''} 
             onClick={() => setView('luckydraw')}
           >
-            Lucky Draw Search
-          </a>
-          <a 
-            href="#" 
-            className={view === 'admin' ? 'active' : ''} 
+            Dashboard
+          </button>
+          <button 
+            className={`admin-link ${view === 'admin' ? 'active' : ''}`} 
             onClick={() => setView('admin')}
           >
             Admin Panel
-          </a>
+          </button>
         </div>
       </nav>
 
-      <main style={{ flex: 1 }}>
+      {/* Main Content Area */}
+      <main className="main-content">
         {view === 'luckydraw' ? <LuckyDraw /> : <Admin />}
       </main>
+
+      {/* Bottom Nav - Visible ONLY on Mobile via CSS */}
+      <div className="mobile-bottom-nav">
+        <button 
+          className={view === 'luckydraw' ? 'active' : ''} 
+          onClick={() => setView('luckydraw')}
+        >
+          <span className="nav-icon">📊</span>
+          <span className="nav-label">Results</span>
+        </button>
+        {/* Note: Admin is hidden on mobile by default per user request, 
+            but if they ever want a "search" or "home", we can add it here.
+            For now, only "Results" dashboard is shown on mobile. */}
+      </div>
     </div>
   );
 };

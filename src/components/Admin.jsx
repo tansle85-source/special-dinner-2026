@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import LuckyDrawWheel from './LuckyDrawWheel';
 
-const SITE_VERSION = "v1.4.3";
+const SITE_VERSION = "v1.4.4";
 
 const Admin = () => {
   // Navigation State
@@ -64,10 +64,14 @@ const Admin = () => {
     try {
       setLoading(true);
       setUploadStatus('Uploading...');
-      await axios.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setUploadStatus('Upload successful!');
+      const res = await axios.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setUploadStatus(`Success: ${res.data.count} records processed`);
       fetchAllData();
-    } catch (err) { setUploadStatus('Upload failed'); } finally { setLoading(false); e.target.value = null; }
+    } catch (err) { 
+      const errMsg = err.response?.data || err.message;
+      setUploadStatus(`Error: ${errMsg}`); 
+      console.error("Upload failed", err);
+    } finally { setLoading(false); e.target.value = null; }
   };
 
   const conductDraw = async () => {

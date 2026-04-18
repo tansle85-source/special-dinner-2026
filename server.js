@@ -27,6 +27,8 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+const upload = multer({ dest: path.join(__dirname, 'uploads/') });
+
 // MySQL Connection Pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -122,7 +124,6 @@ const initDB = async () => {
   }
 };
 
-const upload = multer({ dest: 'uploads/' });
 
 // --- PRIZE CRUD ---
 app.post('/api/prizes', async (req, res) => {
@@ -244,15 +245,20 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   fs.createReadStream(req.file.path)
     .pipe(csv())
     .on('data', (row) => {
-      const data = {};
-      // Clean keys of BOM and hidden characters
-      Object.keys(row).forEach(key => {
-        const cleanKey = key.replace(/^\uFEFF/, '').trim().toLowerCase();
-        data[cleanKey] = row[key].trim();
-      });
+      const rowKeys = Object.keys(row);
+      const cleanKeys = rowKeys.map(k => k.replace(/^\uFEFF/, '').trim());
       
-      const name = data['name'] || data['employee name'] || data['full name'] || data['guest name'];
-      const department = data['department'] || data['dept'] || data['unit'];
+      if (results.length === 0) console.log("RAW EMPLOYEE HEADERS:", cleanKeys);
+
+      const data = {};
+      cleanKeys.forEach((key, i) => data[key.toLowerCase()] = row[rowKeys[i]].trim());
+      
+      // Permissive find: Look for any column containing 'name' or 'dept/unit'
+      const nameKey = cleanKeys.find(k => k.toLowerCase().includes('name'))?.toLowerCase();
+      const deptKey = cleanKeys.find(k => k.toLowerCase().includes('dept') || k.toLowerCase().includes('unit'))?.toLowerCase();
+
+      const name = data[nameKey] || data['name'];
+      const department = data[deptKey] || data['department'] || '';
       
       if (name) results.push([crypto.randomUUID(), name, department, null]);
     })
@@ -284,21 +290,28 @@ app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
   fs.createReadStream(req.file.path)
     .pipe(csv())
     .on('data', (row) => {
-      const data = {};
-      // Clean keys of BOM and hidden characters
-      Object.keys(row).forEach(key => {
-        const cleanKey = key.replace(/^\uFEFF/, '').trim().toLowerCase();
-        data[cleanKey] = row[key].trim();
-      });
+      const rowKeys = Object.keys(row);
+      const cleanKeys = rowKeys.map(k => k.replace(/^\uFEFF/, '').trim());
       
-      const prizeName = data['prize name'] || data['prize'] || data['item'] || data['gift'];
+      if (results.length === 0) console.log("RAW PRIZE HEADERS:", cleanKeys);
+
+      const data = {};
+      cleanKeys.forEach((key, i) => data[key.toLowerCase()] = row[rowKeys[i]].trim());
+      
+      // Permissive search for prize fields
+      const prizeNameKey = cleanKeys.find(k => k.toLowerCase().includes('prize') || k.toLowerCase().includes('item'))?.toLowerCase();
+      const sessKey = cleanKeys.find(k => k.toLowerCase().includes('sess') || k.toLowerCase().includes('stage'))?.toLowerCase();
+      const rankKey = cleanKeys.find(k => k.toLowerCase().includes('rank') || k.toLowerCase().includes('order'))?.toLowerCase();
+      const qtyKey = cleanKeys.find(k => k.toLowerCase().includes('qty') || k.toLowerCase().includes('count') || k.toLowerCase().includes('quantity'))?.toLowerCase();
+
+      const prizeName = data[prizeNameKey];
       if (prizeName) {
         results.push([
           crypto.randomUUID(),
-          data['session'] || data['stage'] || 'Session 1',
-          parseInt(data['rank'] || data['order'] || data['rank_level'] || '0'),
+          data[sessKey] || 'Session 1',
+          parseInt(data[rankKey] || '0'),
           prizeName,
-          parseInt(data['quantity'] || data['qty'] || data['count'] || '1')
+          parseInt(data[qtyKey] || '1')
         ]);
       }
     })

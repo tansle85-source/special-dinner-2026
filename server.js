@@ -25,19 +25,24 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'online', 
-    version: '1.4.5', 
+    version: '1.4.7', 
     db: pool ? 'connected' : 'disconnected',
     time: new Date().toISOString() 
   });
 });
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// Ensure upload directory exists - Wrapped in try/catch to prevent 503 startup crashes
+try {
+  const uploadDir = path.join(__dirname, 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Warning: Could not create uploads directory:', err.message);
 }
 
-const upload = multer({ dest: path.join(__dirname, 'uploads/') });
+// Use relative path for Multer destination - more compatible with some proxy setups
+const upload = multer({ dest: 'uploads/' });
 
 // MySQL Connection Pool
 const pool = mysql.createPool({

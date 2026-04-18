@@ -21,6 +21,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// Ensure upload directory exists
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 // MySQL Connection Pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -239,7 +245,11 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     .pipe(csv())
     .on('data', (row) => {
       const data = {};
-      Object.keys(row).forEach(key => data[key.trim().toLowerCase()] = row[key].trim());
+      // Clean keys of BOM and hidden characters
+      Object.keys(row).forEach(key => {
+        const cleanKey = key.replace(/^\uFEFF/, '').trim().toLowerCase();
+        data[cleanKey] = row[key].trim();
+      });
       
       const name = data['name'] || data['employee name'] || data['full name'] || data['guest name'];
       const department = data['department'] || data['dept'] || data['unit'];
@@ -250,14 +260,17 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       try {
         if (results.length === 0) throw new Error('No valid employee names found. Please check your CSV headers (e.g., Name, Department).');
         
+        console.log(`Attempting to upload ${results.length} employees...`);
         const connection = await pool.getConnection();
         await connection.query('DELETE FROM employees'); 
         await connection.query('INSERT INTO employees (id, name, department, won_prize) VALUES ?', [results]);
         connection.release();
         
         await fs.remove(req.file.path);
+        console.log('Employee upload success');
         res.json({ message: 'Success', count: results.length });
       } catch (err) {
+        console.error('Employee upload error:', err.message);
         res.status(500).send(err.message);
       }
     });
@@ -272,7 +285,11 @@ app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
     .pipe(csv())
     .on('data', (row) => {
       const data = {};
-      Object.keys(row).forEach(key => data[key.trim().toLowerCase()] = row[key].trim());
+      // Clean keys of BOM and hidden characters
+      Object.keys(row).forEach(key => {
+        const cleanKey = key.replace(/^\uFEFF/, '').trim().toLowerCase();
+        data[cleanKey] = row[key].trim();
+      });
       
       const prizeName = data['prize name'] || data['prize'] || data['item'] || data['gift'];
       if (prizeName) {
@@ -289,14 +306,17 @@ app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
       try {
         if (results.length === 0) throw new Error('No valid prizes found. Please check your CSV headers (e.g., Session, Prize Name, Quantity, Rank).');
         
+        console.log(`Attempting to upload ${results.length} prizes...`);
         const connection = await pool.getConnection();
-        await connection.query('DELETE FROM prizes'); // Clear current prizes
+        await connection.query('DELETE FROM prizes'); 
         await connection.query('INSERT INTO prizes (id, session, rank_level, name, quantity) VALUES ?', [results]);
         connection.release();
         
         await fs.remove(req.file.path);
+        console.log('Prize upload success');
         res.json({ message: 'Success', count: results.length });
       } catch (err) {
+        console.error('Prize upload error:', err.message);
         res.status(500).send(err.message);
       }
     });

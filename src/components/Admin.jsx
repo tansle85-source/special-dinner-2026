@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import LuckyDrawWheel from './LuckyDrawWheel';
 
-const SITE_VERSION = "v1.4.4";
+const SITE_VERSION = "v1.4.5";
 
 const Admin = () => {
   // Navigation State

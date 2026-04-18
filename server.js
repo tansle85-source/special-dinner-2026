@@ -21,6 +21,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// Health Check for 503 Monitoring
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'online', 
+    version: '1.4.5', 
+    db: pool ? 'connected' : 'disconnected',
+    time: new Date().toISOString() 
+  });
+});
+
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -69,7 +79,7 @@ const initDB = async () => {
     // Create Performance Tables
     await connection.query(`
       CREATE TABLE IF NOT EXISTS performance_criteria (
-        id INT AUTO_VALUE_INCREMENT PRIMARY KEY,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL
       )
     `);

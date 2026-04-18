@@ -83,96 +83,164 @@ const LuckyDraw = () => {
 
   const drawnCountForSession = tableRows.filter(r => r.status === 'Drawn').length;
 
+  const [activeTab, setActiveTab] = useState('luckydraw'); // luckydraw, performance, feedback
+  const [participants, setParticipants] = useState([]);
+  const [criteria, setCriteria] = useState([]);
+  const [votingStatus, setVotingStatus] = useState({});
+
+  useEffect(() => {
+    if (activeTab === 'performance') fetchPerformanceData();
+  }, [activeTab]);
+
+  const fetchPerformanceData = async () => {
+    const [partRes, critRes] = await Promise.all([
+      axios.get('/api/performance/participants'),
+      axios.get('/api/performance/criteria')
+    ]);
+    setParticipants(partRes.data);
+    setCriteria(critRes.data);
+  };
+
+  const submitVote = async (participantId, scores) => {
+    try {
+      await axios.post('/api/performance/rate', {
+        participant_id: participantId,
+        score_1: scores[0],
+        score_2: scores[1],
+        score_3: scores[2]
+      });
+      setVotingStatus({...votingStatus, [participantId]: 'Voted!'});
+    } catch (err) { alert("Vote failed"); }
+  };
+
   return (
     <div className="lucky-draw-dashboard">
-      <div className="dashboard-header">
-        <h1>Lucky Draw Winners</h1>
-        <p>Watch as winners are drawn by the administrators!</p>
-        <div className="eligible-counter">
-          Current Eligible (Checked-in): <strong>{eligibleCount}</strong>
-        </div>
+      <div className="dashboard-nav-tabs">
+        <button className={activeTab === 'luckydraw' ? 'active' : ''} onClick={() => setActiveTab('luckydraw')}>🏆 Draw Results</button>
+        <button className={activeTab === 'performance' ? 'active' : ''} onClick={() => setActiveTab('performance')}>🎭 Performance</button>
+        <button className={activeTab === 'feedback' ? 'active' : ''} onClick={() => setActiveTab('feedback')}>💬 Feedback</button>
       </div>
 
-      <div className="session-tabs">
-        {sessions.map(sess => (
-          <button 
-            key={sess} 
-            className={`session-tab ${activeSession === sess ? 'active' : ''}`}
-            onClick={() => setActiveSession(sess)}
-          >
-            {sess}
-          </button>
-        ))}
-      </div>
-
-      <div className="dashboard-card">
-        <div className="card-header">
-          <div className="card-title">
-            <span style={{ fontSize: '1.2rem', marginRight: '0.5rem' }}>🏆</span> 
-            Lucky Winners
+      {activeTab === 'luckydraw' && (
+        <>
+          <div className="dashboard-header">
+            <h1>Lucky Draw Winners</h1>
+            <p>Watch rewards being drawn live!</p>
+            <div className="eligible-counter">
+              Remaining Eligible: <strong>{eligibleCount}</strong>
+            </div>
           </div>
-          <div className="search-box">
-            <input 
-              type="text" 
-              placeholder="Search by Name, ID, or Dept..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button className="search-icon-btn">🔍 Search</button>
-          </div>
-        </div>
 
-        <div className="table-container">
-          <table className="dashboard-table">
-            <thead>
-              <tr>
-                <th>RANK</th>
-                <th>PRIZE</th>
-                <th>WINNER</th>
-                <th>STATUS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRows.length > 0 ? (
-                filteredRows.map((row, idx) => (
-                  <tr key={idx} className={row.status === 'Drawn' ? 'drawn-row' : 'pending-row'}>
-                    <td className="rank-col">{row.rank}</td>
-                    <td className="prize-col">{row.prizeName}</td>
-                    <td className="winner-col">
-                      {row.winnerName !== '-' ? (
-                        <div>
-                          <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{row.winnerName}</div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{row.department}</div>
+          <div className="session-tabs">
+            {sessions.map(sess => (
+              <button key={sess} className={`session-tab ${activeSession === sess ? 'active' : ''}`} onClick={() => setActiveSession(sess)}>{sess}</button>
+            ))}
+          </div>
+
+          <div className="dashboard-card">
+            <div className="card-header">
+              <div className="card-title">Lucky Winners</div>
+              <div className="search-box">
+                <input type="text" placeholder="Search name/dept..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="table-container">
+              <table className="dashboard-table">
+                <thead><tr><th>PRIZE</th><th>WINNER</th><th>STATUS</th></tr></thead>
+                <tbody>
+                  {filteredRows.map((row, idx) => (
+                    <tr key={idx} className={row.status === 'Drawn' ? 'drawn-row' : 'pending-row'}>
+                      <td className="prize-col">{row.prizeName}</td>
+                      <td className="winner-col">
+                        {row.winnerName !== '-' ? (
+                          <div>
+                            <div className="bold">{row.winnerName}</div>
+                            <div className="small-dept">{row.department}</div>
+                          </div>
+                        ) : <span className="muted">Pending...</span>}
+                      </td>
+                      <td><span className={`status-pill ${row.status.toLowerCase()}`}>{row.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'performance' && (
+        <div className="performance-voting-view">
+          <h2>Performance Voting</h2>
+          <p>Rate each participant below (1-5 Excellence)</p>
+          <div className="participants-list">
+            {participants.map(p => (
+              <div key={p.id} className="vote-card card">
+                <h3>{p.name}</h3>
+                <p>{p.department}</p>
+                {votingStatus[p.id] ? (
+                  <div className="voted-msg">✅ {votingStatus[p.id]}</div>
+                ) : (
+                  <div className="rating-inputs">
+                    {criteria.map((c, i) => (
+                      <div key={c.id} className="rating-row">
+                        <label>{c.name}</label>
+                        <div className="star-rating">
+                          {[1,2,3,4,5].map(num => (
+                            <button key={num} onClick={() => {
+                              const currentScores = p.scores || [3,3,3];
+                              currentScores[i] = num;
+                              setParticipants(participants.map(part => part.id === p.id ? {...part, scores: currentScores} : part));
+                            }} className={(p.scores?.[i] || 0) >= num ? 'active' : ''}>★</button>
+                          ))}
                         </div>
-                      ) : (
-                        <span style={{ color: '#d1d5db' }}>Awaiting draw...</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`status-pill ${row.status === 'Drawn' ? 'drawn' : 'pending'}`}>
-                        {row.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                    No prizes match your search for {activeSession}.
-                  </td>
-                </tr>
-              )}
-              {filteredRows.length === 0 && !searchQuery && tableRows.length === 0 && (
-                <tr>
-                  <td colSpan="4" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                    No prizes configured for {activeSession}.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      </div>
+                    ))}
+                    <button className="submit-vote-btn" onClick={() => submitVote(p.id, p.scores || [3,3,3])}>Submit Scores</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {activeTab === 'feedback' && (
+        <div className="feedback-view card">
+          <h2>Event Feedback</h2>
+          <p>Tell us how we did!</p>
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const data = new FormData(e.target);
+            await axios.post('/api/feedback', { comment: data.get('comment'), rating: data.get('rating') });
+            alert("Thank you!"); e.target.reset();
+          }}>
+            <label>Rating (1-5)</label>
+            <input name="rating" type="number" min="1" max="5" defaultValue="5" required />
+            <label>Comment</label>
+            <textarea name="comment" required></textarea>
+            <button type="submit" className="submit-vote-btn">Send Feedback</button>
+          </form>
+        </div>
+      )}
+
+      <style>{`
+        .dashboard-nav-tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; background: white; padding: 0.5rem; border-radius: 99px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .dashboard-nav-tabs button { flex: 1; border: none; background: transparent; padding: 0.8rem; border-radius: 99px; font-weight: 700; color: var(--text-muted); }
+        .dashboard-nav-tabs button.active { background: var(--primary); color: white; }
+        .card { background: white; padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+        .bold { font-weight: 700; }
+        .small-dept { font-size: 0.8rem; color: var(--text-muted); }
+        .muted { color: #d1d5db; }
+        .vote-card h3 { color: var(--primary); margin-bottom: 0.5rem; }
+        .rating-row { display: flex; justify-content: space-between; align-items: center; margin: 1rem 0; }
+        .star-rating button { background: none; border: none; font-size: 1.5rem; color: #e2e8f0; cursor: pointer; }
+        .star-rating button.active { color: #facc15; }
+        .submit-vote-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: 700; margin-top: 1rem; }
+        .feedback-view textarea { width: 100%; height: 100px; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; margin: 1rem 0; }
+        .voted-msg { font-weight: 700; color: var(--primary); margin-top: 1rem; }
+      `}</style>
     </div>
   );
 };

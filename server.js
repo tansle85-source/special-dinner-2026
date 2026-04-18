@@ -58,14 +58,177 @@ const initDB = async () => {
       )
     `);
 
+    // Create Performance Tables
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS performance_criteria (
+        id INT AUTO_VALUE_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL
+      )
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS performance_participants (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        department VARCHAR(255)
+      )
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS performance_scores (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        participant_id VARCHAR(255),
+        score_1 INT,
+        score_2 INT,
+        score_3 INT
+      )
+    `);
+
+    // Create Best Dress Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS best_dress_votes (
+        id VARCHAR(255) PRIMARY KEY,
+        nominee_name VARCHAR(255) NOT NULL,
+        vote_count INT DEFAULT 0
+      )
+    `);
+
+    // Create Feedback Table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS feedback (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        comment TEXT,
+        rating INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Seed default criteria if empty
+    const [criteria] = await connection.query('SELECT * FROM performance_criteria');
+    if (criteria.length === 0) {
+      await connection.query('INSERT INTO performance_criteria (name) VALUES (?), (?), (?)', ['Vocal/Talent', 'Stage Presence', 'Costume']);
+    }
+
     connection.release();
     console.log('MySQL Database initialized successfully');
   } catch (err) {
-    console.error('Database connection failed. Please check Hostinger Environment Variables.', err.message);
+    console.error('Database connection failed.', err.message);
   }
 };
 
 const upload = multer({ dest: 'uploads/' });
+
+// --- PRIZE CRUD ---
+app.post('/api/prizes', async (req, res) => {
+  const { session, rank, name, quantity } = req.body;
+  try {
+    const id = crypto.randomUUID();
+    await pool.query('INSERT INTO prizes (id, session, rank_level, name, quantity) VALUES (?, ?, ?, ?, ?)', 
+      [id, session, rank, name, quantity]);
+    res.json({ id, message: 'Prize added' });
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+app.put('/api/prizes/:id', async (req, res) => {
+  const { id } = req.params;
+  const { session, rank, name, quantity } = req.body;
+  try {
+    await pool.query('UPDATE prizes SET session = ?, rank_level = ?, name = ?, quantity = ? WHERE id = ?', 
+      [session, rank, name, quantity, id]);
+    res.json({ message: 'Prize updated' });
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+app.delete('/api/prizes/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM prizes WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Prize deleted' });
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+// --- EMPLOYEE CRUD ---
+app.post('/api/employees', async (req, res) => {
+  const { name, department } = req.body;
+  try {
+    const id = crypto.randomUUID();
+    await pool.query('INSERT INTO employees (id, name, department, won_prize) VALUES (?, ?, ?, NULL)', [id, name, department]);
+    res.json({ id, message: 'Employee added' });
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+app.put('/api/employees/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, department, won_prize } = req.body;
+  try {
+    await pool.query('UPDATE employees SET name = ?, department = ?, won_prize = ? WHERE id = ?', [name, department, won_prize, id]);
+    res.json({ message: 'Employee updated' });
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+app.delete('/api/employees/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM employees WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Employee deleted' });
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+// --- PERFORMANCE CRUD ---
+app.get('/api/performance/criteria', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM performance_criteria');
+  res.json(rows);
+});
+
+app.put('/api/performance/criteria/:id', async (req, res) => {
+  await pool.query('UPDATE performance_criteria SET name = ? WHERE id = ?', [req.body.name, req.params.id]);
+  res.json({ message: 'Criteria updated' });
+});
+
+app.get('/api/performance/participants', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM performance_participants');
+  res.json(rows);
+});
+
+app.post('/api/performance/participants', async (req, res) => {
+  const id = crypto.randomUUID();
+  await pool.query('INSERT INTO performance_participants (id, name, department) VALUES (?, ?, ?)', [id, req.body.name, req.body.department]);
+  res.json({ id });
+});
+
+app.delete('/api/performance/participants/:id', async (req, res) => {
+  await pool.query('DELETE FROM performance_participants WHERE id = ?', [req.params.id]);
+  res.json({ message: 'Deleted' });
+});
+
+app.post('/api/performance/rate', async (req, res) => {
+  const { participant_id, score_1, score_2, score_3 } = req.body;
+  await pool.query('INSERT INTO performance_scores (participant_id, score_1, score_2, score_3) VALUES (?, ?, ?, ?)', 
+    [participant_id, score_1, score_2, score_3]);
+  res.json({ success: true });
+});
+
+app.get('/api/performance/results', async (req, res) => {
+  const [rows] = await pool.query(`
+    SELECT p.name, p.department, 
+    AVG(s.score_1) as s1, AVG(s.score_2) as s2, AVG(s.score_3) as s3,
+    (AVG(s.score_1) + AVG(s.score_2) + AVG(s.score_3)) / 3 as total
+    FROM performance_participants p
+    LEFT JOIN performance_scores s ON p.id = s.participant_id
+    GROUP BY p.id
+    ORDER BY total DESC
+  `);
+  res.json(rows);
+});
+
+// --- FEEDBACK & BEST DRESS ---
+app.post('/api/feedback', async (req, res) => {
+  await pool.query('INSERT INTO feedback (comment, rating) VALUES (?, ?)', [req.body.comment, req.body.rating]);
+  res.json({ success: true });
+});
+
+app.get('/api/feedback', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM feedback ORDER BY created_at DESC');
+  res.json(rows);
+});
 
 // Upload Employees (Name, Department)
 app.post('/api/upload', upload.single('file'), async (req, res) => {

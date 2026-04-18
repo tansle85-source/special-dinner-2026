@@ -9,7 +9,7 @@ const App = () => {
     <div className="app-container">
       {/* Top Header - Visible always, but Admin hidden on mobile via CSS */}
       <nav className="top-nav">
-        <div className="logo">Dinner<span>2026</span></div>
+        <div className="logo">Appreciation Dinner <span>2026</span></div>
         <div className="nav-links desktop-menu">
           <button 
             className={view === 'luckydraw' ? 'active' : ''} 

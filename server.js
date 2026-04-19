@@ -9,7 +9,17 @@ import crypto from 'crypto';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ override: true });
+
+// Global Error Handlers to prevent 503 crashes and log reasons
+process.on('uncaughtException', (err) => {
+  console.error('CRITICAL UNCAUGHT EXCEPTION:', err.message);
+  console.error(err.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,23 +54,35 @@ try {
 // Use relative path for Multer destination - more compatible with some proxy setups
 const upload = multer({ dest: 'uploads/' });
 
-// MySQL Connection Pool
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || '127.0.0.1',
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+// MySQL Connection Pool (Deferred creation for stability)
+let pool;
+try {
+  const poolConfig = {
+    host: process.env.DB_HOST || '127.0.0.1',
+    port: parseInt(process.env.DB_PORT || '3306'),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS || process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+  };
+
+  console.log(`Initialising MySQL pool for ${poolConfig.user}@${poolConfig.host}:${poolConfig.port}/${poolConfig.database}...`);
+  pool = mysql.createPool(poolConfig);
+} catch (err) {
+  console.error('FATAL: Failed to create MySQL pool object:', err.message);
+}
 
 // Initialize Database Tables
 const initDB = async () => {
+  if (!pool) return console.error('Aborting initDB: Pool not created.');
+  
   try {
     const connection = await pool.getConnection();
+    console.log('Successfully connected to database. Initializing tables...');
     
-    // Create Employees Table
+    // Create Tables...
     await connection.query(`
       CREATE TABLE IF NOT EXISTS employees (
         id VARCHAR(255) PRIMARY KEY,
@@ -70,7 +92,6 @@ const initDB = async () => {
       )
     `);
 
-    // Create Prizes Table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS prizes (
         id VARCHAR(255) PRIMARY KEY,
@@ -81,52 +102,13 @@ const initDB = async () => {
       )
     `);
 
-    // Create Performance Tables
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS performance_criteria (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL
-      )
-    `);
+    // ... [Rest of table creation queries remain original] ...
+    await connection.query(`CREATE TABLE IF NOT EXISTS performance_criteria (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL)`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS performance_participants (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL, department VARCHAR(255))`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS performance_scores (id INT AUTO_INCREMENT PRIMARY KEY, participant_id VARCHAR(255), score_1 INT, score_2 INT, score_3 INT)`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_votes (id VARCHAR(255) PRIMARY KEY, nominee_name VARCHAR(255) NOT NULL, vote_count INT DEFAULT 0)`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS feedback (id INT AUTO_INCREMENT PRIMARY KEY, comment TEXT, rating INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS performance_participants (
-        id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        department VARCHAR(255)
-      )
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS performance_scores (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        participant_id VARCHAR(255),
-        score_1 INT,
-        score_2 INT,
-        score_3 INT
-      )
-    `);
-
-    // Create Best Dress Table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS best_dress_votes (
-        id VARCHAR(255) PRIMARY KEY,
-        nominee_name VARCHAR(255) NOT NULL,
-        vote_count INT DEFAULT 0
-      )
-    `);
-
-    // Create Feedback Table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS feedback (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        comment TEXT,
-        rating INT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Seed default criteria if empty
     const [criteria] = await connection.query('SELECT * FROM performance_criteria');
     if (criteria.length === 0) {
       await connection.query('INSERT INTO performance_criteria (name) VALUES (?), (?), (?)', ['Vocal/Talent', 'Stage Presence', 'Costume']);
@@ -135,7 +117,8 @@ const initDB = async () => {
     connection.release();
     console.log('MySQL Database initialized successfully');
   } catch (err) {
-    console.error('Database connection failed.', err.message);
+    console.error('Database connection or initialization failed:', err.message);
+    console.log('Continuing server startup despite DB failure to avoid 503.');
   }
 };
 

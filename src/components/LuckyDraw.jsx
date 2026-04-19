@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 const LuckyDraw = () => {
   const [employees, setEmployees] = useState([]);
   const [prizes, setPrizes] = useState([]);
   const [activeSession, setActiveSession] = useState('Session 1');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Fetch all data for the live dashboard
   useEffect(() => {
-    fetchDashboardData();
-    // Refresh the dashboard every 5 seconds to show live updates during the event!
-    const interval = setInterval(fetchDashboardData, 5000);
+    fetchData();
+    const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
     try {
       const [empRes, prizeRes] = await Promise.all([
         axios.get('/api/employees'),
@@ -24,222 +24,245 @@ const LuckyDraw = () => {
       setEmployees(empRes.data);
       setPrizes(prizeRes.data);
     } catch (err) {
-      console.error('Failed to fetch dashboard data', err);
+      console.error('Data sync failed', err);
     }
   };
 
-  // Calculations
-  const eligibleCount = employees.filter(e => !e.won_prize).length;
-  
-  // Extract unique sessions from prizes
-  const sessions = Array.from(new Set(prizes.map(p => p.session))).sort();
-  if (sessions.length === 0) sessions.push('Session 1');
+  const handleNextDraw = async () => {
+    try {
+      setLoading(true);
+      await axios.post('/api/draw/next', { session: activeSession });
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.error || "Draw failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // We want to list every single *drawn* prize and *pending* prize for the active session
-  // Since a prize can have multiple quantities (e.g. 5 headphones), we want to show 5 rows.
-  const tableRows = [];
-  const sessionPrizes = prizes.filter(p => p.session === activeSession).sort((a, b) => a.rank - b.rank);
-  
+  const handleDrawAll = async () => {
+    if (!window.confirm(`Draw ALL remaining prizes for ${activeSession}?`)) return;
+    try {
+      setLoading(true);
+      await axios.post('/api/draw/session-all', { session: activeSession });
+      fetchData();
+    } catch (err) {
+      alert("Batch draw failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetSession = async () => {
+    if (!window.confirm(`Reset ALL winners for ${activeSession} only?`)) return;
+    try {
+      setLoading(true);
+      await axios.post('/api/draw/session-reset', { session: activeSession });
+      fetchData();
+    } catch (err) {
+      alert("Reset failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
+  };
+
+  // Logic: Get winners specifically for current session
+  const sessionPrizes = prizes.filter(p => p.session === activeSession);
+  const winnersForSession = [];
   sessionPrizes.forEach(prize => {
-    // Find all winners for this specific prize
     const winners = employees.filter(e => e.won_prize === prize.name);
+    winners.forEach(w => winnersForSession.push({ ...w, prizeName: prize.name, rank: prize.rank }));
     
-    // Create a row for every winner
-    winners.forEach(winner => {
-      tableRows.push({
-        prizeId: prize.id,
-        rank: prize.rank,
-        prizeName: prize.name,
-        winnerName: winner.name,
-        department: winner.department,
-        status: 'Drawn'
-      });
-    });
-
-    // Create remaining "Pending" rows until we hit the quantity
+    // Add pending slots
     const remaining = prize.quantity - winners.length;
     for (let i = 0; i < remaining; i++) {
-      tableRows.push({
-        prizeId: prize.id,
-        rank: prize.rank,
-        prizeName: prize.name,
-        winnerName: '-',
-        department: '-',
-        status: 'Pending'
-      });
+      winnersForSession.push({ name: '-', department: '-', prizeName: prize.name, rank: prize.rank, isPending: true });
     }
   });
 
-  // Filter based on search query
-  const filteredRows = tableRows.filter(row => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      row.winnerName.toLowerCase().includes(q) || 
-      row.department.toLowerCase().includes(q) ||
-      row.prizeName.toLowerCase().includes(q)
-    );
-  });
-
-  const drawnCountForSession = tableRows.filter(r => r.status === 'Drawn').length;
-
-  const [activeTab, setActiveTab] = useState('luckydraw'); // luckydraw, performance, feedback
-  const [participants, setParticipants] = useState([]);
-  const [criteria, setCriteria] = useState([]);
-  const [votingStatus, setVotingStatus] = useState({});
-
-  useEffect(() => {
-    if (activeTab === 'performance') fetchPerformanceData();
-  }, [activeTab]);
-
-  const fetchPerformanceData = async () => {
-    const [partRes, critRes] = await Promise.all([
-      axios.get('/api/performance/participants'),
-      axios.get('/api/performance/criteria')
-    ]);
-    setParticipants(partRes.data);
-    setCriteria(critRes.data);
-  };
-
-  const submitVote = async (participantId, scores) => {
-    try {
-      await axios.post('/api/performance/rate', {
-        participant_id: participantId,
-        score_1: scores[0],
-        score_2: scores[1],
-        score_3: scores[2]
-      });
-      setVotingStatus({...votingStatus, [participantId]: 'Voted!'});
-    } catch (err) { alert("Vote failed"); }
-  };
+  const eligibleEmployees = employees.filter(e => !e.won_prize);
+  const uniqueSessions = [...new Set(prizes.map(p => p.session))].sort();
 
   return (
-    <div className="lucky-draw-dashboard">
-      <div className="dashboard-nav-tabs">
-        <button className={activeTab === 'luckydraw' ? 'active' : ''} onClick={() => setActiveTab('luckydraw')}>🏆 Draw Results</button>
-        <button className={activeTab === 'performance' ? 'active' : ''} onClick={() => setActiveTab('performance')}>🎭 Performance</button>
-        <button className={activeTab === 'feedback' ? 'active' : ''} onClick={() => setActiveTab('feedback')}>💬 Feedback</button>
-      </div>
+    <div className="premium-dashboard">
+      <header className="dashboard-header-bar">
+        <div className="brand-stack">
+          <div className="year-logo">2026</div>
+          <nav className="main-nav">
+            <a href="#" className="active">Lucky Draw</a>
+            <a href="#">Table Selection</a>
+            <a href="#">Guest Check-in</a>
+          </nav>
+        </div>
+        <div className="header-actions">
+          <Link to="/admin" className="admin-btn">Admin Dashboard</Link>
+          <button className="fullscreen-btn" onClick={toggleFullscreen}>
+             {isFullscreen ? "Exit Fullscreen" : "⛶ Fullscreen"}
+          </button>
+        </div>
+      </header>
 
-      {activeTab === 'luckydraw' && (
-        <>
-          <div className="dashboard-header">
-            <h1>Lucky Draw Winners</h1>
-            <p>Watch rewards being drawn live!</p>
-            <div className="eligible-counter">
-              Remaining Eligible: <strong>{eligibleCount}</strong>
-            </div>
+      <main className="dashboard-main">
+        <div className="top-banner">
+          <div className="banner-text">
+            <h1>Live Lucky Draw</h1>
+            <p>Roll for winners in real-time | <span>{eligibleEmployees.length}</span> potential candidates</p>
           </div>
+        </div>
 
-          <div className="session-tabs">
-            {sessions.map(sess => (
-              <button key={sess} className={`session-tab ${activeSession === sess ? 'active' : ''}`} onClick={() => setActiveSession(sess)}>{sess}</button>
+        <div className="session-tab-container">
+          <div className="session-tabs-row">
+            {uniqueSessions.map(s => (
+              <button key={s} className={`sess-tab ${activeSession === s ? 'active' : ''}`} onClick={() => setActiveSession(s)}>
+                {s}
+              </button>
             ))}
           </div>
+        </div>
 
-          <div className="dashboard-card">
-            <div className="card-header">
-              <div className="card-title">Lucky Winners</div>
-              <div className="search-box">
-                <input type="text" placeholder="Search name/dept..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        <section className="hero-control-area card">
+          <div className="hero-content">
+            <h2>Ready for the next draw?</h2>
+            <p>Select a session and click Next Prize or Draw All</p>
+            
+            <div className="control-buttons">
+              <button className="btn-next" onClick={handleNextDraw} disabled={loading}>
+                <span className="icon">🎁</span> Next Prize
+              </button>
+              <button className="btn-batch" onClick={handleDrawAll} disabled={loading}>
+                <span className="icon">🗳️</span> Draw All ({winnersForSession.filter(w => w.isPending).length})
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div className="split-grid">
+          <div className="grid-column winners-column">
+            <div className="column-header">
+              <h3>🏆 Session Winners</h3>
+              <div className="header-tools">
+                <button className="btn-reset" onClick={handleResetSession} title="Reset current session">Reset</button>
+                <button className="btn-refresh" onClick={fetchData}>↻</button>
               </div>
             </div>
-
-            <div className="table-container">
-              <table className="dashboard-table">
-                <thead><tr><th>PRIZE</th><th>WINNER</th><th>STATUS</th></tr></thead>
+            <div className="card table-card">
+              <table className="data-table">
+                <thead><tr><th>RANK</th><th>PRIZE</th><th>WINNER</th><th>STATUS</th></tr></thead>
                 <tbody>
-                  {filteredRows.map((row, idx) => (
-                    <tr key={idx} className={row.status === 'Drawn' ? 'drawn-row' : 'pending-row'}>
-                      <td className="prize-col">{row.prizeName}</td>
-                      <td className="winner-col">
-                        {row.winnerName !== '-' ? (
-                          <div>
-                            <div className="bold">{row.winnerName}</div>
-                            <div className="small-dept">{row.department}</div>
-                          </div>
-                        ) : <span className="muted">Pending...</span>}
+                  {winnersForSession.map((w, i) => (
+                    <tr key={i} className={w.isPending ? 'pending' : 'drawn'}>
+                      <td className="rank-cell">{w.rank}</td>
+                      <td className="prize-cell">{w.prizeName}</td>
+                      <td className="winner-name">
+                        {w.isPending ? '-' : w.name}
+                        {!w.isPending && <div className="winner-dept">{w.department}</div>}
                       </td>
-                      <td><span className={`status-pill ${row.status.toLowerCase()}`}>{row.status}</span></td>
+                      <td>
+                        <span className={`status-pill ${w.isPending ? 'pending' : 'drawn'}`}>
+                          {w.isPending ? 'Pending' : 'Drawn'}
+                        </span>
+                      </td>
                     </tr>
                   ))}
+                  {winnersForSession.length === 0 && (
+                    <tr><td colSpan="4" className="empty-msg">No prizes configured for this session.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
-        </>
-      )}
 
-      {activeTab === 'performance' && (
-        <div className="performance-voting-view">
-          <h2>Performance Voting</h2>
-          <p>Rate each participant below (1-5 Excellence)</p>
-          <div className="participants-list">
-            {participants.map(p => (
-              <div key={p.id} className="vote-card card">
-                <h3>{p.name}</h3>
-                <p>{p.department}</p>
-                {votingStatus[p.id] ? (
-                  <div className="voted-msg">✅ {votingStatus[p.id]}</div>
-                ) : (
-                  <div className="rating-inputs">
-                    {criteria.map((c, i) => (
-                      <div key={c.id} className="rating-row">
-                        <label>{c.name}</label>
-                        <div className="star-rating">
-                          {[1,2,3,4,5].map(num => (
-                            <button key={num} onClick={() => {
-                              const currentScores = p.scores || [3,3,3];
-                              currentScores[i] = num;
-                              setParticipants(participants.map(part => part.id === p.id ? {...part, scores: currentScores} : part));
-                            }} className={(p.scores?.[i] || 0) >= num ? 'active' : ''}>★</button>
-                          ))}
-                        </div>
-                      </div>
+          <div className="grid-column eligible-column">
+             <div className="column-header">
+                <h3>👥 Eligible ({eligibleEmployees.length})</h3>
+             </div>
+             <div className="card table-card">
+                <table className="data-table">
+                  <thead><tr><th>NAME</th><th>DEPARTMENT</th></tr></thead>
+                  <tbody>
+                    {eligibleEmployees.slice(0, 50).map(e => (
+                      <tr key={e.id}>
+                        <td className="bold">{e.name}</td>
+                        <td className="muted">{e.department}</td>
+                      </tr>
                     ))}
-                    <button className="submit-vote-btn" onClick={() => submitVote(p.id, p.scores || [3,3,3])}>Submit Scores</button>
-                  </div>
-                )}
-              </div>
-            ))}
+                    {eligibleEmployees.length > 50 && (
+                      <tr className="more-row"><td colSpan="2">... and {eligibleEmployees.length - 50} more candidates</td></tr>
+                    )}
+                  </tbody>
+                </table>
+             </div>
           </div>
         </div>
-      )}
-
-      {activeTab === 'feedback' && (
-        <div className="feedback-view card">
-          <h2>Event Feedback</h2>
-          <p>Tell us how we did!</p>
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            const data = new FormData(e.target);
-            await axios.post('/api/feedback', { comment: data.get('comment'), rating: data.get('rating') });
-            alert("Thank you!"); e.target.reset();
-          }}>
-            <label>Rating (1-5)</label>
-            <input name="rating" type="number" min="1" max="5" defaultValue="5" required />
-            <label>Comment</label>
-            <textarea name="comment" required></textarea>
-            <button type="submit" className="submit-vote-btn">Send Feedback</button>
-          </form>
-        </div>
-      )}
+      </main>
 
       <style>{`
-        .dashboard-nav-tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; background: white; padding: 0.5rem; border-radius: 99px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .dashboard-nav-tabs button { flex: 1; border: none; background: transparent; padding: 0.8rem; border-radius: 99px; font-weight: 700; color: var(--text-muted); }
-        .dashboard-nav-tabs button.active { background: var(--primary); color: white; }
-        .card { background: white; padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+        .premium-dashboard { min-height: 100vh; background: #f0f4f8; font-family: 'Inter', sans-serif; color: #1e293b; padding-bottom: 4rem; }
+        .dashboard-header-bar { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 4rem; background: #fff; border-bottom: 1px solid #e1e7ef; }
+        .brand-stack { display: flex; align-items: center; gap: 3rem; }
+        .year-logo { font-size: 1.5rem; font-weight: 900; color: #0a8276; }
+        .main-nav { display: flex; gap: 2rem; }
+        .main-nav a { text-decoration: none; color: #64748b; font-weight: 600; font-size: 0.95rem; }
+        .main-nav a.active { color: #1e293b; position: relative; }
+        .main-nav a.active::after { content: ''; position: absolute; bottom: -8px; left: 0; width: 100%; height: 2px; background: #0a8276; }
+        .admin-btn { background: #0a8276; color: white; text-decoration: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 700; font-size: 0.9rem; margin-right: 1rem; }
+        .fullscreen-btn { border: 1px solid #e1e7ef; background: white; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 700; color: #64748b; }
+        
+        .dashboard-main { max-width: 1400px; margin: 0 auto; padding: 3rem 4rem; }
+        .top-banner h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .top-banner p { color: #64748b; font-weight: 500; }
+        .top-banner p span { color: #0a8276; font-weight: 800; }
+        
+        .session-tab-container { margin: 2.5rem 0; display: flex; justify-content: center; }
+        .session-tabs-row { background: #e1e7ef; padding: 0.5rem; border-radius: 12px; display: flex; gap: 0.5rem; }
+        .sess-tab { border: none; padding: 0.8rem 2.5rem; border-radius: 8px; background: transparent; color: #64748b; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .sess-tab.active { background: white; color: #0a8276; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+        .hero-control-area { text-align: center; padding: 4rem 2rem; margin-bottom: 3rem; background: white; }
+        .hero-content h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 1rem; }
+        .hero-content p { color: #64748b; margin-bottom: 2.5rem; }
+        .control-buttons { display: flex; gap: 1.5rem; justify-content: center; }
+        .btn-next { background: #0a8276; color: white; border: none; padding: 1.2rem 3rem; border-radius: 50px; font-size: 1.2rem; font-weight: 800; cursor: pointer; box-shadow: 0 10px 20px rgba(10, 130, 118, 0.2); transition: 0.3s; }
+        .btn-next:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(10, 130, 118, 0.3); }
+        .btn-batch { background: #1e293b; color: white; border: none; padding: 1.2rem 3rem; border-radius: 50px; font-size: 1.2rem; font-weight: 800; cursor: pointer; transition: 0.3s; }
+        .btn-batch:hover { background: #0f172a; }
+
+        .split-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 3rem; align-items: start; }
+        .column-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .column-header h3 { font-size: 1.2rem; font-weight: 800; }
+        .header-tools { display: flex; gap: 0.8rem; }
+        .btn-reset { background: #ef4444; color: white; border: none; padding: 0.4rem 1rem; border-radius: 6px; font-weight: 700; cursor: pointer; }
+        .btn-refresh { background: #e1e7ef; border: none; width: 32px; height: 32px; border-radius: 6px; font-weight: 800; cursor: pointer; }
+        
+        .card { background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #e1e7ef; }
+        .table-card { padding: 1rem; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { text-align: left; padding: 1rem; color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; }
+        .data-table td { padding: 1.2rem 1rem; border-bottom: 1px solid #f1f5f9; }
+        .rank-cell { font-weight: 800; color: #94a3b8; }
+        .prize-cell { font-weight: 700; color: #1e293b; }
+        .winner-name { font-weight: 700; }
+        .winner-dept { font-size: 0.75rem; color: #64748b; font-weight: 500; }
+        .status-pill { padding: 4px 12px; border-radius: 99px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+        .status-pill.drawn { background: #dcfce7; color: #166534; }
+        .status-pill.pending { background: #f1f5f9; color: #64748b; }
         .bold { font-weight: 700; }
-        .small-dept { font-size: 0.8rem; color: var(--text-muted); }
-        .muted { color: #d1d5db; }
-        .vote-card h3 { color: var(--primary); margin-bottom: 0.5rem; }
-        .rating-row { display: flex; justify-content: space-between; align-items: center; margin: 1rem 0; }
-        .star-rating button { background: none; border: none; font-size: 1.5rem; color: #e2e8f0; cursor: pointer; }
-        .star-rating button.active { color: #facc15; }
-        .submit-vote-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 1rem; border-radius: 8px; font-weight: 700; margin-top: 1rem; }
-        .feedback-view textarea { width: 100%; height: 100px; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; margin: 1rem 0; }
-        .voted-msg { font-weight: 700; color: var(--primary); margin-top: 1rem; }
+        .muted { color: #64748b; font-size: 0.95rem; }
+        .empty-msg { text-align: center; padding: 2rem; color: #94a3b8; font-style: italic; }
+        
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
       `}</style>
     </div>
   );

@@ -384,6 +384,92 @@ app.post('/api/draw', async (req, res) => {
   }
 });
 
+// 1. Draw Next Prize for a specific session (Ordered by Rank)
+app.post('/api/draw/next', async (req, res) => {
+  const { session } = req.body;
+  const connection = await pool.getConnection();
+  try {
+    // Find the next available prize in this session (highest rank first)
+    const [prizes] = await connection.query(
+      'SELECT * FROM prizes WHERE session = ? ORDER BY rank_level DESC', 
+      [session]
+    );
+
+    let targetPrize = null;
+    for (const p of prizes) {
+      const [winners] = await connection.query('SELECT COUNT(*) as count FROM employees WHERE won_prize = ?', [p.name]);
+      if (winners[0].count < p.quantity) {
+        targetPrize = p;
+        break;
+      }
+    }
+
+    if (!targetPrize) return res.status(404).json({ error: 'No more prizes in this session' });
+
+    const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL');
+    if (eligible.length === 0) return res.status(400).json({ error: 'No eligible employees' });
+
+    const winner = eligible[Math.floor(Math.random() * eligible.length)];
+    await connection.query('UPDATE employees SET won_prize = ? WHERE id = ?', [targetPrize.name, winner.id]);
+    
+    res.json({ winner, prize: targetPrize });
+  } catch (err) {
+    res.status(500).send(err.message);
+  } finally {
+    connection.release();
+  }
+});
+
+// 2. Draw ALL remaining prizes for a session (High Speed)
+app.post('/api/draw/session-all', async (req, res) => {
+  const { session } = req.body;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    
+    const [prizes] = await connection.query('SELECT * FROM prizes WHERE session = ?', [session]);
+    const winners_added = [];
+
+    for (const prize of prizes) {
+      const [existing] = await connection.query('SELECT COUNT(*) as count FROM employees WHERE won_prize = ?', [prize.name]);
+      let needed = prize.quantity - existing[0].count;
+      
+      if (needed <= 0) continue;
+
+      const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL LIMIT ?', [needed]);
+      for (const winner of eligible) {
+        await connection.query('UPDATE employees SET won_prize = ? WHERE id = ?', [prize.name, winner.id]);
+        winners_added.push({ winner: winner.name, prize: prize.name });
+      }
+    }
+
+    await connection.commit();
+    res.json({ success: true, count: winners_added.length });
+  } catch (err) {
+    await connection.rollback();
+    res.status(500).send(err.message);
+  } finally {
+    connection.release();
+  }
+});
+
+// 3. Reset ONLY current session
+app.post('/api/draw/session-reset', async (req, res) => {
+  const { session } = req.body;
+  try {
+    // Get all prize names for this session
+    const [prizes] = await pool.query('SELECT name FROM prizes WHERE session = ?', [session]);
+    if (prizes.length === 0) return res.json({ message: 'No prizes in session' });
+
+    const prizeNames = prizes.map(p => p.name);
+    await pool.query('UPDATE employees SET won_prize = NULL WHERE won_prize IN (?)', [prizeNames]);
+    
+    res.json({ message: 'Session reset success' });
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
 app.post('/api/reset-draw', async (req, res) => {
   await pool.query('UPDATE employees SET won_prize = NULL');
   res.json({ message: 'Success' });

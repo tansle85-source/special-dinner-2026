@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const LuckyDrawWheel = ({ prize, winner, onFinish, onClose }) => {
+const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) => {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [namesPool, setNamesPool] = useState([]);
@@ -14,12 +14,12 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose }) => {
         const allNames = await res.json();
         
         // Pick 19 random names + the actual winner to make 20 segments
-        let pool = allNames
-          .filter(n => n !== winner.name)
+        let pool = (allNames || [])
+          .filter(n => n !== (winner?.name || "Winner"))
           .sort(() => 0.5 - Math.random())
           .slice(0, 19);
           
-        pool.push(winner.name);
+        pool.push(winner?.name || "Winner");
         // Shuffle the winner into the pool
         pool = pool.sort(() => 0.5 - Math.random());
         setNamesPool(pool);
@@ -55,16 +55,18 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose }) => {
   };
 
   return (
-    <div className="wheel-overlay">
+    <div className={isInline ? "wheel-inline" : "wheel-overlay"}>
       <div className="wheel-container">
-        <button className="close-wheel-btn" onClick={onClose}>✕ Close</button>
+        {!isInline && <button className="close-wheel-btn" onClick={onClose}>✕ Close</button>}
         
-        <div className="wheel-stage-header">
-          <h2>DRAWING FOR:</h2>
-          <div className="wheel-prize-tag">{prize.name}</div>
-        </div>
+        {(!isInline || (spinning || rotation > 0)) && (
+          <div className="wheel-stage-header">
+            {isInline ? null : <h2>DRAWING FOR:</h2>}
+            <div className="wheel-prize-tag">{prize?.name || "Loading..."}</div>
+          </div>
+        )}
 
-        <div className="wheel-wrapper">
+        <div className={`wheel-wrapper ${isInline ? 'inline-size' : ''}`}>
           <div className="wheel-pointer">▼</div>
           <div 
             className="wheel-circle" 
@@ -116,6 +118,18 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose }) => {
           justify-content: center;
           color: white;
         }
+        .wheel-inline {
+          position: relative;
+          background: transparent;
+          color: inherit;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 2rem 0;
+        }
+        .wheel-inline .segment-text { color: white; }
+        .wheel-inline .wheel-prize-tag { color: var(--primary); font-size: 1.5rem; margin-bottom: 1rem; }
+        .wheel-inline .wheel-pointer { color: #0a8276; }
         .wheel-container {
           width: 100%;
           max-width: 900px;
@@ -156,6 +170,11 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose }) => {
           border: 10px solid #cbd5e1;
           box-shadow: 0 0 50px rgba(0,0,0,0.5), 0 0 20px var(--primary);
         }
+        .wheel-wrapper.inline-size {
+          width: 320px;
+          height: 320px;
+          border-width: 6px;
+        }
         .wheel-pointer {
           position: absolute;
           top: -35px;
@@ -165,6 +184,10 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose }) => {
           color: #f59e0b;
           z-index: 10;
           filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+        }
+        .wheel-inline .wheel-pointer {
+          top: -25px;
+          font-size: 2.2rem;
         }
         .wheel-circle {
           width: 100%;
@@ -198,10 +221,15 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose }) => {
           text-align: right;
           color: white;
         }
-        .wheel-controls {
-          margin-top: 4rem;
-          min-height: 150px;
+        .wheel-inline .segment-text {
+          font-size: 0.55rem;
+          right: 8px;
         }
+        .wheel-controls {
+          margin-top: 2rem;
+          min-height: 80px;
+        }
+        .wheel-inline .wheel-controls { margin-top: 1rem; }
         .spin-launch-btn {
           background: #f59e0b;
           color: white;
@@ -214,6 +242,7 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose }) => {
           box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
           transition: 0.3s;
         }
+        .wheel-inline .spin-launch-btn { display: none; } /* Hidden in dashboard mode because the Next Prize button triggers it */
         .spin-launch-btn:hover {
           transform: scale(1.1);
           box-shadow: 0 15px 40px rgba(245, 158, 11, 0.6);
@@ -221,16 +250,23 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose }) => {
         .announcement-card {
           animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        .wheel-inline .announcement-card h3 { display: none; }
         .winner-big-name {
           font-size: 4rem;
           font-weight: 900;
           color: #facc15;
           text-shadow: 0 0 20px rgba(250, 204, 21, 0.5);
         }
+        .wheel-inline .winner-big-name {
+          font-size: 2rem;
+          color: #0a8276;
+          text-shadow: none;
+        }
         .winner-big-dept {
           font-size: 1.5rem;
           color: #94a3b8;
         }
+        .wheel-inline .winner-big-dept { font-size: 1rem; }
         @keyframes popIn {
           from { transform: scale(0); opacity: 0; }
           to { transform: scale(1); opacity: 1; }

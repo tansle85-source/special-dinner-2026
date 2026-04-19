@@ -168,7 +168,7 @@ const Admin = () => {
   };
 
   const getDrawnCount = (prizeName) => {
-    return employees.filter(e => e.won_prize === prizeName).length;
+    return (employees || []).filter(e => e.won_prize === prizeName).length;
   };
 
   const SidebarItem = ({ id, label, icon }) => (
@@ -410,7 +410,7 @@ const Admin = () => {
         .draw-selector-box.rank-flow { display: flex; flex-direction: column; gap: 2rem; }
         .input-row { display: flex; flex-direction: column; gap: 0.5rem; }
         .input-row label { font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
-        .admin-draw-actions { display: flex; flex-direction: column; gap: 2rem; border-top: 1px solid #f1f5f9; pt: 2rem; }
+        .admin-draw-actions { display: flex; flex-direction: column; gap: 2rem; border-top: 1px solid #f1f5f9; padding-top: 2rem; }
         .primary-actions { display: flex; gap: 1rem; }
         .giant-launch-btn { flex: 2; background: #0a8276; }
         .batch-draw-btn { flex: 1; background: #1e293b; color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import LuckyDrawWheel from './LuckyDrawWheel';
 
 const LuckyDraw = () => {
   const [employees, setEmployees] = useState([]);
@@ -8,6 +9,9 @@ const LuckyDraw = () => {
   const [activeSession, setActiveSession] = useState('Session 1');
   const [loading, setLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showWheel, setShowWheel] = useState(false);
+  const [currentDraw, setCurrentDraw] = useState(null); // { prize, winner }
+  const [lastWinner, setLastWinner] = useState(null); // To enable Redraw
 
   useEffect(() => {
     fetchData();
@@ -31,10 +35,34 @@ const LuckyDraw = () => {
   const handleNextDraw = async () => {
     try {
       setLoading(true);
-      await axios.post('/api/draw/next', { session: activeSession });
+      const res = await axios.post('/api/draw/next', { session: activeSession });
+      setCurrentDraw(res.data);
+      setLastWinner(res.data.winner);
+      setShowWheel(true);
       fetchData();
     } catch (err) {
       alert(err.response?.data?.error || "Draw failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRedraw = async () => {
+    if (!lastWinner) return alert("No recent winner to redraw");
+    if (!window.confirm(`Mark ${lastWinner.name} as NO-SHOW and draw again?`)) return;
+    
+    try {
+      setLoading(true);
+      const res = await axios.post('/api/draw/redraw', { 
+        winnerId: lastWinner.id, 
+        prizeName: currentDraw?.prize?.name 
+      });
+      setCurrentDraw({ prize: currentDraw.prize, winner: res.data.winner });
+      setLastWinner(res.data.winner);
+      setShowWheel(true); // Restart wheel animation
+      fetchData();
+    } catch (err) {
+      alert("Redraw failed");
     } finally {
       setLoading(false);
     }
@@ -79,10 +107,10 @@ const LuckyDraw = () => {
   };
 
   // Logic: Get winners specifically for current session
-  const sessionPrizes = prizes.filter(p => p.session === activeSession);
+  const sessionPrizes = (prizes || []).filter(p => p.session === activeSession);
   const winnersForSession = [];
   sessionPrizes.forEach(prize => {
-    const winners = employees.filter(e => e.won_prize === prize.name);
+    const winners = (employees || []).filter(e => e.won_prize === prize.name);
     winners.forEach(w => winnersForSession.push({ ...w, prizeName: prize.name, rank: prize.rank }));
     
     // Add pending slots
@@ -92,8 +120,8 @@ const LuckyDraw = () => {
     }
   });
 
-  const eligibleEmployees = employees.filter(e => !e.won_prize);
-  const uniqueSessions = [...new Set(prizes.map(p => p.session))].sort();
+  const eligibleEmployees = (employees || []).filter(e => !e.won_prize);
+  const uniqueSessions = [...new Set((prizes || []).map(p => p.session))].sort();
 
   return (
     <div className="premium-dashboard">
@@ -134,15 +162,32 @@ const LuckyDraw = () => {
 
         <section className="hero-control-area card">
           <div className="hero-content">
-            <h2>Ready for the next draw?</h2>
-            <p>Select a session and click Next Prize or Draw All</p>
+            {showWheel && currentDraw ? (
+              <LuckyDrawWheel 
+                isInline={true}
+                prize={currentDraw.prize}
+                winner={currentDraw.winner}
+                onFinish={() => {}}
+                onClose={() => setShowWheel(false)}
+              />
+            ) : (
+              <>
+                <div className="ready-state">
+                   <div className="placeholder-wheel">🎡</div>
+                   <p className="status-msg">Ready to draw...</p>
+                </div>
+              </>
+            )}
             
             <div className="control-buttons">
+              <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner}>
+                 Redraw (No Show)
+              </button>
               <button className="btn-next" onClick={handleNextDraw} disabled={loading}>
-                <span className="icon">🎁</span> Next Prize
+                 Next Prize
               </button>
               <button className="btn-batch" onClick={handleDrawAll} disabled={loading}>
-                <span className="icon">🗳️</span> Draw All ({winnersForSession.filter(w => w.isPending).length})
+                 Draw All ({winnersForSession.filter(w => w.isPending).length})
               </button>
             </div>
           </div>
@@ -234,10 +279,20 @@ const LuckyDraw = () => {
         .hero-content h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 1rem; }
         .hero-content p { color: #64748b; margin-bottom: 2.5rem; }
         .control-buttons { display: flex; gap: 1.5rem; justify-content: center; }
-        .btn-next { background: #0a8276; color: white; border: none; padding: 1.2rem 3rem; border-radius: 50px; font-size: 1.2rem; font-weight: 800; cursor: pointer; box-shadow: 0 10px 20px rgba(10, 130, 118, 0.2); transition: 0.3s; }
-        .btn-next:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(10, 130, 118, 0.3); }
-        .btn-batch { background: #1e293b; color: white; border: none; padding: 1.2rem 3rem; border-radius: 50px; font-size: 1.2rem; font-weight: 800; cursor: pointer; transition: 0.3s; }
-        .btn-batch:hover { background: #0f172a; }
+        .btn-next { background: #0a8276; color: white; border: none; padding: 1.2rem 3rem; border-radius: 50px; font-size: 1.2rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 220px; transition: 0.3s; }
+        .btn-next:hover { transform: scale(1.05); }
+        .btn-batch { background: #1e293b; color: white; border: none; padding: 1.2rem 3rem; border-radius: 50px; font-size: 1.1rem; font-weight: 800; cursor: pointer; min-width: 220px; }
+        .btn-redraw { background: #e11d48; color: white; border: none; padding: 1.2rem 3rem; border-radius: 50px; font-size: 1.1rem; font-weight: 800; cursor: pointer; min-width: 220px; }
+        .btn-redraw:disabled { background: #fda4af; }
+        
+        .ready-state { padding: 3rem 0; animation: bounce 4s infinite ease-in-out; }
+        .placeholder-wheel { font-size: 5rem; margin-bottom: 1rem; opacity: 0.3; }
+        .status-msg { font-size: 1.2rem; font-weight: 600; color: #64748b; }
+
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
 
         .split-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 3rem; align-items: start; }
         .column-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }

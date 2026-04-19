@@ -470,6 +470,33 @@ app.post('/api/draw/session-reset', async (req, res) => {
   }
 });
 
+// 4. Redraw for a specific prize (No Show handler)
+app.post('/api/draw/redraw', async (req, res) => {
+  const { winnerId, prizeName } = req.body;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    
+    // 1. Clear the previous winner
+    await connection.query('UPDATE employees SET won_prize = NULL WHERE id = ?', [winnerId]);
+
+    // 2. Draw a new winner for the same prize
+    const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL');
+    if (eligible.length === 0) throw new Error('No eligible employees left');
+
+    const newWinner = eligible[Math.floor(Math.random() * eligible.length)];
+    await connection.query('UPDATE employees SET won_prize = ? WHERE id = ?', [prizeName, newWinner.id]);
+
+    await connection.commit();
+    res.json({ winner: newWinner });
+  } catch (err) {
+    await connection.rollback();
+    res.status(500).send(err.message);
+  } finally {
+    connection.release();
+  }
+});
+
 app.post('/api/reset-draw', async (req, res) => {
   await pool.query('UPDATE employees SET won_prize = NULL');
   res.json({ message: 'Success' });

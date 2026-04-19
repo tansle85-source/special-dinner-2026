@@ -27,6 +27,7 @@ const Admin = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
+  const [lastWinner, setLastWinner] = useState(null); 
 
   useEffect(() => {
     fetchAllData();
@@ -98,10 +99,32 @@ const Admin = () => {
       setLoading(true);
       const res = await axios.post('/api/draw/next', { session: selectedSession });
       setDrawResult(res.data);
+      setLastWinner(res.data.winner);
       setShowStageView(true);
       fetchAllData();
     } catch (err) {
       alert(err.response?.data?.error || "Next draw failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRedraw = async () => {
+    if (!lastWinner) return alert("No recent winner to redraw");
+    if (!window.confirm(`Mark ${lastWinner.name} as NO-SHOW and draw again?`)) return;
+    
+    try {
+      setLoading(true);
+      const res = await axios.post('/api/draw/redraw', { 
+        winnerId: lastWinner.id, 
+        prizeName: drawResult?.prize?.name 
+      });
+      setDrawResult({ prize: drawResult.prize, winner: res.data.winner });
+      setLastWinner(res.data.winner);
+      setShowStageView(true);
+      fetchAllData();
+    } catch (err) {
+      alert("Redraw failed");
     } finally {
       setLoading(false);
     }
@@ -246,11 +269,11 @@ const Admin = () => {
                         <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner}>
                           <span className="icon">🔄</span> Redraw (No Show)
                         </button>
-                        <button className="btn-next" onClick={handleNextDraw} disabled={loading}>
+                        <button className="btn-next" onClick={handleNextDraw} disabled={!selectedSession || loading}>
                           <span className="icon">🎁</span> Next Prize
                         </button>
-                        <button className="btn-batch" onClick={handleDrawAll} disabled={loading}>
-                          Draw All ({winnersForSession.filter(w => w.isPending).length})
+                        <button className="btn-batch" onClick={handleDrawAll} disabled={!selectedSession || loading}>
+                          Draw All
                         </button>
                       </div>
                     </div>

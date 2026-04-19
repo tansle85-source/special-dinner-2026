@@ -120,7 +120,7 @@ const LuckyDraw = () => {
     }
   });
 
-  const eligibleEmployees = (employees || []).filter(e => !e.won_prize);
+  const eligibleEmployees = (employees || []).filter(e => !e.won_prize && e.checked_in);
   const uniqueSessions = [...new Set((prizes || []).map(p => p.session))].sort();
 
   return (
@@ -233,6 +233,20 @@ const LuckyDraw = () => {
              <div className="column-header">
                 <h3>👥 Eligible ({eligibleEmployees.length})</h3>
              </div>
+            <div className="summary-pills">
+              <div className="pill teal">
+                <span className="label">Eligible Members</span>
+                <span className="value">{employees.filter(e => e.checked_in && !e.won_prize).length}</span>
+              </div>
+              <div className="pill navy">
+                <span className="label">Total Prizes</span>
+                <span className="value">{prizes.filter(p => p.session === activeSession).reduce((acc, p) => acc + p.quantity, 0)}</span>
+              </div>
+              <div className="pill orange">
+                <span className="label">Already Won</span>
+                <span className="value">{employees.filter(e => e.won_prize && prizes.find(p => p.name === e.won_prize && p.session === activeSession)).length}</span>
+              </div>
+            </div>
              <div className="card table-card">
                 <table className="data-table">
                   <thead><tr><th>NAME</th><th>DEPARTMENT</th></tr></thead>

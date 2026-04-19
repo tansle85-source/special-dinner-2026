@@ -359,7 +359,15 @@ const Admin = () => {
                   {employees.map(e => (
                     <tr key={e.id}>
                       <td className="bold">{e.name}</td><td>{e.department}</td>
-                      <td><span className={`pill ${e.won_prize ? 'drawn' : 'eligible'}`}>{e.won_prize ? "Won: " + e.won_prize : "Eligible"}</span></td>
+                      <td>
+                        {e.won_prize ? (
+                          <span className="pill drawn">Won: {e.won_prize}</span>
+                        ) : e.checked_in ? (
+                          <span className="pill eligible">Eligible (Present)</span>
+                        ) : (
+                          <span className="pill ineligible">Ineligible (Not Checked In)</span>
+                        )}
+                      </td>
                       <td><button onClick={() => { setEditingItem(e); setIsModalOpen(true); }} className="table-btn">Edit</button></td>
                     </tr>
                   ))}

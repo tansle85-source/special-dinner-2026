@@ -1,47 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) => {
+const LuckyDrawWheel = ({ prize, onFinish, onClose, isInline = false }) => {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [namesPool, setNamesPool] = useState([]);
-  const wheelRef = useRef(null);
-
-  // Load a pool of names for the wheel segments
+  const [winner, setWinner] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Load ALL eligible names for the wheel
   useEffect(() => {
     const fetchNames = async () => {
       try {
+        setLoading(true);
         const res = await fetch('/api/eligible-employees');
-        const allNames = await res.json();
-        
-        // Pick 19 random names + the actual winner to make 20 segments
-        let pool = (allNames || [])
-          .filter(n => n !== (winner?.name || "Winner"))
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 19);
-          
-        pool.push(winner?.name || "Winner");
-        // Shuffle the winner into the pool
-        pool = pool.sort(() => 0.5 - Math.random());
-        setNamesPool(pool);
+        const data = await res.json();
+        // The user wants ALL eligible names on the wheel
+        setNamesPool(data || []);
       } catch (err) {
         console.error("Failed to load wheel names");
+      } finally {
+        setLoading(false);
       }
     };
     fetchNames();
-  }, [winner]);
+  }, []);
 
   const startSpin = () => {
-    if (spinning) return;
+    if (spinning || namesPool.length === 0) return;
     
+    // Pick a winner locally from the pool
+    const selectedWinner = namesPool[Math.floor(Math.random() * namesPool.length)];
+    setWinner(selectedWinner);
     setSpinning(true);
     
-    // Find the winner's index in the pool
-    const winnerIndex = namesPool.indexOf(winner.name);
+    // Find index to calculate rotation
+    const winnerIndex = namesPool.indexOf(selectedWinner);
     const segmentAngle = 360 / namesPool.length;
     
-    // Calculate rotation to land on the winner
-    // Landing spot = (360 - (index * segmentAngle)) + (extra full rotations)
-    // We subtract the half segment to center the pointer
     const baseRotation = 360 * 10; // 10 full spins
     const landAngle = (360 - (winnerIndex * segmentAngle)) - (segmentAngle / 2);
     const totalRotation = baseRotation + landAngle;
@@ -50,24 +45,29 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) 
 
     setTimeout(() => {
       setSpinning(false);
-      onFinish();
-    }, 7000); // 7 second spin
+    }, 7000); 
   };
+
+  const publishWinner = () => {
+    if (winner) {
+      onFinish(winner);
+    }
+  };
+
+  if (loading) return <div className="wheel-overlay" style={{ background: 'white', color: '#1e293b' }}>Loading Eligible Pool...</div>;
 
   return (
     <div className={isInline ? "wheel-inline" : "wheel-overlay"}>
       <div className="wheel-container">
-        {!isInline && <button className="close-wheel-btn" onClick={onClose}>✕ Close</button>}
+        {!isInline && <button className="close-wheel-btn" onClick={onClose} style={{ color: '#64748b' }}>✕ Close</button>}
         
-        {(!isInline || (spinning || rotation > 0)) && (
-          <div className="wheel-stage-header">
-            {isInline ? null : <h2>DRAWING FOR:</h2>}
-            <div className="wheel-prize-tag">{prize?.name || "Loading..."}</div>
-          </div>
-        )}
+        <div className="wheel-stage-header">
+          {!isInline && <h2 style={{ color: '#94a3b8' }}>DRAWING FOR:</h2>}
+          <div className="wheel-prize-tag" style={{ color: '#0a8276' }}>{prize?.name || "Lucky Prize"}</div>
+        </div>
 
-        <div className={`wheel-wrapper ${isInline ? 'inline-size' : ''}`}>
-          <div className="wheel-pointer">▼</div>
+        <div className={`wheel-wrapper ${isInline ? 'inline-size' : ''}`} style={{ borderColor: '#e2e8f0', background: '#fff' }}>
+          <div className="wheel-pointer" style={{ color: '#0a8276' }}>▼</div>
           <div 
             className="wheel-circle" 
             style={{ 
@@ -75,18 +75,20 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) 
               transition: spinning ? 'transform 7s cubic-bezier(0.1, 0, 0.1, 1)' : 'none'
             }}
           >
-            {namesPool.map((name, i) => {
+            {namesPool.map((emp, i) => {
               const angle = (360 / namesPool.length) * i;
+              // Visual optimization: if pool is huge, don't render every line to keep it clean, but kept for "all names" requirement
               return (
                 <div 
-                  key={i} 
+                  key={emp.id} 
                   className="wheel-segment"
                   style={{ 
                     transform: `rotate(${angle}deg)`,
-                    backgroundColor: i % 2 === 0 ? 'var(--primary)' : '#086d63'
+                    backgroundColor: i % 2 === 0 ? '#0a8276' : '#0d9488',
+                    borderLeft: namesPool.length > 50 ? 'none' : '1px solid rgba(255,255,255,0.1)'
                   }}
                 >
-                  <span className="segment-text">{name}</span>
+                  {namesPool.length <= 100 && <span className="segment-text" style={{ color: 'white' }}>{emp.name}</span>}
                 </div>
               );
             })}
@@ -95,13 +97,22 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) 
 
         <div className="wheel-controls">
           {!spinning && rotation === 0 && (
-            <button className="spin-launch-btn" onClick={startSpin}>SPIN NOW</button>
+            <button className="spin-launch-btn" onClick={startSpin} style={{ background: '#0a8276' }}>SPIN NOW</button>
           )}
-          {!spinning && rotation > 0 && (
+          {!spinning && rotation > 0 && winner && (
             <div className="announcement-card">
-              <h3>🎉 CONGRATULATIONS! 🎉</h3>
-              <div className="winner-big-name">{winner.name}</div>
-              <div className="winner-big-dept">{winner.department}</div>
+              <h3 style={{ color: '#64748b' }}>🎉 PROSPECTIVE WINNER 🎉</h3>
+              <div className="winner-big-name" style={{ color: '#0a8276' }}>{winner.name}</div>
+              <div className="winner-big-dept" style={{ color: '#64748b' }}>{winner.department}</div>
+              
+              <div className="publish-actions" style={{ marginTop: '2.5rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                <button className="publish-btn" onClick={publishWinner} style={{ background: '#0a8276', color: 'white', border: 'none', padding: '1rem 3rem', borderRadius: '12px', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 20px rgba(10, 130, 118, 0.2)' }}>
+                  OFFICIAL PUBLISH
+                </button>
+                <button className="redraw-btn" onClick={() => { setRotation(0); setWinner(null); }} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1rem 2rem', borderRadius: '12px', fontSize: '1rem', fontWeight: 700, cursor: 'pointer' }}>
+                  Respin / Cancel
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -111,25 +122,21 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) 
         .wheel-overlay {
           position: fixed;
           top: 0; left: 0; right: 0; bottom: 0;
-          background: radial-gradient(circle, #1e293b 0%, #020617 100%);
+          background: white;
           z-index: 9999;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: white;
+          color: #1e293b;
         }
         .wheel-inline {
           position: relative;
           background: transparent;
-          color: inherit;
           display: flex;
           flex-direction: column;
           align-items: center;
           padding: 2rem 0;
         }
-        .wheel-inline .segment-text { color: white; }
-        .wheel-inline .wheel-prize-tag { color: var(--primary); font-size: 1.5rem; margin-bottom: 1rem; }
-        .wheel-inline .wheel-pointer { color: #0a8276; }
         .wheel-container {
           width: 100%;
           max-width: 900px;
@@ -140,15 +147,15 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) 
           position: absolute;
           top: -20px;
           right: 20px;
-          background: rgba(255,255,255,0.1);
+          background: #f1f5f9;
           border: none;
-          color: white;
           padding: 8px 16px;
           border-radius: 8px;
           cursor: pointer;
+          font-weight: 700;
         }
         .wheel-stage-header h2 {
-          font-size: 1.5rem;
+          font-size: 1.2rem;
           color: #94a3b8;
           margin-bottom: 0.5rem;
           letter-spacing: 4px;
@@ -156,8 +163,6 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) 
         .wheel-prize-tag {
           font-size: 3rem;
           font-weight: 900;
-          color: var(--primary);
-          text-shadow: 0 0 20px rgba(10, 130, 118, 0.5);
           margin-bottom: 3rem;
           text-transform: uppercase;
         }
@@ -167,27 +172,21 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) 
           height: 500px;
           margin: 0 auto;
           border-radius: 50%;
-          border: 10px solid #cbd5e1;
-          box-shadow: 0 0 50px rgba(0,0,0,0.5), 0 0 20px var(--primary);
+          border: 12px solid #f1f5f9;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+          overflow: visible;
         }
         .wheel-wrapper.inline-size {
-          width: 320px;
-          height: 320px;
-          border-width: 6px;
+          width: 350px;
+          height: 350px;
         }
         .wheel-pointer {
           position: absolute;
-          top: -35px;
+          top: -30px;
           left: 50%;
           transform: translateX(-50%);
           font-size: 3rem;
-          color: #f59e0b;
           z-index: 10;
-          filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
-        }
-        .wheel-inline .wheel-pointer {
-          top: -25px;
-          font-size: 2.2rem;
         }
         .wheel-circle {
           width: 100%;
@@ -195,6 +194,7 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) 
           border-radius: 50%;
           position: relative;
           overflow: hidden;
+          background: #f8fafc;
         }
         .wheel-segment {
           position: absolute;
@@ -203,74 +203,42 @@ const LuckyDrawWheel = ({ prize, winner, onFinish, onClose, isInline = false }) 
           top: 0;
           left: 50%;
           transform-origin: 0% 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-left: 1px solid rgba(255,255,255,0.1);
         }
         .segment-text {
           position: absolute;
           right: 15px;
-          transform: rotate(70deg);
+          transform: rotate(75deg);
           font-weight: 700;
-          font-size: 0.75rem;
-          max-width: 80px;
+          font-size: 0.65rem;
+          max-width: 100px;
           white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
           text-align: right;
-          color: white;
-        }
-        .wheel-inline .segment-text {
-          font-size: 0.55rem;
-          right: 8px;
         }
         .wheel-controls {
-          margin-top: 2rem;
-          min-height: 80px;
+          margin-top: 3rem;
+          min-height: 120px;
         }
-        .wheel-inline .wheel-controls { margin-top: 1rem; }
         .spin-launch-btn {
-          background: #f59e0b;
           color: white;
           border: none;
           padding: 1.5rem 4rem;
-          font-size: 2rem;
+          font-size: 1.75rem;
           font-weight: 900;
           border-radius: 99px;
           cursor: pointer;
-          box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
           transition: 0.3s;
+          box-shadow: 0 10px 30px rgba(10, 130, 118, 0.2);
         }
-        .wheel-inline .spin-launch-btn { display: none; } /* Hidden in dashboard mode because the Next Prize button triggers it */
-        .spin-launch-btn:hover {
-          transform: scale(1.1);
-          box-shadow: 0 15px 40px rgba(245, 158, 11, 0.6);
-        }
-        .announcement-card {
-          animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .wheel-inline .announcement-card h3 { display: none; }
+        .spin-launch-btn:hover { transform: scale(1.05); }
         .winner-big-name {
           font-size: 4rem;
           font-weight: 900;
-          color: #facc15;
-          text-shadow: 0 0 20px rgba(250, 204, 21, 0.5);
-        }
-        .wheel-inline .winner-big-name {
-          font-size: 2rem;
-          color: #0a8276;
-          text-shadow: none;
+          margin: 0.5rem 0;
         }
         .winner-big-dept {
           font-size: 1.5rem;
-          color: #94a3b8;
         }
-        .wheel-inline .winner-big-dept { font-size: 1rem; }
-        @keyframes popIn {
-          from { transform: scale(0); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
+        .publish-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
       `}</style>
     </div>
   );

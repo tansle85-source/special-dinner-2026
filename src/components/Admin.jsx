@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import LuckyDrawWheel from './LuckyDrawWheel';
 
-const SITE_VERSION = "v1.4.9";
+const SITE_VERSION = "v1.5.0";
 
 const Admin = () => {
   // Navigation State
@@ -106,13 +106,44 @@ const Admin = () => {
     if (!selectedSession) return alert("Please choose a session first");
     try {
       setLoading(true);
-      const res = await axios.post('/api/draw/next', { session: selectedSession });
-      setDrawResult(res.data);
-      setLastWinner(res.data.winner);
+      // Find the next available prize in this session locally to prepare the stage
+      const sessionPrizes = prizes.filter(p => p.session === selectedSession).sort((a,b) => b.rank - a.rank);
+      let targetPrize = null;
+      for (const p of sessionPrizes) {
+        if (getDrawnCount(p.name) < p.quantity) {
+          targetPrize = p;
+          break;
+        }
+      }
+      
+      if (!targetPrize) return alert("No more prizes in this session");
+      
+      // We don't call the draw API yet - we just set the target prize and open the wheel
+      setDrawResult({ prize: targetPrize, winner: null });
       setShowStageView(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to prepare next draw");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePublishWinner = async (winner) => {
+    try {
+      setLoading(true);
+      await axios.post('/api/draw/publish', { 
+        winnerId: winner.id, 
+        prizeName: drawResult.prize.name 
+      });
+      
+      // Cleanup
+      setShowStageView(false);
+      setLastWinner(winner);
+      setDrawResult(null);
       fetchAllData();
     } catch (err) {
-      alert(err.response?.data?.error || "Next draw failed");
+      alert("Publish failed: " + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -452,7 +483,13 @@ const Admin = () => {
         </div>
       )}
 
-      {showStageView && drawResult && <LuckyDrawWheel prize={drawResult.prize} winner={drawResult.winner} onFinish={() => { setShowStageView(false); fetchAllData(); }} onClose={() => setShowStageView(false)} />}
+      {showStageView && drawResult && (
+        <LuckyDrawWheel 
+          prize={drawResult.prize} 
+          onFinish={handlePublishWinner} 
+          onClose={() => { setShowStageView(false); setDrawResult(null); }} 
+        />
+      )}
 
       <style>{`
         .modern-admin-layout { display: flex; height: 100vh; background: #f8fafc; font-family: 'Inter', sans-serif; color: #1e293b; }

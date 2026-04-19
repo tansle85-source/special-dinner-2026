@@ -340,8 +340,22 @@ app.get('/api/employees', async (req, res) => {
 
 app.get('/api/eligible-employees', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT name FROM employees WHERE won_prize IS NULL');
-    res.json(rows.map(r => r.name));
+    const [rows] = await pool.query('SELECT id, name, department FROM employees WHERE won_prize IS NULL');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+app.post('/api/draw/publish', async (req, res) => {
+  const { winnerId, prizeName } = req.body;
+  try {
+    // Validate winner is still eligible
+    const [rows] = await pool.query('SELECT name FROM employees WHERE id = ? AND won_prize IS NULL', [winnerId]);
+    if (rows.length === 0) return res.status(400).json({ error: 'Employee ineligible or already won' });
+    
+    await pool.query('UPDATE employees SET won_prize = ? WHERE id = ?', [prizeName, winnerId]);
+    res.json({ success: true });
   } catch (err) {
     res.status(500).send(err.message);
   }

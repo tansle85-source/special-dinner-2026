@@ -161,31 +161,31 @@ const LuckyDrawWheel = ({ prize, onFinish, onClose, isInline = false }) => {
           letter-spacing: 4px;
         }
         .wheel-prize-tag {
-          font-size: 3rem;
+          font-size: 2.2rem;
           font-weight: 900;
-          margin-bottom: 3rem;
+          margin-bottom: 2rem;
           text-transform: uppercase;
         }
         .wheel-wrapper {
           position: relative;
-          width: 500px;
-          height: 500px;
+          width: 400px;
+          height: 400px;
           margin: 0 auto;
           border-radius: 50%;
-          border: 12px solid #f1f5f9;
-          box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+          border: 10px solid #f1f5f9;
+          box-shadow: 0 15px 40px rgba(0,0,0,0.1);
           overflow: visible;
         }
         .wheel-wrapper.inline-size {
-          width: 350px;
-          height: 350px;
+          width: 320px;
+          height: 320px;
         }
         .wheel-pointer {
           position: absolute;
-          top: -30px;
+          top: -25px;
           left: 50%;
           transform: translateX(-50%);
-          font-size: 3rem;
+          font-size: 2.5rem;
           z-index: 10;
         }
         .wheel-circle {
@@ -206,23 +206,23 @@ const LuckyDrawWheel = ({ prize, onFinish, onClose, isInline = false }) => {
         }
         .segment-text {
           position: absolute;
-          right: 15px;
+          right: 12px;
           transform: rotate(75deg);
           font-weight: 700;
-          font-size: 0.65rem;
-          max-width: 100px;
+          font-size: 0.6rem;
+          max-width: 90px;
           white-space: nowrap;
           text-align: right;
         }
         .wheel-controls {
-          margin-top: 3rem;
-          min-height: 120px;
+          margin-top: 2rem;
+          min-height: 100px;
         }
         .spin-launch-btn {
           color: white;
           border: none;
-          padding: 1.5rem 4rem;
-          font-size: 1.75rem;
+          padding: 1.2rem 3.5rem;
+          font-size: 1.5rem;
           font-weight: 900;
           border-radius: 99px;
           cursor: pointer;
@@ -231,12 +231,12 @@ const LuckyDrawWheel = ({ prize, onFinish, onClose, isInline = false }) => {
         }
         .spin-launch-btn:hover { transform: scale(1.05); }
         .winner-big-name {
-          font-size: 4rem;
+          font-size: 3rem;
           font-weight: 900;
-          margin: 0.5rem 0;
+          margin: 0.4rem 0;
         }
         .winner-big-dept {
-          font-size: 1.5rem;
+          font-size: 1.2rem;
         }
         .publish-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
       `}</style>

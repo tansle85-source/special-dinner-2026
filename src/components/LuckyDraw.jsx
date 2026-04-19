@@ -120,7 +120,7 @@ const LuckyDraw = () => {
     }
   });
 
-  const eligibleEmployees = (employees || []).filter(e => !e.won_prize && e.checked_in);
+  const eligibleEmployees = (employees || []).filter(e => !e.won_prize);
   const uniqueSessions = [...new Set((prizes || []).map(p => p.session))].sort();
 
   return (

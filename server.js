@@ -370,7 +370,7 @@ app.post('/api/draw', async (req, res) => {
     const [winners] = await connection.query('SELECT * FROM employees WHERE won_prize = ?', [prize.name]);
     if (winners.length >= prize.quantity) return res.status(400).json({ error: 'Quantity limit reached' });
 
-    const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL AND checked_in = 1');
+    const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL');
     if (eligible.length === 0) return res.status(400).json({ error: 'No eligible employees' });
 
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
@@ -406,7 +406,7 @@ app.post('/api/draw/next', async (req, res) => {
 
     if (!targetPrize) return res.status(404).json({ error: 'No more prizes in this session' });
 
-    const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL AND checked_in = 1');
+    const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL');
     if (eligible.length === 0) return res.status(400).json({ error: 'No eligible employees' });
 
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
@@ -436,7 +436,7 @@ app.post('/api/draw/session-all', async (req, res) => {
       
       if (needed <= 0) continue;
 
-      const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL AND checked_in = 1 LIMIT ?', [needed]);
+      const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL LIMIT ?', [needed]);
       for (const winner of eligible) {
         await connection.query('UPDATE employees SET won_prize = ? WHERE id = ?', [prize.name, winner.id]);
         winners_added.push({ winner: winner.name, prize: prize.name });
@@ -481,7 +481,7 @@ app.post('/api/draw/redraw', async (req, res) => {
     await connection.query('UPDATE employees SET won_prize = NULL WHERE id = ?', [winnerId]);
 
     // 2. Draw a new winner for the same prize
-    const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL AND checked_in = 1');
+    const [eligible] = await connection.query('SELECT * FROM employees WHERE won_prize IS NULL');
     if (eligible.length === 0) throw new Error('No eligible employees left');
 
     const newWinner = eligible[Math.floor(Math.random() * eligible.length)];

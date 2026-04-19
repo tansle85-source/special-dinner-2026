@@ -249,39 +249,45 @@ const Admin = () => {
                 <button className={activeSubTab === 'winners' ? 'active' : ''} onClick={() => setActiveSubTab('winners')}>Winners List</button>
               </div>
 
-              {activeSubTab === 'conduct' && (
-                <div className="hero-draw-card" style={{ padding: '3rem', margin: '2rem 0', background: 'white' }}>
-                  {showStageView && drawResult ? (
-                    <LuckyDrawWheel 
-                      prize={drawResult.prize} 
-                      winner={drawResult.winner} 
-                      isInline={true}
-                      onFinish={() => {}}
-                      onClose={() => { setShowStageView(false); fetchAllData(); }}
-                    />
-                  ) : (
-                    <div className="ready-state" style={{ textAlign: 'center' }}>
-                      <div className="input-row" style={{ maxWidth: '400px', margin: '0 auto 2.5rem' }}>
-                        <select value={selectedSession} onChange={(e) => { setSelectedSession(e.target.value); setSelectedPrizeId(''); }} className="modern-select" style={{ padding: '1rem', fontSize: '1.1rem', borderRadius: '12px', width: '100%', border: '2px solid #e2e8f0', fontWeight: 700 }}>
-                          <option value="">-- Choose Session to Begin --</option>
-                          {[...new Set(prizes.map(p => p.session))].map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-                      
-                      <h2 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Ready for the next draw?</h2>
-                      <p style={{ color: '#64748b', fontSize: '1.1rem', marginBottom: '3rem' }}>Select a session above to unlock draw controls.</p>
-                      
-                      <div className="draw-actions" style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', opacity: selectedSession ? 1 : 0.5, pointerEvents: selectedSession ? 'auto' : 'none' }}>
-                        <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner} style={{ background: '#df3d4e', color: 'white', border: 'none', padding: '1.25rem 2.5rem', borderRadius: '99px', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 20px rgba(223, 61, 78, 0.15)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span className="icon">🔄</span> Redraw (No Show)
-                        </button>
-                        <button className="btn-draw-main" onClick={handleNextDraw} disabled={!selectedSession || loading}>
-                          <span className="icon">🎁</span> Next Prize
-                        </button>
-                        <button className="btn-draw-batch" onClick={handleDrawAll} disabled={!selectedSession || loading}>
-                          <span className="icon">📋</span> Draw All
-                        </button>
-                      </div>
+              {activeSubTab === 'conduct' && (() => {
+                const sessionPrizes = prizes.filter(p => p.session === selectedSession);
+                const totalQuantity = sessionPrizes.reduce((sum, p) => sum + p.quantity, 0);
+                const currentWinners = (employees || []).filter(e => sessionPrizes.some(p => p.name === e.won_prize)).length;
+                const remainingToDraw = totalQuantity - currentWinners;
+
+                return (
+                  <div className="hero-draw-card" style={{ padding: '3rem', margin: '2rem 0', background: 'white' }}>
+                    {showStageView && drawResult ? (
+                      <LuckyDrawWheel 
+                        prize={drawResult.prize} 
+                        winner={drawResult.winner} 
+                        isInline={true}
+                        onFinish={() => {}}
+                        onClose={() => { setShowStageView(false); fetchAllData(); }}
+                      />
+                    ) : (
+                      <div className="ready-state" style={{ textAlign: 'center' }}>
+                        <div className="input-row" style={{ maxWidth: '400px', margin: '0 auto 2.5rem' }}>
+                          <select value={selectedSession} onChange={(e) => { setSelectedSession(e.target.value); setSelectedPrizeId(''); }} className="modern-select" style={{ padding: '1rem', fontSize: '1.1rem', borderRadius: '12px', width: '100%', border: '2px solid #e2e8f0', fontWeight: 700 }}>
+                            <option value="">-- Choose Session to Begin --</option>
+                            {[...new Set(prizes.map(p => p.session))].map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        
+                        <h2 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Ready for the next draw?</h2>
+                        <p style={{ color: '#64748b', fontSize: '1.1rem', marginBottom: '3rem' }}>{selectedSession ? `Total Session Prizes: ${totalQuantity} | Remaining: ${remainingToDraw}` : 'Select a session above to view prize counts and start the draw.'}</p>
+                        
+                        <div className="draw-actions" style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', opacity: selectedSession ? 1 : 0.5, pointerEvents: selectedSession ? 'auto' : 'none' }}>
+                          <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner} style={{ background: '#df3d4e', color: 'white', border: 'none', padding: '1.25rem 2.5rem', borderRadius: '99px', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 20px rgba(223, 61, 78, 0.15)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span className="icon">🔄</span> Redraw (No Show)
+                          </button>
+                          <button className="btn-draw-main" onClick={handleNextDraw} disabled={!selectedSession || loading}>
+                            <span className="icon">🎁</span> Next Prize
+                          </button>
+                          <button className="btn-draw-batch" onClick={handleDrawAll} disabled={!selectedSession || loading || remainingToDraw <= 0}>
+                            <span className="icon">📋</span> Draw All ({remainingToDraw})
+                          </button>
+                        </div>
                       
                       <div className="secondary-actions" style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
                         <select value={selectedPrizeId} onChange={(e) => setSelectedPrizeId(e.target.value)} className="modern-select" style={{ width: 'auto' }}>

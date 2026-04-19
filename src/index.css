@@ -330,9 +330,6 @@ body {
 
 .status-tag.drawn { background: rgba(10, 130, 118, 0.1); color: var(--primary); }
 .status-tag.pending { background: #f1f5f9; color: var(--text-muted); }
-  margin-bottom: 2.5rem;
-}
-
 .session-tab {
   background: white;
   color: var(--text-main);

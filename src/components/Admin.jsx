@@ -275,7 +275,6 @@ const Admin = () => {
                         <button className="btn-reset session-reset-btn" onClick={handleResetSession} disabled={!selectedSession}>
                           Reset Current Session
                         </button>
-                      </div>
                     </div>
                   </div>
                 </div>

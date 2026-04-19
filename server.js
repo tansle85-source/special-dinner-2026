@@ -444,7 +444,7 @@ app.post('/api/draw/session-all', async (req, res) => {
     }
 
     await connection.commit();
-    res.json({ success: true, count: winners_added.length });
+    res.json({ success: true, count: winners_added.length, winners: winners_added });
   } catch (err) {
     await connection.rollback();
     res.status(500).send(err.message);

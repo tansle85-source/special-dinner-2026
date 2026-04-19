@@ -28,6 +28,9 @@ const Admin = () => {
   const [uploadStatus, setUploadStatus] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
   const [lastWinner, setLastWinner] = useState(null); 
+  const [batchDrawResults, setBatchDrawResults] = useState([]);
+  const [showBatchSummary, setShowBatchSummary] = useState(false);
+  const [isProcessingBatch, setIsProcessingBatch] = useState(false);
 
   // Derived Session Stats
   const sessionPrizes = selectedSession ? prizes.filter(p => p.session === selectedSession) : [];
@@ -141,11 +144,20 @@ const Admin = () => {
     if (!window.confirm(`Draw ALL remaining prizes for ${selectedSession}?`)) return;
     try {
       setLoading(true);
-      await axios.post('/api/draw/session-all', { session: selectedSession });
-      fetchAllData();
-      alert("Batch draw completed successfully!");
+      const res = await axios.post('/api/draw/session-all', { session: selectedSession });
+      if (res.data.success) {
+        setIsProcessingBatch(true);
+        setBatchDrawResults(res.data.winners || []);
+        
+        // Simulate the "Process" drawing
+        setTimeout(() => {
+          setIsProcessingBatch(false);
+          setShowBatchSummary(true);
+          fetchAllData();
+        }, 3000); 
+      }
     } catch (err) {
-      alert("Batch draw failed");
+      alert("Batch draw failed: " + (err.response?.data || err.message));
     } finally {
       setLoading(false);
     }
@@ -307,6 +319,43 @@ const Admin = () => {
                           Reset Current Session
                         </button>
                       </div>
+
+                      {isProcessingBatch && (
+                        <div className="batch-process-view" style={{ marginTop: '3rem', padding: '3rem', background: '#f8fafc', borderRadius: '24px', textAlign: 'center' }}>
+                          <div className="spinner-large" style={{ fontSize: '4rem', animation: 'spin 1s linear infinite' }}>🎲</div>
+                          <h2 style={{ fontSize: '2rem', fontWeight: 900, marginTop: '1.5rem' }}>Drawing {selectedSession} Winners...</h2>
+                          <p style={{ color: '#0a8276', fontWeight: 800, fontSize: '1.2rem', marginTop: '1rem' }}>Processing prize algorithm for {batchDrawResults.length} items</p>
+                          <div className="progress-bar-container" style={{ width: '100%', maxWidth: '400px', height: '8px', background: '#e2e8f0', borderRadius: '4px', margin: '2rem auto', overflow: 'hidden' }}>
+                            <div className="progress-fill" style={{ width: '100%', height: '100%', background: '#0a8276', animation: 'progress 3s linear' }}></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {showBatchSummary && !isProcessingBatch && (
+                        <div className="batch-results-overlay" style={{ marginTop: '3rem', borderTop: '2px dashed #e2e8f0', paddingTop: '3rem' }}>
+                          <div className="batch-header" style={{ marginBottom: '2rem' }}>
+                             <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎊</div>
+                             <h2 style={{ fontSize: '2.5rem', fontWeight: 900 }}>Grand Draw Success!</h2>
+                             <p style={{ fontSize: '1.2rem', color: '#0a8276', fontWeight: 800 }}>Successfully drawn {batchDrawResults.length} winners for {selectedSession}</p>
+                          </div>
+                          <div className="batch-winner-scroller" style={{ maxHeight: '400px', overflowY: 'auto', background: '#f8fafc', borderRadius: '16px', padding: '2rem' }}>
+                             <table className="clean-table">
+                               <thead>
+                                 <tr><th>WINNER NAME</th><th>PRIZE WON</th></tr>
+                               </thead>
+                               <tbody>
+                                 {batchDrawResults.map((res, idx) => (
+                                   <tr key={idx}>
+                                     <td style={{ fontWeight: 800, color: '#1e293b' }}>{res.winner}</td>
+                                     <td style={{ fontWeight: 600, color: '#64748b' }}>{res.prize}</td>
+                                   </tr>
+                                 ))}
+                               </tbody>
+                             </table>
+                          </div>
+                          <button className="btn-next" style={{ marginTop: '2rem', margin: '2rem auto 0' }} onClick={() => setShowBatchSummary(false)}>Got it, Close Summary</button>
+                        </div>
+                      )}
                     </div>
                     )}
                   </div>
@@ -463,6 +512,8 @@ const Admin = () => {
         .btn-batch .icon { margin-right: 12px; font-size: 1.2rem; }
         .control-buttons { display: flex; gap: 1.5rem; }
         .giant-launch-btn, .batch-draw-btn { display: none; } /* Replaced by the new unified buttons */
+        @keyframes progress { from { width: 0%; } to { width: 100%; } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

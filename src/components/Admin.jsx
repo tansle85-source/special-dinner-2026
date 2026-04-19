@@ -92,6 +92,51 @@ const Admin = () => {
     } catch (err) { alert(err.response?.data?.error || "Draw failed"); }
   };
 
+  const handleNextDraw = async () => {
+    if (!selectedSession) return alert("Please choose a session first");
+    try {
+      setLoading(true);
+      const res = await axios.post('/api/draw/next', { session: selectedSession });
+      setDrawResult(res.data);
+      setShowStageView(true);
+      fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.error || "Next draw failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDrawAll = async () => {
+    if (!selectedSession) return alert("Please choose a session first");
+    if (!window.confirm(`Draw ALL remaining prizes for ${selectedSession}?`)) return;
+    try {
+      setLoading(true);
+      await axios.post('/api/draw/session-all', { session: selectedSession });
+      fetchAllData();
+      alert("Batch draw completed successfully!");
+    } catch (err) {
+      alert("Batch draw failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetSession = async () => {
+    if (!selectedSession) return alert("Please choose a session first");
+    if (!window.confirm(`Reset ALL winners for ${selectedSession} only?`)) return;
+    try {
+      setLoading(true);
+      await axios.post('/api/draw/session-reset', { session: selectedSession });
+      fetchAllData();
+      alert("Session reset successfully");
+    } catch (err) {
+      alert("Reset failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const saveItem = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -191,28 +236,43 @@ const Admin = () => {
                     <div className="input-row">
                       <label>1. Choose Session</label>
                       <select value={selectedSession} onChange={(e) => { setSelectedSession(e.target.value); setSelectedPrizeId(''); }} className="modern-select">
-                        <option value="">-- All Sessions --</option>
+                        <option value="">-- Select Session --</option>
                         {[...new Set(prizes.map(p => p.session))].map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
 
-                    <div className="input-row">
-                      <label>2. Select Prize (By Rank)</label>
-                      <select value={selectedPrizeId} onChange={(e) => setSelectedPrizeId(e.target.value)} className="modern-select">
-                        <option value="">-- Select Prize --</option>
-                        {prizes
-                          .filter(p => !selectedSession || p.session === selectedSession)
-                          .sort((a, b) => b.rank - a.rank) // Sort by rank descending (often Rank 10 is minor, Rank 1 is grand) 
-                          .map(p => {
-                            const remaining = p.quantity - getDrawnCount(p.name);
-                            return <option key={p.id} value={p.id} disabled={remaining <= 0}>{p.rank}. {p.name} ({remaining}/{p.quantity} Left)</option>;
-                          })}
-                      </select>
+                    <div className="admin-draw-actions">
+                      <div className="primary-actions">
+                        <button className="giant-launch-btn" onClick={handleNextDraw} disabled={!selectedSession || loading}>
+                          NEXT PRIZE Rank-Order
+                        </button>
+                        <button className="batch-draw-btn" onClick={handleDrawAll} disabled={!selectedSession || loading}>
+                          DRAW ALL in Session
+                        </button>
+                      </div>
+                      
+                      <div className="secondary-actions">
+                        <div className="input-row manual-select">
+                          <label>Manual Prize Select (Optional)</label>
+                          <select value={selectedPrizeId} onChange={(e) => setSelectedPrizeId(e.target.value)} className="modern-select">
+                            <option value="">-- Or Pick Individually --</option>
+                            {prizes
+                              .filter(p => !selectedSession || p.session === selectedSession)
+                              .sort((a, b) => b.rank - a.rank)
+                              .map(p => {
+                                const remaining = p.quantity - getDrawnCount(p.name);
+                                return <option key={p.id} value={p.id} disabled={remaining <= 0}>{p.rank}. {p.name} ({remaining}/{p.quantity})</option>;
+                              })}
+                          </select>
+                        </div>
+                        {selectedPrizeId && (
+                          <button className="table-btn launch-small" onClick={conductDraw}>Launch Wheel for Selected</button>
+                        )}
+                        <button className="btn-reset session-reset-btn" onClick={handleResetSession} disabled={!selectedSession}>
+                          Reset Current Session
+                        </button>
+                      </div>
                     </div>
-
-                    <button className="giant-launch-btn" onClick={conductDraw} disabled={!selectedPrizeId}>
-                      LAUNCH STAGE VIEW & DRAW
-                    </button>
                   </div>
                 </div>
               )}
@@ -347,10 +407,18 @@ const Admin = () => {
         .modal-content input { width: 100%; padding: 0.8rem; border: 1px solid #e2e8f0; border-radius: 8px; }
         .modal-actions { display: flex; gap: 1rem; margin-top: 2rem; }
         .save-btn { background: var(--primary); color: white; flex: 1; padding: 1rem; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; }
-        .draw-selector-box.rank-flow { display: flex; flex-direction: column; gap: 1.5rem; }
+        .draw-selector-box.rank-flow { display: flex; flex-direction: column; gap: 2rem; }
         .input-row { display: flex; flex-direction: column; gap: 0.5rem; }
         .input-row label { font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
-        .giant-launch-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+        .admin-draw-actions { display: flex; flex-direction: column; gap: 2rem; border-top: 1px solid #f1f5f9; pt: 2rem; }
+        .primary-actions { display: flex; gap: 1rem; }
+        .giant-launch-btn { flex: 2; background: #0a8276; }
+        .batch-draw-btn { flex: 1; background: #1e293b; color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; }
+        .secondary-actions { display: flex; align-items: flex-end; gap: 1rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; }
+        .manual-select { flex: 1; }
+        .session-reset-btn { background: #ef4444 !important; color: white !important; margin-left: auto; }
+        .launch-small { height: 42px; background: white; border: 1px solid #e2e8f0; }
+        .giant-launch-btn:disabled, .batch-draw-btn:disabled, .session-reset-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
       `}</style>
     </div>
   );

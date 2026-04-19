@@ -245,13 +245,9 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     .on('data', (row) => {
       const rowKeys = Object.keys(row);
       const cleanKeys = rowKeys.map(k => k.replace(/^\uFEFF/, '').trim());
-      
-      if (results.length === 0) console.log("RAW EMPLOYEE HEADERS:", cleanKeys);
-
       const data = {};
       cleanKeys.forEach((key, i) => data[key.toLowerCase()] = row[rowKeys[i]].trim());
       
-      // Permissive find: Look for any column containing 'name' or 'dept/unit'
       const nameKey = cleanKeys.find(k => k.toLowerCase().includes('name'))?.toLowerCase();
       const deptKey = cleanKeys.find(k => k.toLowerCase().includes('dept') || k.toLowerCase().includes('unit'))?.toLowerCase();
 
@@ -261,21 +257,25 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       if (name) results.push([crypto.randomUUID(), name, department, null]);
     })
     .on('end', async () => {
+      let connection;
       try {
-        if (results.length === 0) throw new Error('No valid employee names found. Please check your CSV headers (e.g., Name, Department).');
+        if (results.length === 0) throw new Error('No valid employee names found.');
         
-        console.log(`Attempting to upload ${results.length} employees...`);
-        const connection = await pool.getConnection();
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+        
         await connection.query('DELETE FROM employees'); 
         await connection.query('INSERT INTO employees (id, name, department, won_prize) VALUES ?', [results]);
-        connection.release();
         
+        await connection.commit();
         await fs.remove(req.file.path);
-        console.log('Employee upload success');
         res.json({ message: 'Success', count: results.length });
       } catch (err) {
+        if (connection) await connection.rollback();
         console.error('Employee upload error:', err.message);
         res.status(500).send(err.message);
+      } finally {
+        if (connection) connection.release();
       }
     });
 });
@@ -290,13 +290,9 @@ app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
     .on('data', (row) => {
       const rowKeys = Object.keys(row);
       const cleanKeys = rowKeys.map(k => k.replace(/^\uFEFF/, '').trim());
-      
-      if (results.length === 0) console.log("RAW PRIZE HEADERS:", cleanKeys);
-
       const data = {};
       cleanKeys.forEach((key, i) => data[key.toLowerCase()] = row[rowKeys[i]].trim());
       
-      // Permissive search for prize fields
       const prizeNameKey = cleanKeys.find(k => k.toLowerCase().includes('prize') || k.toLowerCase().includes('item'))?.toLowerCase();
       const sessKey = cleanKeys.find(k => k.toLowerCase().includes('sess') || k.toLowerCase().includes('stage'))?.toLowerCase();
       const rankKey = cleanKeys.find(k => k.toLowerCase().includes('rank') || k.toLowerCase().includes('order'))?.toLowerCase();
@@ -314,21 +310,25 @@ app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
       }
     })
     .on('end', async () => {
+      let connection;
       try {
-        if (results.length === 0) throw new Error('No valid prizes found. Please check your CSV headers (e.g., Session, Prize Name, Quantity, Rank).');
+        if (results.length === 0) throw new Error('No valid prizes found.');
         
-        console.log(`Attempting to upload ${results.length} prizes...`);
-        const connection = await pool.getConnection();
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+        
         await connection.query('DELETE FROM prizes'); 
         await connection.query('INSERT INTO prizes (id, session, rank_level, name, quantity) VALUES ?', [results]);
-        connection.release();
         
+        await connection.commit();
         await fs.remove(req.file.path);
-        console.log('Prize upload success');
         res.json({ message: 'Success', count: results.length });
       } catch (err) {
+        if (connection) await connection.rollback();
         console.error('Prize upload error:', err.message);
         res.status(500).send(err.message);
+      } finally {
+        if (connection) connection.release();
       }
     });
 });

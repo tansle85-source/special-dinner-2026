@@ -26,6 +26,7 @@ const Admin = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [selectedSession, setSelectedSession] = useState('');
 
   useEffect(() => {
     fetchAllData();
@@ -66,7 +67,15 @@ const Admin = () => {
       setUploadStatus('Uploading...');
       const res = await axios.post(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setUploadStatus(`Success: ${res.data.count} records processed`);
-      fetchAllData();
+      
+      // Smart sync: only fetch what's needed
+      if (type === 'employees') {
+        const empRes = await axios.get('/api/employees');
+        setEmployees(empRes.data);
+      } else {
+        const prizeRes = await axios.get('/api/prizes');
+        setPrizes(prizeRes.data);
+      }
     } catch (err) { 
       const errMsg = err.response?.data || err.message;
       setUploadStatus(`Error: ${errMsg}`); 
@@ -174,16 +183,36 @@ const Admin = () => {
 
               {activeSubTab === 'conduct' && (
                 <div className="card draw-hero-card">
-                  <div className="card-info"><h3>Conduct Lucky Draw</h3><p>Select a prize and launch the stage wheel animation.</p></div>
-                  <div className="draw-selector-box">
-                    <select value={selectedPrizeId} onChange={(e) => setSelectedPrizeId(e.target.value)} className="modern-select">
-                      <option value="">-- Choose Prize --</option>
-                      {prizes.map(p => {
-                        const remaining = p.quantity - getDrawnCount(p.name);
-                        return <option key={p.id} value={p.id} disabled={remaining <= 0}>{p.name} ({p.session}) - {remaining} Left</option>;
-                      })}
-                    </select>
-                    <button className="giant-launch-btn" onClick={conductDraw}>LAUNCH STAGE VIEW & DRAW</button>
+                  <div className="card-info">
+                    <h3>Conduct Lucky Draw</h3>
+                    <p>Select a session, then follow the prizes in rank-order.</p>
+                  </div>
+                  <div className="draw-selector-box rank-flow">
+                    <div className="input-row">
+                      <label>1. Choose Session</label>
+                      <select value={selectedSession} onChange={(e) => { setSelectedSession(e.target.value); setSelectedPrizeId(''); }} className="modern-select">
+                        <option value="">-- All Sessions --</option>
+                        {[...new Set(prizes.map(p => p.session))].map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="input-row">
+                      <label>2. Select Prize (By Rank)</label>
+                      <select value={selectedPrizeId} onChange={(e) => setSelectedPrizeId(e.target.value)} className="modern-select">
+                        <option value="">-- Select Prize --</option>
+                        {prizes
+                          .filter(p => !selectedSession || p.session === selectedSession)
+                          .sort((a, b) => b.rank - a.rank) // Sort by rank descending (often Rank 10 is minor, Rank 1 is grand) 
+                          .map(p => {
+                            const remaining = p.quantity - getDrawnCount(p.name);
+                            return <option key={p.id} value={p.id} disabled={remaining <= 0}>{p.rank}. {p.name} ({remaining}/{p.quantity} Left)</option>;
+                          })}
+                      </select>
+                    </div>
+
+                    <button className="giant-launch-btn" onClick={conductDraw} disabled={!selectedPrizeId}>
+                      LAUNCH STAGE VIEW & DRAW
+                    </button>
                   </div>
                 </div>
               )}
@@ -318,6 +347,10 @@ const Admin = () => {
         .modal-content input { width: 100%; padding: 0.8rem; border: 1px solid #e2e8f0; border-radius: 8px; }
         .modal-actions { display: flex; gap: 1rem; margin-top: 2rem; }
         .save-btn { background: var(--primary); color: white; flex: 1; padding: 1rem; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; }
+        .draw-selector-box.rank-flow { display: flex; flex-direction: column; gap: 1.5rem; }
+        .input-row { display: flex; flex-direction: column; gap: 0.5rem; }
+        .input-row label { font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
+        .giant-launch-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
       `}</style>
     </div>
   );

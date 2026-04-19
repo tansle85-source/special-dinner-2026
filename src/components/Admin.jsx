@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import LuckyDrawWheel from './LuckyDrawWheel';
 
-const SITE_VERSION = "v1.4.8";
+const SITE_VERSION = "v1.4.9";
 
 const Admin = () => {
   // Navigation State
@@ -28,6 +28,12 @@ const Admin = () => {
   const [uploadStatus, setUploadStatus] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
   const [lastWinner, setLastWinner] = useState(null); 
+
+  // Derived Session Stats
+  const sessionPrizes = selectedSession ? prizes.filter(p => p.session === selectedSession) : [];
+  const totalQuantity = sessionPrizes.reduce((sum, p) => sum + p.quantity, 0);
+  const currentWinners = (employees || []).filter(e => sessionPrizes.some(p => p.name === e.won_prize)).length;
+  const remainingToDraw = totalQuantity - currentWinners;
 
   useEffect(() => {
     fetchAllData();
@@ -275,13 +281,13 @@ const Admin = () => {
                         </div>
                         
                         <h2 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Ready for the next draw?</h2>
-                        <p style={{ color: '#64748b', fontSize: '1.1rem', marginBottom: '3rem' }}>{selectedSession ? `Total Session Prizes: ${totalQuantity} | Remaining: ${remainingToDraw}` : 'Select a session above to view prize counts and start the draw.'}</p>
+                        <p style={{ color: '#64748b', fontSize: '1.1rem', marginBottom: '3rem' }}>{selectedSession ? `Remaining Prizes: ${remainingToDraw}` : 'Select a session above to view prize counts and start the draw.'}</p>
                         
                         <div className="draw-actions" style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', opacity: selectedSession ? 1 : 0.5, pointerEvents: selectedSession ? 'auto' : 'none' }}>
                           <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner} style={{ background: '#df3d4e', color: 'white', border: 'none', padding: '1.25rem 2.5rem', borderRadius: '99px', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 20px rgba(223, 61, 78, 0.15)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span className="icon">🔄</span> Redraw (No Show)
                           </button>
-                          <button className="btn-draw-main" onClick={handleNextDraw} disabled={!selectedSession || loading}>
+                          <button className="btn-draw-main" onClick={handleNextDraw} disabled={!selectedSession || loading || remainingToDraw <= 0}>
                             <span className="icon">🎁</span> Next Prize
                           </button>
                           <button className="btn-draw-batch" onClick={handleDrawAll} disabled={!selectedSession || loading || remainingToDraw <= 0}>
@@ -302,9 +308,10 @@ const Admin = () => {
                         </button>
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                );
+              })()}
 
               {activeSubTab === 'manage' && (
                 <div className="card shadow-card">
@@ -365,10 +372,8 @@ const Admin = () => {
                       <td>
                         {e.won_prize ? (
                           <span className="pill drawn">Won: {e.won_prize}</span>
-                        ) : e.checked_in ? (
-                          <span className="pill eligible">Eligible (Present)</span>
                         ) : (
-                          <span className="pill ineligible">Ineligible (Not Checked In)</span>
+                          <span className="pill eligible">Eligible</span>
                         )}
                       </td>
                       <td><button onClick={() => { setEditingItem(e); setIsModalOpen(true); }} className="table-btn">Edit</button></td>

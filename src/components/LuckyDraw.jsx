@@ -124,216 +124,161 @@ const LuckyDraw = () => {
   const uniqueSessions = [...new Set((prizes || []).map(p => p.session))].sort();
 
   return (
-    <div className="premium-dashboard">
-      <header className="dashboard-header-bar">
-        <div className="brand-stack">
-          <div className="year-logo">2026</div>
-          <nav className="main-nav">
-            <a href="#" className="active">Lucky Draw</a>
-            <a href="#">Table Selection</a>
-            <a href="#">Guest Check-in</a>
-          </nav>
+    <div className="professional-layout">
+      {/* Sidebar - Simple version with focus on Lucky Draw */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <h2>Appreciation <span>Night 2026</span></h2>
+          <p className="muted" style={{ fontSize: '0.7rem', fontWeight: 800 }}>Control Center 2026</p>
         </div>
-        <div className="header-actions">
-          <Link to="/admin" className="admin-btn">Admin Dashboard</Link>
-          <button className="fullscreen-btn" onClick={toggleFullscreen}>
-             {isFullscreen ? "Exit Fullscreen" : "⛶ Fullscreen"}
-          </button>
-        </div>
-      </header>
-
-      <main className="dashboard-main">
-        <div className="top-banner">
-          <div className="banner-text">
-            <h1>Live Lucky Draw</h1>
-            <p>Roll for winners in real-time | <span>{eligibleEmployees.length}</span> potential candidates</p>
+        <nav className="sidebar-nav">
+          <div className="nav-group">
+            <div className="group-label" style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '10px', fontWeight: 800 }}>Events</div>
+            <a href="#" className="nav-item active"><span className="icon">🎡</span> Lucky Draw</a>
           </div>
+        </nav>
+        <div className="sidebar-footer">
+          <Link to="/admin" className="nav-item"><span className="icon">⚙️</span> Admin Dashboard</Link>
+          <a href="#" className="nav-item" onClick={() => window.location.href='/'}><span className="icon">🏠</span> Back to Home</a>
         </div>
+      </aside>
 
-        <div className="session-tab-container">
-          <div className="session-tabs-row">
-            {uniqueSessions.map(s => (
-              <button key={s} className={`sess-tab ${activeSession === s ? 'active' : ''}`} onClick={() => setActiveSession(s)}>
-                {s}
+      {/* Main Area */}
+      <main className="main-area">
+        <header className="top-bar">
+          <div className="page-breadcrumb">
+             <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>Pages / Lucky Draw</span>
+             <h1 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Live Draw Console</h1>
+          </div>
+          <div className="header-meta">
+            <Link to="/admin" className="btn-admin-dash">Admin Dashboard</Link>
+            <button className="btn-fullscreen" onClick={toggleFullscreen}>
+               {isFullscreen ? "Exit Fullscreen" : "⛶ Fullscreen"}
+            </button>
+          </div>
+        </header>
+
+        <div className="content-scroll">
+          {/* Sub Header */}
+          <div className="draw-sub-header" style={{ marginBottom: '2.5rem' }}>
+            <h1 style={{ fontSize: '1.8rem', fontWeight: 900 }}>Live Lucky Draw</h1>
+            <p style={{ color: '#64748b', fontWeight: 600 }}>Roll for winners in real-time | <span style={{ color: '#0a8276', fontWeight: 800 }}>{eligibleEmployees.length} potential candidates</span></p>
+          </div>
+
+          {/* Session Selector Pills */}
+          <div className="session-pill-bar">
+            {uniqueSessions.map(session => (
+              <button 
+                key={session}
+                className={`session-pill ${activeSession === session ? 'active' : ''}`}
+                onClick={() => setActiveSession(session)}
+              >
+                {session}
               </button>
             ))}
           </div>
-        </div>
 
-        <section className="hero-control-area card">
-          <div className="hero-content">
+          {/* Large Hero Draw Card */}
+          <div className="hero-draw-card">
             {showWheel && currentDraw ? (
               <LuckyDrawWheel 
+                prize={currentDraw.prize} 
+                winner={currentDraw.winner} 
                 isInline={true}
-                prize={currentDraw.prize}
-                winner={currentDraw.winner}
                 onFinish={() => {}}
                 onClose={() => setShowWheel(false)}
               />
             ) : (
-              <>
-                <div className="ready-state">
-                   <div className="placeholder-wheel">🎡</div>
-                   <p className="status-msg">Ready to draw...</p>
+              <div className="ready-state">
+                <h2 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Ready for the next draw?</h2>
+                <p style={{ color: '#64748b', fontSize: '1.1rem', marginBottom: '3rem' }}>Select a session and click Spin Wheel</p>
+                <div className="draw-actions" style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
+                  <button className="btn-draw-main" onClick={handleNextDraw} disabled={loading}>
+                    <span className="icon">🎁</span> Next Prize
+                  </button>
+                  <button className="btn-draw-batch" onClick={handleDrawAll} disabled={loading}>
+                    <span className="icon">📋</span> Draw All ({winnersForSession.filter(w => w.isPending).length})
+                  </button>
                 </div>
-              </>
+              </div>
             )}
-            
-            <div className="control-buttons">
-              <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner}>
-                 Redraw (No Show)
-              </button>
-              <button className="btn-next" onClick={handleNextDraw} disabled={loading}>
-                 Next Prize
-              </button>
-              <button className="btn-batch" onClick={handleDrawAll} disabled={loading}>
-                 Draw All ({winnersForSession.filter(w => w.isPending).length})
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <div className="split-grid">
-          <div className="grid-column winners-column">
-            <div className="column-header">
-              <h3>🏆 Session Winners</h3>
-              <div className="header-tools">
-                <button className="btn-reset" onClick={handleResetSession} title="Reset current session">Reset</button>
-                <button className="btn-refresh" onClick={fetchData}>↻</button>
-              </div>
-            </div>
-            <div className="card table-card">
-              <table className="data-table">
-                <thead><tr><th>RANK</th><th>PRIZE</th><th>WINNER</th><th>STATUS</th></tr></thead>
-                <tbody>
-                  {winnersForSession.map((w, i) => (
-                    <tr key={i} className={w.isPending ? 'pending' : 'drawn'}>
-                      <td className="rank-cell">{w.rank}</td>
-                      <td className="prize-cell">{w.prizeName}</td>
-                      <td className="winner-name">
-                        {w.isPending ? '-' : w.name}
-                        {!w.isPending && <div className="winner-dept">{w.department}</div>}
-                      </td>
-                      <td>
-                        <span className={`status-pill ${w.isPending ? 'pending' : 'drawn'}`}>
-                          {w.isPending ? 'Pending' : 'Drawn'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {winnersForSession.length === 0 && (
-                    <tr><td colSpan="4" className="empty-msg">No prizes configured for this session.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
           </div>
 
-          <div className="grid-column eligible-column">
-             <div className="column-header">
-                <h3>👥 Eligible ({eligibleEmployees.length})</h3>
-             </div>
-            <div className="summary-pills">
-              <div className="pill teal">
-                <span className="label">Eligible Members</span>
-                <span className="value">{employees.filter(e => e.checked_in && !e.won_prize).length}</span>
+          {/* Split Table Grid */}
+          <div className="registry-split">
+            {/* Winners Pillar */}
+            <div className="registry-card">
+              <div className="card-header">
+                <h3>🏆 Session Winners</h3>
+                <div className="header-btns" style={{ display: 'flex', gap: '8px' }}>
+                  <button className="btn-reset-small" onClick={handleResetSession}>Reset</button>
+                  <button className="btn-icon" onClick={fetchData} title="Refresh Data">↻</button>
+                </div>
               </div>
-              <div className="pill navy">
-                <span className="label">Total Prizes</span>
-                <span className="value">{prizes.filter(p => p.session === activeSession).reduce((acc, p) => acc + p.quantity, 0)}</span>
-              </div>
-              <div className="pill orange">
-                <span className="label">Already Won</span>
-                <span className="value">{employees.filter(e => e.won_prize && prizes.find(p => p.name === e.won_prize && p.session === activeSession)).length}</span>
-              </div>
-            </div>
-             <div className="card table-card">
-                <table className="data-table">
-                  <thead><tr><th>NAME</th><th>DEPARTMENT</th></tr></thead>
+              <div className="table-scroller" style={{ maxHeight: '450px', overflowY: 'auto' }}>
+                <table className="clean-table">
+                  <thead>
+                    <tr><th>RANK</th><th>PRIZE</th><th>WINNER</th><th>STATUS</th></tr>
+                  </thead>
                   <tbody>
-                    {eligibleEmployees.slice(0, 50).map(e => (
-                      <tr key={e.id}>
-                        <td className="bold">{e.name}</td>
-                        <td className="muted">{e.department}</td>
+                    {winnersForSession.map((w, i) => (
+                      <tr key={i}>
+                        <td style={{ fontWeight: 800, color: '#94a3b8' }}>{w.rank}</td>
+                        <td style={{ fontWeight: 700 }}>{w.prizeName}</td>
+                        <td>
+                          {w.isPending ? '-' : w.name}
+                          {!w.isPending && <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{w.department}</div>}
+                        </td>
+                        <td>
+                          <span className={`status-tag ${w.isPending ? 'pending' : 'drawn'}`}>
+                            {w.isPending ? 'Pending' : 'Drawn'}
+                          </span>
+                        </td>
                       </tr>
                     ))}
-                    {eligibleEmployees.length > 50 && (
-                      <tr className="more-row"><td colSpan="2">... and {eligibleEmployees.length - 50} more candidates</td></tr>
+                    {winnersForSession.length === 0 && (
+                      <tr><td colSpan="4" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontStyle: 'italic' }}>No prizes found for this session.</td></tr>
                     )}
                   </tbody>
                 </table>
-             </div>
+              </div>
+            </div>
+
+            {/* Eligibility Pillar */}
+            <div className="registry-card">
+              <div className="card-header">
+                <h3>👥 Eligible Pool ({eligibleEmployees.length})</h3>
+                <div className="header-btns">
+                  <button className="btn-icon" onClick={handleRedraw} disabled={!lastWinner} title="Redraw last winner">🔄</button>
+                </div>
+              </div>
+              <div className="table-scroller" style={{ maxHeight: '450px', overflowY: 'auto' }}>
+                <table className="clean-table">
+                  <thead>
+                    <tr><th>NAME</th><th>DEPARTMENT</th></tr>
+                  </thead>
+                  <tbody>
+                    {eligibleEmployees.slice(0, 100).map(e => (
+                      <tr key={e.id}>
+                        <td style={{ fontWeight: 700 }}>{e.name}</td>
+                        <td style={{ color: '#64748b' }}>{e.department}</td>
+                      </tr>
+                    ))}
+                    {eligibleEmployees.length > 100 && (
+                      <tr><td colSpan="2" style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>... and {eligibleEmployees.length - 100} more members</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </main>
+    </div>
+  );
+};
 
-      <style>{`
-        .premium-dashboard { min-height: 100vh; background: #f0f4f8; font-family: 'Inter', sans-serif; color: #1e293b; padding-bottom: 4rem; }
-        .dashboard-header-bar { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 4rem; background: #fff; border-bottom: 1px solid #e1e7ef; }
-        .brand-stack { display: flex; align-items: center; gap: 3rem; }
-        .year-logo { font-size: 1.5rem; font-weight: 900; color: #0a8276; }
-        .main-nav { display: flex; gap: 2rem; }
-        .main-nav a { text-decoration: none; color: #64748b; font-weight: 600; font-size: 0.95rem; }
-        .main-nav a.active { color: #1e293b; position: relative; }
-        .main-nav a.active::after { content: ''; position: absolute; bottom: -8px; left: 0; width: 100%; height: 2px; background: #0a8276; }
-        .admin-btn { background: #0a8276; color: white; text-decoration: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 700; font-size: 0.9rem; margin-right: 1rem; }
-        .fullscreen-btn { border: 1px solid #e1e7ef; background: white; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 700; color: #64748b; }
-        
-        .dashboard-main { max-width: 1400px; margin: 0 auto; padding: 3rem 4rem; }
-        .top-banner h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; }
-        .top-banner p { color: #64748b; font-weight: 500; }
-        .top-banner p span { color: #0a8276; font-weight: 800; }
-        
-        .session-tab-container { margin: 2.5rem 0; display: flex; justify-content: center; }
-        .session-tabs-row { background: #e1e7ef; padding: 0.5rem; border-radius: 12px; display: flex; gap: 0.5rem; }
-        .sess-tab { border: none; padding: 0.8rem 2.5rem; border-radius: 8px; background: transparent; color: #64748b; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .sess-tab.active { background: white; color: #0a8276; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-
-        .hero-control-area { text-align: center; padding: 4rem 2rem; margin-bottom: 3rem; background: white; }
-        .hero-content h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 1rem; }
-        .hero-content p { color: #64748b; margin-bottom: 2.5rem; }
-        .control-buttons { display: flex; gap: 1.5rem; justify-content: center; }
-        .btn-next { background: #0a7065; color: white; border: none; padding: 1.2rem 3.5rem; border-radius: 99px; font-size: 1.4rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 280px; transition: 0.3s; box-shadow: 0 10px 25px rgba(10, 112, 101, 0.2); }
-        .btn-next:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(10, 112, 101, 0.3); }
-        .btn-batch { background: #1e293b; color: white; border: none; padding: 1.2rem 3.5rem; border-radius: 99px; font-size: 1.1rem; font-weight: 800; cursor: pointer; min-width: 220px; transition: 0.3s; }
-        .btn-redraw { background: #df3d4e; color: white; border: none; padding: 1.2rem 3.5rem; border-radius: 99px; font-size: 1.4rem; font-weight: 800; cursor: pointer; min-width: 280px; transition: 0.3s; box-shadow: 0 10px 25px rgba(223, 61, 78, 0.2); }
-        .btn-redraw:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(223, 61, 78, 0.3); }
-        .btn-redraw:disabled { background: #fda4af; box-shadow: none; }
-        
-        .ready-state { padding: 3rem 0; animation: bounce 4s infinite ease-in-out; }
-        .placeholder-wheel { font-size: 5rem; margin-bottom: 1rem; opacity: 0.3; }
-        .status-msg { font-size: 1.2rem; font-weight: 600; color: #64748b; }
-
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-
-        .split-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 3rem; align-items: start; }
-        .column-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .column-header h3 { font-size: 1.2rem; font-weight: 800; }
-        .header-tools { display: flex; gap: 0.8rem; }
-        .btn-reset { background: #ef4444; color: white; border: none; padding: 0.4rem 1rem; border-radius: 6px; font-weight: 700; cursor: pointer; }
-        .btn-refresh { background: #e1e7ef; border: none; width: 32px; height: 32px; border-radius: 6px; font-weight: 800; cursor: pointer; }
-        
-        .card { background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #e1e7ef; }
-        .table-card { padding: 1rem; }
-        .data-table { width: 100%; border-collapse: collapse; }
-        .data-table th { text-align: left; padding: 1rem; color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; }
-        .data-table td { padding: 1.2rem 1rem; border-bottom: 1px solid #f1f5f9; }
-        .rank-cell { font-weight: 800; color: #94a3b8; }
-        .prize-cell { font-weight: 700; color: #1e293b; }
-        .winner-name { font-weight: 700; }
-        .winner-dept { font-size: 0.75rem; color: #64748b; font-weight: 500; }
-        .status-pill { padding: 4px 12px; border-radius: 99px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
-        .status-pill.drawn { background: #dcfce7; color: #166534; }
-        .status-pill.pending { background: #f1f5f9; color: #64748b; }
-        .bold { font-weight: 700; }
-        .muted { color: #64748b; font-size: 0.95rem; }
-        .empty-msg { text-align: center; padding: 2rem; color: #94a3b8; font-style: italic; }
-        
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-      `}</style>
+export default LuckyDraw;
     </div>
   );
 };

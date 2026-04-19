@@ -279,11 +279,12 @@ const LuckyDraw = () => {
         .hero-content h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 1rem; }
         .hero-content p { color: #64748b; margin-bottom: 2.5rem; }
         .control-buttons { display: flex; gap: 1.5rem; justify-content: center; }
-        .btn-next { background: #0a8276; color: white; border: none; padding: 1.2rem 3rem; border-radius: 50px; font-size: 1.2rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 220px; transition: 0.3s; }
-        .btn-next:hover { transform: scale(1.05); }
-        .btn-batch { background: #1e293b; color: white; border: none; padding: 1.2rem 3rem; border-radius: 50px; font-size: 1.1rem; font-weight: 800; cursor: pointer; min-width: 220px; }
-        .btn-redraw { background: #e11d48; color: white; border: none; padding: 1.2rem 3rem; border-radius: 50px; font-size: 1.1rem; font-weight: 800; cursor: pointer; min-width: 220px; }
-        .btn-redraw:disabled { background: #fda4af; }
+        .btn-next { background: #0a7065; color: white; border: none; padding: 1.2rem 3.5rem; border-radius: 99px; font-size: 1.4rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 280px; transition: 0.3s; box-shadow: 0 10px 25px rgba(10, 112, 101, 0.2); }
+        .btn-next:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(10, 112, 101, 0.3); }
+        .btn-batch { background: #1e293b; color: white; border: none; padding: 1.2rem 3.5rem; border-radius: 99px; font-size: 1.1rem; font-weight: 800; cursor: pointer; min-width: 220px; transition: 0.3s; }
+        .btn-redraw { background: #df3d4e; color: white; border: none; padding: 1.2rem 3.5rem; border-radius: 99px; font-size: 1.4rem; font-weight: 800; cursor: pointer; min-width: 280px; transition: 0.3s; box-shadow: 0 10px 25px rgba(223, 61, 78, 0.2); }
+        .btn-redraw:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(223, 61, 78, 0.3); }
+        .btn-redraw:disabled { background: #fda4af; box-shadow: none; }
         
         .ready-state { padding: 3rem 0; animation: bounce 4s infinite ease-in-out; }
         .placeholder-wheel { font-size: 5rem; margin-bottom: 1rem; opacity: 0.3; }

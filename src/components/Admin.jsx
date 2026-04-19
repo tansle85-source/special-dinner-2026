@@ -273,7 +273,7 @@ const Admin = () => {
                           <span className="icon">🎁</span> Next Prize
                         </button>
                         <button className="btn-batch" onClick={handleDrawAll} disabled={!selectedSession || loading}>
-                          Draw All
+                          <span className="icon">📦</span> Draw All
                         </button>
                       </div>
                     </div>
@@ -450,6 +450,9 @@ const Admin = () => {
         .btn-next:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(10, 112, 101, 0.25); }
         .btn-redraw { background: #df3d4e; color: white; border: none; padding: 1.2rem 2.5rem; border-radius: 99px; font-size: 1.2rem; font-weight: 800; cursor: pointer; min-width: 220px; transition: 0.3s; box-shadow: 0 10px 20px rgba(223, 61, 78, 0.15); display: flex; align-items: center; justify-content: center; }
         .btn-redraw:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(223, 61, 78, 0.25); }
+        .btn-batch { background: #1e293b; color: white; border: none; padding: 1.2rem 2.5rem; border-radius: 99px; font-size: 1.2rem; font-weight: 800; cursor: pointer; min-width: 220px; transition: 0.3s; box-shadow: 0 10px 20px rgba(30, 41, 59, 0.15); display: flex; align-items: center; justify-content: center; }
+        .btn-batch:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(30, 41, 59, 0.25); }
+        .btn-batch .icon { margin-right: 12px; font-size: 1.2rem; }
         .control-buttons { display: flex; gap: 1.5rem; }
         .giant-launch-btn, .batch-draw-btn { display: none; } /* Replaced by the new unified buttons */
       `}</style>

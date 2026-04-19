@@ -124,49 +124,24 @@ const LuckyDraw = () => {
   const uniqueSessions = [...new Set((prizes || []).map(p => p.session))].sort();
 
   return (
-    <div className="professional-layout">
-      {/* Sidebar - Simple version with focus on Lucky Draw */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <h2>Appreciation <span>Night 2026</span></h2>
-          <p className="muted" style={{ fontSize: '0.7rem', fontWeight: 800 }}>Control Center 2026</p>
-        </div>
-        <nav className="sidebar-nav">
-          <div className="nav-group">
-            <div className="group-label" style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '10px', fontWeight: 800 }}>Events</div>
-            <a href="#" className="nav-item active"><span className="icon">🎡</span> Lucky Draw</a>
-          </div>
-        </nav>
-        <div className="sidebar-footer">
-          <Link to="/admin" className="nav-item"><span className="icon">⚙️</span> Admin Dashboard</Link>
-          <a href="#" className="nav-item" onClick={() => window.location.href='/'}><span className="icon">🏠</span> Back to Home</a>
-        </div>
-      </aside>
-
-      {/* Main Area */}
-      <main className="main-area">
-        <header className="top-bar">
-          <div className="page-breadcrumb">
-             <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>Pages / Lucky Draw</span>
-             <h1 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Live Draw Console</h1>
-          </div>
-          <div className="header-meta">
-            <Link to="/admin" className="btn-admin-dash">Admin Dashboard</Link>
-            <button className="btn-fullscreen" onClick={toggleFullscreen}>
-               {isFullscreen ? "Exit Fullscreen" : "⛶ Fullscreen"}
-            </button>
+    <div className="professional-layout public-view">
+      {/* Main Area - No Sidebar for Public */}
+      <main className="main-area" style={{ flex: 1, height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <header className="top-bar" style={{ justifyContent: 'center' }}>
+          <div className="sidebar-logo" style={{ marginBottom: 0, textAlign: 'center' }}>
+            <h2 style={{ fontSize: '1.5rem' }}>Appreciation <span>Night 2026</span></h2>
           </div>
         </header>
 
-        <div className="content-scroll">
+        <div className="content-scroll" style={{ padding: '4rem', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
           {/* Sub Header */}
-          <div className="draw-sub-header" style={{ marginBottom: '2.5rem' }}>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 900 }}>Live Lucky Draw</h1>
-            <p style={{ color: '#64748b', fontWeight: 600 }}>Roll for winners in real-time | <span style={{ color: '#0a8276', fontWeight: 800 }}>{eligibleEmployees.length} potential candidates</span></p>
+          <div className="draw-sub-header" style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '0.5rem' }}>Lucky Draw Results</h1>
+            <p style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 600 }}>Check the winners for each session below.</p>
           </div>
 
           {/* Session Selector Pills */}
-          <div className="session-pill-bar">
+          <div className="session-pill-bar" style={{ margin: '0 auto 3rem' }}>
             {uniqueSessions.map(session => (
               <button 
                 key={session}
@@ -178,107 +153,43 @@ const LuckyDraw = () => {
             ))}
           </div>
 
-          {/* Large Hero Draw Card */}
-          <div className="hero-draw-card">
-            {showWheel && currentDraw ? (
-              <LuckyDrawWheel 
-                prize={currentDraw.prize} 
-                winner={currentDraw.winner} 
-                isInline={true}
-                onFinish={() => {}}
-                onClose={() => setShowWheel(false)}
-              />
-            ) : (
-              <div className="ready-state">
-                <h2 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Ready for the next draw?</h2>
-                <p style={{ color: '#64748b', fontSize: '1.1rem', marginBottom: '3rem' }}>Select a session and click Spin Wheel</p>
-                <div className="draw-actions" style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem' }}>
-                  <button className="btn-draw-main" onClick={handleNextDraw} disabled={loading}>
-                    <span className="icon">🎁</span> Next Prize
-                  </button>
-                  <button className="btn-draw-batch" onClick={handleDrawAll} disabled={loading}>
-                    <span className="icon">📋</span> Draw All ({winnersForSession.filter(w => w.isPending).length})
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Split Table Grid */}
-          <div className="registry-split">
-            {/* Winners Pillar */}
-            <div className="registry-card">
-              <div className="card-header">
-                <h3>🏆 Session Winners</h3>
-                <div className="header-btns" style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn-reset-small" onClick={handleResetSession}>Reset</button>
-                  <button className="btn-icon" onClick={fetchData} title="Refresh Data">↻</button>
-                </div>
-              </div>
-              <div className="table-scroller" style={{ maxHeight: '450px', overflowY: 'auto' }}>
-                <table className="clean-table">
-                  <thead>
-                    <tr><th>RANK</th><th>PRIZE</th><th>WINNER</th><th>STATUS</th></tr>
-                  </thead>
-                  <tbody>
-                    {winnersForSession.map((w, i) => (
-                      <tr key={i}>
-                        <td style={{ fontWeight: 800, color: '#94a3b8' }}>{w.rank}</td>
-                        <td style={{ fontWeight: 700 }}>{w.prizeName}</td>
-                        <td>
-                          {w.isPending ? '-' : w.name}
-                          {!w.isPending && <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{w.department}</div>}
-                        </td>
-                        <td>
-                          <span className={`status-tag ${w.isPending ? 'pending' : 'drawn'}`}>
-                            {w.isPending ? 'Pending' : 'Drawn'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {winnersForSession.length === 0 && (
-                      <tr><td colSpan="4" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontStyle: 'italic' }}>No prizes found for this session.</td></tr>
-                    )}
-                  </tbody>
-                </table>
+          {/* Winners Pillar - Full Width for Public */}
+          <div className="registry-card shadow-card">
+            <div className="card-header" style={{ padding: '2rem 3rem' }}>
+              <h3 style={{ fontSize: '1.4rem' }}>🏆 {activeSession} Winners</h3>
+              <div className="header-btns">
+                 <button className="btn-fullscreen" onClick={toggleFullscreen}>
+                   {isFullscreen ? "Exit Fullscreen" : "⛶ Fullscreen"}
+                 </button>
               </div>
             </div>
-
-            {/* Eligibility Pillar */}
-            <div className="registry-card">
-              <div className="card-header">
-                <h3>👥 Eligible Pool ({eligibleEmployees.length})</h3>
-                <div className="header-btns">
-                  <button className="btn-icon" onClick={handleRedraw} disabled={!lastWinner} title="Redraw last winner">🔄</button>
-                </div>
-              </div>
-              <div className="table-scroller" style={{ maxHeight: '450px', overflowY: 'auto' }}>
-                <table className="clean-table">
-                  <thead>
-                    <tr><th>NAME</th><th>DEPARTMENT</th></tr>
-                  </thead>
-                  <tbody>
-                    {eligibleEmployees.slice(0, 100).map(e => (
-                      <tr key={e.id}>
-                        <td style={{ fontWeight: 700 }}>{e.name}</td>
-                        <td style={{ color: '#64748b' }}>{e.department}</td>
-                      </tr>
-                    ))}
-                    {eligibleEmployees.length > 100 && (
-                      <tr><td colSpan="2" style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>... and {eligibleEmployees.length - 100} more members</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            <div className="table-scroller" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+              <table className="clean-table" style={{ fontSize: '1.1rem' }}>
+                <thead>
+                  <tr><th style={{ padding: '20px 30px' }}>RANK</th><th>PRIZE</th><th>WINNER</th><th>DEPARTMENT</th></tr>
+                </thead>
+                <tbody>
+                  {winnersForSession.map((w, i) => (
+                    <tr key={i}>
+                      <td style={{ fontWeight: 900, color: '#94a3b8', padding: '20px 30px' }}>{w.rank}</td>
+                      <td style={{ fontWeight: 800 }}>{w.prizeName}</td>
+                      <td style={{ fontWeight: 700, color: w.isPending ? '#94a3b8' : '#1e293b' }}>
+                        {w.isPending ? 'Pending Draw...' : w.name}
+                      </td>
+                      <td style={{ color: '#64748b' }}>
+                         {w.isPending ? '-' : w.department}
+                      </td>
+                    </tr>
+                  ))}
+                  {winnersForSession.length === 0 && (
+                    <tr><td colSpan="4" style={{ textAlign: 'center', padding: '4rem', color: '#94a3b8', fontStyle: 'italic' }}>Results will appear here once the draw begins.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </main>
-    </div>
-  );
-};
-
-export default LuckyDraw;
     </div>
   );
 };

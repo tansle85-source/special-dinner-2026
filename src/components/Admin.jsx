@@ -250,56 +250,53 @@ const Admin = () => {
               </div>
 
               {activeSubTab === 'conduct' && (
-                <div className="card draw-hero-card">
-                  <div className="card-info">
-                    <h3>Conduct Lucky Draw</h3>
-                    <p>Select a session, then follow the prizes in rank-order.</p>
-                  </div>
-                  <div className="draw-selector-box rank-flow">
-                    <div className="input-row">
-                      <label>1. Choose Session</label>
-                      <select value={selectedSession} onChange={(e) => { setSelectedSession(e.target.value); setSelectedPrizeId(''); }} className="modern-select">
-                        <option value="">-- Select Session --</option>
-                        {[...new Set(prizes.map(p => p.session))].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-
-                    <div className="admin-draw-actions">
-                      <div className="control-buttons">
-                        <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner}>
+                <div className="hero-draw-card" style={{ padding: '3rem', margin: '2rem 0', background: 'white' }}>
+                  {showStageView && drawResult ? (
+                    <LuckyDrawWheel 
+                      prize={drawResult.prize} 
+                      winner={drawResult.winner} 
+                      isInline={true}
+                      onFinish={() => {}}
+                      onClose={() => { setShowStageView(false); fetchAllData(); }}
+                    />
+                  ) : (
+                    <div className="ready-state" style={{ textAlign: 'center' }}>
+                      <div className="input-row" style={{ maxWidth: '400px', margin: '0 auto 2.5rem' }}>
+                        <select value={selectedSession} onChange={(e) => { setSelectedSession(e.target.value); setSelectedPrizeId(''); }} className="modern-select" style={{ padding: '1rem', fontSize: '1.1rem', borderRadius: '12px', width: '100%', border: '2px solid #e2e8f0', fontWeight: 700 }}>
+                          <option value="">-- Choose Session to Begin --</option>
+                          {[...new Set(prizes.map(p => p.session))].map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      
+                      <h2 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Ready for the next draw?</h2>
+                      <p style={{ color: '#64748b', fontSize: '1.1rem', marginBottom: '3rem' }}>Select a session above to unlock draw controls.</p>
+                      
+                      <div className="draw-actions" style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', opacity: selectedSession ? 1 : 0.5, pointerEvents: selectedSession ? 'auto' : 'none' }}>
+                        <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner} style={{ background: '#df3d4e', color: 'white', border: 'none', padding: '1.25rem 2.5rem', borderRadius: '99px', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 20px rgba(223, 61, 78, 0.15)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <span className="icon">🔄</span> Redraw (No Show)
                         </button>
-                        <button className="btn-next" onClick={handleNextDraw} disabled={!selectedSession || loading}>
+                        <button className="btn-draw-main" onClick={handleNextDraw} disabled={!selectedSession || loading}>
                           <span className="icon">🎁</span> Next Prize
                         </button>
-                        <button className="btn-batch" onClick={handleDrawAll} disabled={!selectedSession || loading}>
-                          <span className="icon">📦</span> Draw All
+                        <button className="btn-draw-batch" onClick={handleDrawAll} disabled={!selectedSession || loading}>
+                          <span className="icon">📋</span> Draw All
+                        </button>
+                      </div>
+                      
+                      <div className="secondary-actions" style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                        <select value={selectedPrizeId} onChange={(e) => setSelectedPrizeId(e.target.value)} className="modern-select" style={{ width: 'auto' }}>
+                          <option value="">-- Manual Quick Pick --</option>
+                          {prizes.filter(p => !selectedSession || p.session === selectedSession).map(p => (
+                             <option key={p.id} value={p.id} disabled={(p.quantity - getDrawnCount(p.name)) <= 0}>{p.rank}. {p.name}</option>
+                          ))}
+                        </select>
+                        {selectedPrizeId && <button className="secondary-btn" onClick={conductDraw}>Launch Wheel</button>}
+                        <button className="btn-reset session-reset-btn" onClick={handleResetSession} disabled={!selectedSession} style={{ background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>
+                          Reset Current Session
                         </button>
                       </div>
                     </div>
-                      
-                      <div className="secondary-actions">
-                        <div className="input-row manual-select">
-                          <label>Manual Prize Select (Optional)</label>
-                          <select value={selectedPrizeId} onChange={(e) => setSelectedPrizeId(e.target.value)} className="modern-select">
-                            <option value="">-- Or Pick Individually --</option>
-                            {prizes
-                              .filter(p => !selectedSession || p.session === selectedSession)
-                              .sort((a, b) => b.rank - a.rank)
-                              .map(p => {
-                                const remaining = p.quantity - getDrawnCount(p.name);
-                                return <option key={p.id} value={p.id} disabled={remaining <= 0}>{p.rank}. {p.name} ({remaining}/{p.quantity})</option>;
-                              })}
-                          </select>
-                        </div>
-                        {selectedPrizeId && (
-                          <button className="table-btn launch-small" onClick={conductDraw}>Launch Wheel for Selected</button>
-                        )}
-                        <button className="btn-reset session-reset-btn" onClick={handleResetSession} disabled={!selectedSession}>
-                          Reset Current Session
-                        </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 

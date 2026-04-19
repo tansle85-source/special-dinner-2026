@@ -410,15 +410,18 @@ const Admin = () => {
         .draw-selector-box.rank-flow { display: flex; flex-direction: column; gap: 2rem; }
         .input-row { display: flex; flex-direction: column; gap: 0.5rem; }
         .input-row label { font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
-        .admin-draw-actions { display: flex; flex-direction: column; gap: 2rem; border-top: 1px solid #f1f5f9; padding-top: 2rem; }
-        .primary-actions { display: flex; gap: 1rem; }
-        .giant-launch-btn { flex: 2; background: #0a8276; }
-        .batch-draw-btn { flex: 1; background: #1e293b; color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 1rem; }
-        .secondary-actions { display: flex; align-items: flex-end; gap: 1rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; }
+        .admin-draw-actions { display: flex; flex-direction: column; gap: 2rem; border-top: 2px solid #f1f5f9; padding-top: 2.5rem; margin-top: 1rem; }
+        .primary-actions { display: flex; gap: 1.5rem; }
+        .giant-launch-btn { flex: 2; background: #0a8276; color: white; border: none; padding: 1.5rem; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 1.2rem; box-shadow: 0 10px 20px rgba(10, 130, 118, 0.15); transition: 0.3s; }
+        .giant-launch-btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(10, 130, 118, 0.25); }
+        .batch-draw-btn { flex: 1; background: #1e293b; color: white; border: none; padding: 1.5rem; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 1.1rem; transition: 0.3s; }
+        .batch-draw-btn:hover:not(:disabled) { background: #0f172a; transform: translateY(-3px); }
+        .secondary-actions { display: flex; align-items: center; gap: 1.5rem; background: #f8fafc; padding: 2rem; border-radius: 16px; border: 1px solid #f1f5f9; margin-top: 1rem; }
         .manual-select { flex: 1; }
-        .session-reset-btn { background: #ef4444 !important; color: white !important; margin-left: auto; }
-        .launch-small { height: 42px; background: white; border: 1px solid #e2e8f0; }
-        .giant-launch-btn:disabled, .batch-draw-btn:disabled, .session-reset-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+        .session-reset-btn { background: #ef4444 !important; color: white !important; height: 52px; padding: 0 2rem; border-radius: 8px; font-weight: 800; margin-left: auto; transition: 0.3s; }
+        .session-reset-btn:hover:not(:disabled) { background: #dc2626 !important; transform: scale(1.02); }
+        .launch-small { height: 52px; background: white; border: 1px solid #e2e8f0; font-weight: 700; color: #0a8276; border-radius: 8px; padding: 0 1.5rem; }
+        .giant-launch-btn:disabled, .batch-draw-btn:disabled, .session-reset-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); transform: none !important; box-shadow: none !important; }
       `}</style>
     </div>
   );

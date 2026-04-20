@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Admin from './components/Admin';
 import PerformanceVoting from './components/PerformanceVoting';
+import LuckyDraw from './components/LuckyDraw';
 
 const App = () => {
   return (

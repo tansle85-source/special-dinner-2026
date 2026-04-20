@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node -e \"const fs=require('fs'); fs.copyFileSync('template.html', 'index.html')\" && vite build && node -e \"const fs=require('fs'); fs.unlinkSync('index.html')\"",
     "start": "node server.js",
     "preview": "vite preview"
   },

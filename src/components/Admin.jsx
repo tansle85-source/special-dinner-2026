@@ -18,6 +18,9 @@ const Admin = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [criteria, setCriteria] = useState([]);
   const [participants, setParticipants] = useState([]);
+  const [performanceStatus, setPerformanceStatus] = useState({ voting_status: 'CLOSED' });
+  const [bestDressStatus, setBestDressStatus] = useState('CLOSED');
+  const [bestDressNominees, setBestDressNominees] = useState([]);
   
   // UI State
   const [loading, setLoading] = useState(false);
@@ -46,13 +49,16 @@ const Admin = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [empRes, prizeRes, perfRes, feedRes, critRes, partRes] = await Promise.all([
+      const [empRes, prizeRes, perfRes, feedRes, critRes, partRes, pStatRes, bdStatRes, bdNomRes] = await Promise.all([
         axios.get('/api/employees'),
         axios.get('/api/prizes'),
         axios.get('/api/performance/results'),
         axios.get('/api/feedback'),
         axios.get('/api/performance/criteria'),
-        axios.get('/api/performance/participants')
+        axios.get('/api/performance/participants'),
+        axios.get('/api/performance/status'),
+        axios.get('/api/best-dress/status'),
+        axios.get('/api/best-dress/nominees')
       ]);
       setEmployees(empRes.data);
       setPrizes(prizeRes.data);
@@ -60,6 +66,9 @@ const Admin = () => {
       setFeedbacks(feedRes.data);
       setCriteria(critRes.data);
       setParticipants(partRes.data);
+      setPerformanceStatus(pStatRes.data);
+      setBestDressStatus(bdStatRes.data.best_dress_status);
+      setBestDressNominees(bdNomRes.data);
     } catch (err) {
       console.error("Fetch failed", err);
     } finally {

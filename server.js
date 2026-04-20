@@ -133,7 +133,8 @@ const initDB = async () => {
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         department VARCHAR(255),
-        song_name VARCHAR(255)
+        song_name VARCHAR(255),
+        manual_score INT DEFAULT 0
       )
     `);
 
@@ -164,6 +165,9 @@ const initDB = async () => {
       const [pCols] = await connection.query('SHOW COLUMNS FROM performance_participants');
       if (!pCols.some(c => c.Field === 'song_name')) {
         await connection.query('ALTER TABLE performance_participants ADD COLUMN song_name VARCHAR(255)');
+      }
+      if (!pCols.some(c => c.Field === 'manual_score')) {
+        await connection.query('ALTER TABLE performance_participants ADD COLUMN manual_score INT DEFAULT 0');
       }
       const [sCols] = await connection.query('SHOW COLUMNS FROM performance_scores');
       if (!sCols.some(c => c.Field === 'voter_id')) {
@@ -290,13 +294,17 @@ app.post('/api/performance/rate', async (req, res) => {
     const [settings] = await pool.query('SELECT voting_status FROM performance_settings WHERE id = "global"');
     if (settings[0]?.voting_status !== 'OPEN') return res.status(403).json({ error: 'Voting is currently closed' });
 
-    // 2. Check if already voted
+    // 2. Check if already voted - If so, UPDATE. If not, INSERT.
     const [existing] = await pool.query('SELECT id FROM performance_scores WHERE participant_id = ? AND voter_id = ?', [participant_id, voter_id]);
-    if (existing.length > 0) return res.status(400).json({ error: 'Already voted for this performer' });
-
-    await pool.query('INSERT INTO performance_scores (participant_id, score_1, score_2, score_3, voter_id) VALUES (?, ?, ?, ?, ?)', 
-      [participant_id, score_1, score_2, score_3, voter_id]);
-    res.json({ success: true });
+    
+    if (existing.length > 0) {
+      await pool.query('UPDATE performance_scores SET score_1 = ?, score_2 = ?, score_3 = ? WHERE participant_id = ? AND voter_id = ?', 
+        [score_1, score_2, score_3, participant_id, voter_id]);
+    } else {
+      await pool.query('INSERT INTO performance_scores (participant_id, score_1, score_2, score_3, voter_id) VALUES (?, ?, ?, ?, ?)', 
+        [participant_id, score_1, score_2, score_3, voter_id]);
+    }
+    res.json({ success: true, updated: existing.length > 0 });
   } catch (err) {
     res.status(500).send(err.message);
   }
@@ -315,16 +323,40 @@ app.post('/api/performance/status', async (req, res) => {
 
 app.get('/api/performance/results', async (req, res) => {
   const [rows] = await pool.query(`
-    SELECT p.name, p.department, p.song_name,
+    SELECT p.id, p.name, p.department, p.song_name, p.manual_score,
     AVG(s.score_1) as s1, AVG(s.score_2) as s2, AVG(s.score_3) as s3,
-    (AVG(s.score_1) + AVG(s.score_2) + AVG(s.score_3)) / 3 as total,
     COUNT(s.id) as vote_count
     FROM performance_participants p
     LEFT JOIN performance_scores s ON p.id = s.participant_id
     GROUP BY p.id
-    ORDER BY total DESC
   `);
-  res.json(rows);
+
+  // Calculate Weighted Totals
+  const processed = rows.map(r => {
+    // Guest Average (on 1-5 scale)
+    const guestAvg = ((Number(r.s1||0) + Number(r.s2||0) + Number(r.s3||0)) / 3);
+    // Convert guest avg to points (max 70)
+    const guestPortion = (guestAvg / 5) * 70;
+    // Manual Score portion (max 30)
+    const adminPortion = (Number(r.manual_score || 0) / 100) * 30;
+    
+    return {
+      ...r,
+      guest_portion: guestPortion.toFixed(2),
+      admin_portion: adminPortion.toFixed(2),
+      total: (guestPortion + adminPortion).toFixed(2)
+    };
+  });
+
+  // Sort by total DESC
+  processed.sort((a, b) => b.total - a.total);
+  res.json(processed);
+});
+
+app.put('/api/performance/participants/:id/manual-score', async (req, res) => {
+  const { score } = req.body;
+  await pool.query('UPDATE performance_participants SET manual_score = ? WHERE id = ?', [score, req.params.id]);
+  res.json({ success: true });
 });
 
 // --- FEEDBACK & BEST DRESS ---

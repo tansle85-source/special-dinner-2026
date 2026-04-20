@@ -655,18 +655,45 @@ const Admin = () => {
 
               {activeSubTab === 'p-results' && (
                 <div className="card shadow-card">
-                  <h3>Real-time Leaderboard</h3>
+                  <h3>Real-time Leaderboard (70% Guest / 30% Admin)</h3>
                   <table className="modern-table">
-                    <thead><tr><th>RANK</th><th>PERFORMER</th><th>AVG SCORE</th><th>VOTES</th></tr></thead>
+                    <thead>
+                      <tr>
+                        <th>RANK</th>
+                        <th>PERFORMER</th>
+                        <th>GUEST (70%)</th>
+                        <th>ADMIN LK1 (30%)</th>
+                        <th>OVERALL</th>
+                        <th>VOTES</th>
+                      </tr>
+                    </thead>
                     <tbody>
                       {performanceResults.map((r, i) => (
-                        <tr key={i}>
+                        <tr key={r.id || i}>
                           <td style={{fontWeight: 900, color: '#94a3b8'}}>#{i+1}</td>
                           <td>
                             <div className="bold">{r.name}</div>
                             <div style={{fontSize: '0.8rem', color: '#64748b'}}>{r.song_name}</div>
                           </td>
-                          <td className="bold text-teal" style={{fontSize: '1.2rem'}}>{parseFloat(r.total || 0).toFixed(2)}</td>
+                          <td className="bold text-teal">{r.guest_portion}</td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <input 
+                                type="number" 
+                                min="0" 
+                                max="100"
+                                className="inline-edit-input" 
+                                style={{ width: '80px', border: '1px solid #e2e8f0', textAlign: 'center' }}
+                                defaultValue={r.manual_score}
+                                onBlur={async (e) => {
+                                  await axios.put(`/api/performance/participants/${r.id}/manual-score`, { score: e.target.value });
+                                  fetchAllData();
+                                }}
+                              />
+                              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>/ 100</span>
+                            </div>
+                          </td>
+                          <td className="bold" style={{fontSize: '1.2rem', color: '#0a8276'}}>{r.total}</td>
                           <td>{r.vote_count}</td>
                         </tr>
                       ))}

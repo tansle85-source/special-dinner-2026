@@ -565,9 +565,6 @@ const Admin = () => {
             </div>
           )}
           {/* Performance and other modules remain the same as previous logic but with consistent styling */}
-        </div>
-      </main>
-
           {activeModule === 'performance' && (
             <div className="performance-module">
               <div className="tabs-strip">
@@ -579,13 +576,13 @@ const Admin = () => {
               {activeSubTab === 'p-entries' && (
                 <div className="card shadow-card">
                   <div className="card-header-actions">
-                    <h3>Performance Entries ({performanceParticipants.length})</h3>
+                    <h3>Performance Entries ({participants.length})</h3>
                     <button className="modern-add-btn" onClick={() => { setEditingItem(null); setIsModalOpen(true); }}>+ Add Performer</button>
                   </div>
                   <table className="modern-table">
                     <thead><tr><th>NAME</th><th>SONG</th><th>DEPT</th><th>ACTIONS</th></tr></thead>
                     <tbody>
-                      {performanceParticipants.map(p => (
+                      {participants.map(p => (
                         <tr key={p.id}>
                           <td className="bold">{p.name}</td>
                           <td className="text-teal">{p.song_name}</td>
@@ -626,7 +623,7 @@ const Admin = () => {
                     <table className="modern-table">
                       <thead><tr><th>CATEGORY</th><th>ACTION</th></tr></thead>
                       <tbody>
-                        {performanceCriteria.map(c => (
+                        {criteria.map(c => (
                           <tr key={c.id}>
                             <td>
                               <input 
@@ -649,27 +646,18 @@ const Admin = () => {
 
               {activeSubTab === 'p-results' && (
                 <div className="card shadow-card">
-                  <h3>Real-time Rankings</h3>
+                  <h3>Real-time Leaderboard</h3>
                   <table className="modern-table">
-                    <thead>
-                      <tr>
-                        <th>RANK</th><th>NAME</th><th>SONG</th>
-                        <th>{performanceCriteria[0]?.name}</th>
-                        <th>{performanceCriteria[1]?.name}</th>
-                        <th>{performanceCriteria[2]?.name}</th>
-                        <th>TOTAL</th><th>VOTES</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>RANK</th><th>PERFORMER</th><th>AVG SCORE</th><th>VOTES</th></tr></thead>
                     <tbody>
                       {performanceResults.map((r, i) => (
                         <tr key={i}>
-                          <td className="bold">#{i+1}</td>
-                          <td className="bold">{r.name}</td>
-                          <td className="text-teal">{r.song_name}</td>
-                          <td>{Number(r.s1 || 0).toFixed(2)}</td>
-                          <td>{Number(r.s2 || 0).toFixed(2)}</td>
-                          <td>{Number(r.s3 || 0).toFixed(2)}</td>
-                          <td className="bold" style={{ color: '#0a8276' }}>{Number(r.total || 0).toFixed(2)}</td>
+                          <td style={{fontWeight: 900, color: '#94a3b8'}}>#{i+1}</td>
+                          <td>
+                            <div className="bold">{r.name}</div>
+                            <div style={{fontSize: '0.8rem', color: '#64748b'}}>{r.song_name}</div>
+                          </td>
+                          <td className="bold text-teal" style={{fontSize: '1.2rem'}}>{parseFloat(r.total || 0).toFixed(2)}</td>
                           <td>{r.vote_count}</td>
                         </tr>
                       ))}
@@ -680,7 +668,81 @@ const Admin = () => {
             </div>
           )}
 
-          {isModalOpen && (
+          {activeModule === 'best-dress' && (
+            <div className="best-dress-module">
+              <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
+                <div className="card shadow-card" style={{ flex: 1 }}>
+                  <h3>Nomination Status</h3>
+                  <div style={{ margin: '1rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div className={`status-pill ${bestDressStatus === 'OPEN' ? 'open' : 'closed'}`}>
+                       {bestDressStatus === 'OPEN' ? '🟢 NOMINATION OPEN' : '🔴 NOMINATION CLOSED'}
+                    </div>
+                    <button 
+                      className="modern-add-btn" 
+                      onClick={async () => {
+                        const newStat = bestDressStatus === 'OPEN' ? 'CLOSED' : 'OPEN';
+                        await axios.post('/api/best-dress/status', { status: newStat });
+                        setBestDressStatus(newStat);
+                      }}
+                    >
+                      Toggle {bestDressStatus === 'OPEN' ? 'Close' : 'Open'}
+                    </button>
+                  </div>
+                </div>
+                <div className="card shadow-card" style={{ flex: 1 }}>
+                  <h3>Quick Add Nominee</h3>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                    <input id="new-nominee" className="modern-input" placeholder="Enter name..." />
+                    <button className="modern-add-btn" onClick={async () => {
+                      const name = document.getElementById('new-nominee').value;
+                      if (!name) return;
+                      await axios.post('/api/best-dress/nominees', { name });
+                      document.getElementById('new-nominee').value = '';
+                      const nRes = await axios.get('/api/best-dress/nominees');
+                      setBestDressNominees(nRes.data);
+                    }}>Add</button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card shadow-card">
+                <h3>Current Standings</h3>
+                <table className="modern-table">
+                  <thead><tr><th>NOMINEE</th><th>VOTES</th><th>ACTIONS</th></tr></thead>
+                  <tbody>
+                    {bestDressNominees.map(n => (
+                      <tr key={n.id}>
+                        <td className="bold">{n.nominee_name}</td>
+                        <td className="text-teal" style={{fontWeight: 900}}>{n.vote_count}</td>
+                        <td>
+                          <button onClick={async () => { if(confirm('Delete?')) { await axios.delete(`/api/best-dress/nominees/${n.id}`); const r = await axios.get('/api/best-dress/nominees'); setBestDressNominees(r.data); } }} className="table-btn">Delete</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeModule === 'guest-feedback' && (
+            <div className="card shadow-card">
+              <h3>Guest Feedback ({feedbacks.length})</h3>
+              <div className="feedback-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', marginTop: '2rem' }}>
+                {feedbacks.map(f => (
+                  <div key={f.id} className="feedback-bubble" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ color: '#fbbf24', fontSize: '1.2rem', marginBottom: '0.5rem' }}>{'★'.repeat(f.rating)}</div>
+                    <p style={{ color: '#1e293b', fontWeight: 600 }}>{f.comment}</p>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '1rem' }}>{new Date(f.created_at).toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {isModalOpen && (
             <div className="modal-overlay">
               <div className="modal-content card">
                 <h3>{editingItem ? "Edit " : "Add "} {activeModule === 'employees' ? "Employee" : (activeModule === 'performance' ? "Performer" : "Prize")}</h3>

@@ -1,5 +1,6 @@
 node_modules/
-dist/
+/index.html
+# dist/ - removed to allow deployment to Hostinger
 uploads/
 db.json
 .DS_Store

@@ -141,7 +141,8 @@ const initDB = async () => {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS performance_settings (
         id VARCHAR(255) PRIMARY KEY,
-        voting_status VARCHAR(50) DEFAULT 'CLOSED'
+        voting_status VARCHAR(50) DEFAULT 'CLOSED',
+        best_dress_status VARCHAR(50) DEFAULT 'CLOSED'
       )
     `);
 
@@ -161,7 +162,12 @@ const initDB = async () => {
       
       const [settings] = await connection.query('SELECT * FROM performance_settings WHERE id = "global"');
       if (settings.length === 0) {
-        await connection.query('INSERT INTO performance_settings (id, voting_status) VALUES ("global", "CLOSED")');
+        await connection.query('INSERT INTO performance_settings (id, voting_status, best_dress_status) VALUES ("global", "CLOSED", "CLOSED")');
+      } else {
+         const [cols] = await connection.query('SHOW COLUMNS FROM performance_settings');
+         if (!cols.some(c => c.Field === 'best_dress_status')) {
+           await connection.query('ALTER TABLE performance_settings ADD COLUMN best_dress_status VARCHAR(50) DEFAULT "CLOSED"');
+         }
       }
     } catch (migErr) { console.warn("Performance migration warning:", migErr.message); }
 
@@ -320,6 +326,44 @@ app.post('/api/feedback', async (req, res) => {
 app.get('/api/feedback', async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM feedback ORDER BY created_at DESC');
   res.json(rows);
+});
+
+// Best Dress Endpoints
+app.get('/api/best-dress/status', async (req, res) => {
+  const [rows] = await pool.query('SELECT best_dress_status FROM performance_settings WHERE id = "global"');
+  res.json(rows[0] || { best_dress_status: 'CLOSED' });
+});
+
+app.post('/api/best-dress/status', async (req, res) => {
+  const { status } = req.body;
+  await pool.query('UPDATE performance_settings SET best_dress_status = ? WHERE id = "global"', [status]);
+  res.json({ success: true });
+});
+
+app.get('/api/best-dress/nominees', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM best_dress_votes ORDER BY vote_count DESC');
+  res.json(rows);
+});
+
+app.post('/api/best-dress/nominees', async (req, res) => {
+  const { name } = req.body;
+  const id = crypto.randomUUID();
+  await pool.query('INSERT INTO best_dress_votes (id, nominee_name, vote_count) VALUES (?, ?, 0)', [id, name]);
+  res.json({ id });
+});
+
+app.delete('/api/best-dress/nominees/:id', async (req, res) => {
+  await pool.query('DELETE FROM best_dress_votes WHERE id = ?', [req.params.id]);
+  res.json({ success: true });
+});
+
+app.post('/api/best-dress/vote', async (req, res) => {
+  const { nominee_id } = req.body;
+  const [settings] = await pool.query('SELECT best_dress_status FROM performance_settings WHERE id = "global"');
+  if (settings[0]?.best_dress_status !== 'OPEN') return res.status(403).json({ error: 'Voting is CLOSED' });
+  
+  await pool.query('UPDATE best_dress_votes SET vote_count = vote_count + 1 WHERE id = ?', [nominee_id]);
+  res.json({ success: true });
 });
 
 // Upload Employees (Name, Department)

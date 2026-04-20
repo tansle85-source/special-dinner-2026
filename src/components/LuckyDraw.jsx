@@ -127,9 +127,14 @@ const LuckyDraw = () => {
     <div className="professional-layout public-view">
       {/* Main Area - No Sidebar for Public */}
       <main className="main-area" style={{ flex: 1, height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <header className="top-bar" style={{ justifyContent: 'center' }}>
-          <div className="sidebar-logo" style={{ marginBottom: 0, textAlign: 'center' }}>
+        <header className="top-bar" style={{ justifyContent: 'space-between', padding: '0 3rem' }}>
+          <div className="sidebar-logo" style={{ marginBottom: 0, textAlign: 'left' }}>
             <h2 style={{ fontSize: '1.5rem' }}>Appreciation <span>Night 2026</span></h2>
+          </div>
+          <div className="live-actions">
+            <Link to="/voting" className="vote-pulse-btn">
+              <span className="icon">🎤</span> Rate Performers
+            </Link>
           </div>
         </header>
 
@@ -193,5 +198,41 @@ const LuckyDraw = () => {
     </div>
   );
 };
+
+// Add styles directly for the pulsing vote button
+const extraStyles = `
+  .vote-pulse-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.8rem 1.5rem;
+    background: #10b981;
+    color: white;
+    text-decoration: none;
+    border-radius: 99px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    animation: pulse-green 2s infinite;
+    transition: 0.3s;
+  }
+  .vote-pulse-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    background: #059669;
+  }
+  .vote-pulse-btn .icon { font-size: 1.2rem; }
+
+  @keyframes pulse-green {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+`;
+
+// Inject styles
+const styleSheet = document.createElement("style");
+styleSheet.innerText = extraStyles;
+document.head.appendChild(styleSheet);
 
 export default LuckyDraw;

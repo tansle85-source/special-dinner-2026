@@ -239,18 +239,18 @@ const Admin = () => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const isEmployee = activeModule === 'employees';
-    const data = isEmployee ? {
-      name: formData.get('name'),
-      department: formData.get('department'),
-      won_prize: editingItem?.won_prize || null
-    } : {
-      session: formData.get('session'),
-      rank: parseInt(formData.get('rank')),
-      name: formData.get('name'),
-      quantity: parseInt(formData.get('quantity'))
-    };
+    const isPerformance = activeModule === 'performance';
+    
+    let data;
+    if (isEmployee) {
+      data = { name: formData.get('name'), department: formData.get('department'), won_prize: editingItem?.won_prize || null };
+    } else if (isPerformance) {
+      data = { name: formData.get('name'), song_name: formData.get('song_name'), department: formData.get('department') };
+    } else {
+      data = { session: formData.get('session'), rank: parseInt(formData.get('rank')), name: formData.get('name'), quantity: parseInt(formData.get('quantity')) };
+    }
 
-    const endpoint = isEmployee ? '/api/employees' : '/api/prizes';
+    const endpoint = isEmployee ? '/api/employees' : (isPerformance ? '/api/performance/participants' : '/api/prizes');
     try {
       if (editingItem) await axios.put(`${endpoint}/${editingItem.id}`, data);
       else await axios.post(endpoint, data);
@@ -568,21 +568,141 @@ const Admin = () => {
         </div>
       </main>
 
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content card">
-            <h3>{editingItem ? "Edit " : "Add "} {activeModule === 'employees' ? "Employee" : "Prize"}</h3>
-            <form onSubmit={saveItem}>
-              {activeModule === 'employees' ? (
-                <><label>Name</label><input name="name" defaultValue={editingItem?.name} required /><label>Department</label><input name="department" defaultValue={editingItem?.department} required /></>
-              ) : (
-                <><label>Session</label><input name="session" defaultValue={editingItem?.session || "Session 1"} required /><label>Rank</label><input name="rank" type="number" defaultValue={editingItem?.rank || 0} required /><label>Prize Name</label><input name="name" defaultValue={editingItem?.name} required /><label>Quantity</label><input name="quantity" type="number" defaultValue={editingItem?.quantity || 1} required /></>
+          {activeModule === 'performance' && (
+            <div className="performance-module">
+              <div className="tabs-strip">
+                <button className={activeSubTab === 'p-entries' ? 'active' : ''} onClick={() => setActiveSubTab('p-entries')}>Participants</button>
+                <button className={activeSubTab === 'p-config' ? 'active' : ''} onClick={() => setActiveSubTab('p-config')}>Voting Config</button>
+                <button className={activeSubTab === 'p-results' ? 'active' : ''} onClick={() => setActiveSubTab('p-results')}>Rankings</button>
+              </div>
+
+              {activeSubTab === 'p-entries' && (
+                <div className="card shadow-card">
+                  <div className="card-header-actions">
+                    <h3>Performance Entries ({performanceParticipants.length})</h3>
+                    <button className="modern-add-btn" onClick={() => { setEditingItem(null); setIsModalOpen(true); }}>+ Add Performer</button>
+                  </div>
+                  <table className="modern-table">
+                    <thead><tr><th>NAME</th><th>SONG</th><th>DEPT</th><th>ACTIONS</th></tr></thead>
+                    <tbody>
+                      {performanceParticipants.map(p => (
+                        <tr key={p.id}>
+                          <td className="bold">{p.name}</td>
+                          <td className="text-teal">{p.song_name}</td>
+                          <td>{p.department}</td>
+                          <td>
+                            <button onClick={() => { setEditingItem(p); setIsModalOpen(true); }} className="table-btn">Edit</button>
+                            <button onClick={async () => { if(confirm('Delete?')) { await axios.delete(`/api/performance/participants/${p.id}`); fetchAllData(); } }} className="table-btn" style={{color: '#f43f5e'}}>Delete</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
-              <div className="modal-actions"><button type="submit" className="save-btn">Save Changes</button><button type="button" onClick={() => setIsModalOpen(false)}>Cancel</button></div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              {activeSubTab === 'p-config' && (
+                <div style={{ display: 'flex', gap: '2rem' }}>
+                  <div className="card shadow-card" style={{ flex: 1 }}>
+                    <h3>Voting Master Switch</h3>
+                    <div style={{ margin: '2rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div className={`status-pill ${performanceStatus?.voting_status === 'OPEN' ? 'open' : 'closed'}`}>
+                        {performanceStatus?.voting_status === 'OPEN' ? '🟢 VOTING OPEN' : '🔴 VOTING CLOSED'}
+                      </div>
+                      <button 
+                        className={`modern-add-btn ${performanceStatus?.voting_status === 'OPEN' ? 'danger-btn' : ''}`}
+                        onClick={async () => {
+                          const newStatus = performanceStatus?.voting_status === 'OPEN' ? 'CLOSED' : 'OPEN';
+                          await axios.post('/api/performance/status', { status: newStatus });
+                          fetchAllData();
+                        }}
+                      >
+                        {performanceStatus?.voting_status === 'OPEN' ? 'Stop Voting Now' : 'Start Performance Voting'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="card shadow-card" style={{ flex: 1 }}>
+                    <h3>Scoring Criteria</h3>
+                    <table className="modern-table">
+                      <thead><tr><th>CATEGORY</th><th>ACTION</th></tr></thead>
+                      <tbody>
+                        {performanceCriteria.map(c => (
+                          <tr key={c.id}>
+                            <td>
+                              <input 
+                                className="inline-edit-input"
+                                defaultValue={c.name}
+                                onBlur={async (e) => {
+                                  await axios.put(`/api/performance/criteria/${c.id}`, { name: e.target.value });
+                                  fetchAllData();
+                                }}
+                              />
+                            </td>
+                            <td style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Auto-saves on blur</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {activeSubTab === 'p-results' && (
+                <div className="card shadow-card">
+                  <h3>Real-time Rankings</h3>
+                  <table className="modern-table">
+                    <thead>
+                      <tr>
+                        <th>RANK</th><th>NAME</th><th>SONG</th>
+                        <th>{performanceCriteria[0]?.name}</th>
+                        <th>{performanceCriteria[1]?.name}</th>
+                        <th>{performanceCriteria[2]?.name}</th>
+                        <th>TOTAL</th><th>VOTES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {performanceResults.map((r, i) => (
+                        <tr key={i}>
+                          <td className="bold">#{i+1}</td>
+                          <td className="bold">{r.name}</td>
+                          <td className="text-teal">{r.song_name}</td>
+                          <td>{Number(r.s1 || 0).toFixed(2)}</td>
+                          <td>{Number(r.s2 || 0).toFixed(2)}</td>
+                          <td>{Number(r.s3 || 0).toFixed(2)}</td>
+                          <td className="bold" style={{ color: '#0a8276' }}>{Number(r.total || 0).toFixed(2)}</td>
+                          <td>{r.vote_count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isModalOpen && (
+            <div className="modal-overlay">
+              <div className="modal-content card">
+                <h3>{editingItem ? "Edit " : "Add "} {activeModule === 'employees' ? "Employee" : (activeModule === 'performance' ? "Performer" : "Prize")}</h3>
+                <form onSubmit={saveItem}>
+                  {activeModule === 'employees' && (
+                    <><label>Name</label><input name="name" defaultValue={editingItem?.name} required /><label>Department</label><input name="department" defaultValue={editingItem?.department} required /></>
+                  )}
+                  {activeModule === 'performance' && (
+                    <>
+                      <label>Name</label><input name="name" defaultValue={editingItem?.name} required />
+                      <label>Song Name</label><input name="song_name" defaultValue={editingItem?.song_name} required />
+                      <label>Department</label><input name="department" defaultValue={editingItem?.department} required />
+                    </>
+                  )}
+                  {activeModule === 'lucky-draw' && (
+                    <><label>Session</label><input name="session" defaultValue={editingItem?.session || "Session 1"} required /><label>Rank</label><input name="rank" type="number" defaultValue={editingItem?.rank || 0} required /><label>Prize Name</label><input name="name" defaultValue={editingItem?.name} required /><label>Quantity</label><input name="quantity" type="number" defaultValue={editingItem?.quantity || 1} required /></>
+                  )}
+                  <div className="modal-actions"><button type="submit" className="save-btn">Save Changes</button><button type="button" onClick={() => setIsModalOpen(false)}>Cancel</button></div>
+                </form>
+              </div>
+            </div>
+          )}
 
       {showStageView && drawResult && (
         <LuckyDrawWheel 
@@ -593,6 +713,14 @@ const Admin = () => {
       )}
 
       <style>{`
+        .status-pill { padding: 4px 12px; border-radius: 99px; font-weight: 800; font-size: 0.8rem; }
+        .status-pill.open { background: #ecfdf5; color: #10b981; }
+        .status-pill.closed { background: #fef2f2; color: #ef4444; }
+        .danger-btn { background: #f43f5e !important; }
+        .inline-edit-input { width: 100%; padding: 4px 8px; border: 1px solid transparent; border-radius: 4px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .inline-edit-input:hover { background: #f1f5f9; border-color: #e2e8f0; }
+        .text-teal { color: #0a8276; font-weight: 700; }
+        
         .modern-admin-layout { display: flex; height: 100vh; background: #f8fafc; font-family: 'Inter', sans-serif; color: #1e293b; }
         .modern-sidebar { width: 280px; background: white; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; padding: 2rem 1.5rem; box-shadow: 4px 0 20px rgba(0,0,0,0.02); }
         .sidebar-header { margin-bottom: 3rem; }

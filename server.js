@@ -118,10 +118,52 @@ const initDB = async () => {
 
     // ... [Rest of table creation queries remain original] ...
     await connection.query(`CREATE TABLE IF NOT EXISTS performance_criteria (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255) NOT NULL)`);
-    await connection.query(`CREATE TABLE IF NOT EXISTS performance_participants (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL, department VARCHAR(255))`);
-    await connection.query(`CREATE TABLE IF NOT EXISTS performance_scores (id INT AUTO_INCREMENT PRIMARY KEY, participant_id VARCHAR(255), score_1 INT, score_2 INT, score_3 INT)`);
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS performance_participants (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        department VARCHAR(255),
+        song_name VARCHAR(255)
+      )
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS performance_scores (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        participant_id VARCHAR(255),
+        score_1 INT,
+        score_2 INT,
+        score_3 INT,
+        voter_id VARCHAR(255)
+      )
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS performance_settings (
+        id VARCHAR(255) PRIMARY KEY,
+        voting_status VARCHAR(50) DEFAULT 'CLOSED'
+      )
+    `);
+
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_votes (id VARCHAR(255) PRIMARY KEY, nominee_name VARCHAR(255) NOT NULL, vote_count INT DEFAULT 0)`);
     await connection.query(`CREATE TABLE IF NOT EXISTS feedback (id INT AUTO_INCREMENT PRIMARY KEY, comment TEXT, rating INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+
+    // Migration Logic: Add song_name and voter_id if missing from existing tables
+    try {
+      const [pCols] = await connection.query('SHOW COLUMNS FROM performance_participants');
+      if (!pCols.some(c => c.Field === 'song_name')) {
+        await connection.query('ALTER TABLE performance_participants ADD COLUMN song_name VARCHAR(255)');
+      }
+      const [sCols] = await connection.query('SHOW COLUMNS FROM performance_scores');
+      if (!sCols.some(c => c.Field === 'voter_id')) {
+        await connection.query('ALTER TABLE performance_scores ADD COLUMN voter_id VARCHAR(255)');
+      }
+      
+      const [settings] = await connection.query('SELECT * FROM performance_settings WHERE id = "global"');
+      if (settings.length === 0) {
+        await connection.query('INSERT INTO performance_settings (id, voting_status) VALUES ("global", "CLOSED")');
+      }
+    } catch (migErr) { console.warn("Performance migration warning:", migErr.message); }
 
     const [criteria] = await connection.query('SELECT * FROM performance_criteria');
     if (criteria.length === 0) {
@@ -209,8 +251,15 @@ app.get('/api/performance/participants', async (req, res) => {
 
 app.post('/api/performance/participants', async (req, res) => {
   const id = crypto.randomUUID();
-  await pool.query('INSERT INTO performance_participants (id, name, department) VALUES (?, ?, ?)', [id, req.body.name, req.body.department]);
+  const { name, department, song_name } = req.body;
+  await pool.query('INSERT INTO performance_participants (id, name, department, song_name) VALUES (?, ?, ?, ?)', [id, name, department, song_name]);
   res.json({ id });
+});
+
+app.put('/api/performance/participants/:id', async (req, res) => {
+  const { name, department, song_name } = req.body;
+  await pool.query('UPDATE performance_participants SET name = ?, department = ?, song_name = ? WHERE id = ?', [name, department, song_name, req.params.id]);
+  res.json({ message: 'Updated' });
 });
 
 app.delete('/api/performance/participants/:id', async (req, res) => {
@@ -219,17 +268,41 @@ app.delete('/api/performance/participants/:id', async (req, res) => {
 });
 
 app.post('/api/performance/rate', async (req, res) => {
-  const { participant_id, score_1, score_2, score_3 } = req.body;
-  await pool.query('INSERT INTO performance_scores (participant_id, score_1, score_2, score_3) VALUES (?, ?, ?, ?)', 
-    [participant_id, score_1, score_2, score_3]);
+  const { participant_id, score_1, score_2, score_3, voter_id } = req.body;
+  try {
+    // 1. Check if voting is open
+    const [settings] = await pool.query('SELECT voting_status FROM performance_settings WHERE id = "global"');
+    if (settings[0]?.voting_status !== 'OPEN') return res.status(403).json({ error: 'Voting is currently closed' });
+
+    // 2. Check if already voted
+    const [existing] = await pool.query('SELECT id FROM performance_scores WHERE participant_id = ? AND voter_id = ?', [participant_id, voter_id]);
+    if (existing.length > 0) return res.status(400).json({ error: 'Already voted for this performer' });
+
+    await pool.query('INSERT INTO performance_scores (participant_id, score_1, score_2, score_3, voter_id) VALUES (?, ?, ?, ?, ?)', 
+      [participant_id, score_1, score_2, score_3, voter_id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+app.get('/api/performance/status', async (req, res) => {
+  const [rows] = await pool.query('SELECT voting_status FROM performance_settings WHERE id = "global"');
+  res.json(rows[0] || { voting_status: 'CLOSED' });
+});
+
+app.post('/api/performance/status', async (req, res) => {
+  const { status } = req.body;
+  await pool.query('UPDATE performance_settings SET voting_status = ? WHERE id = "global"', [status]);
   res.json({ success: true });
 });
 
 app.get('/api/performance/results', async (req, res) => {
   const [rows] = await pool.query(`
-    SELECT p.name, p.department, 
+    SELECT p.name, p.department, p.song_name,
     AVG(s.score_1) as s1, AVG(s.score_2) as s2, AVG(s.score_3) as s3,
-    (AVG(s.score_1) + AVG(s.score_2) + AVG(s.score_3)) / 3 as total
+    (AVG(s.score_1) + AVG(s.score_2) + AVG(s.score_3)) / 3 as total,
+    COUNT(s.id) as vote_count
     FROM performance_participants p
     LEFT JOIN performance_scores s ON p.id = s.participant_id
     GROUP BY p.id

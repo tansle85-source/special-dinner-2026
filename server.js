@@ -9,6 +9,15 @@ import crypto from 'crypto';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
+// Shared ID Generator for maximum compatibility
+const generateId = () => {
+  try {
+    return crypto.randomUUID();
+  } catch (e) {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  }
+};
+
 dotenv.config({ override: true });
 
 // Global Error Handlers to prevent 503 crashes and log reasons
@@ -65,7 +74,8 @@ try {
     database: process.env.DB_NAME,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    connectTimeout: 10000 // 10s timeout to prevent 504 hangs
   };
 
   console.log(`Initialising MySQL pool for ${poolConfig.user}@${poolConfig.host}:${poolConfig.port}/${poolConfig.database}...`);
@@ -189,7 +199,7 @@ const initDB = async () => {
 app.post('/api/prizes', async (req, res) => {
   const { session, rank, name, quantity } = req.body;
   try {
-    const id = crypto.randomUUID();
+    const id = generateId();
     await pool.query('INSERT INTO prizes (id, session, rank_level, name, quantity) VALUES (?, ?, ?, ?, ?)', 
       [id, session, rank, name, quantity]);
     res.json({ id, message: 'Prize added' });
@@ -217,7 +227,7 @@ app.delete('/api/prizes/:id', async (req, res) => {
 app.post('/api/employees', async (req, res) => {
   const { name, department } = req.body;
   try {
-    const id = crypto.randomUUID();
+    const id = generateId();
     await pool.query('INSERT INTO employees (id, name, department, won_prize) VALUES (?, ?, ?, NULL)', [id, name, department]);
     res.json({ id, message: 'Employee added' });
   } catch (err) { res.status(500).send(err.message); }
@@ -256,7 +266,7 @@ app.get('/api/performance/participants', async (req, res) => {
 });
 
 app.post('/api/performance/participants', async (req, res) => {
-  const id = crypto.randomUUID();
+  const id = generateId();
   const { name, department, song_name } = req.body;
   await pool.query('INSERT INTO performance_participants (id, name, department, song_name) VALUES (?, ?, ?, ?)', [id, name, department, song_name]);
   res.json({ id });
@@ -347,7 +357,7 @@ app.get('/api/best-dress/nominees', async (req, res) => {
 
 app.post('/api/best-dress/nominees', async (req, res) => {
   const { name } = req.body;
-  const id = crypto.randomUUID();
+  const id = generateId();
   await pool.query('INSERT INTO best_dress_votes (id, nominee_name, vote_count) VALUES (?, ?, 0)', [id, name]);
   res.json({ id });
 });
@@ -385,7 +395,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       const name = data[nameKey] || data['name'];
       const department = data[deptKey] || data['department'] || '';
       
-      if (name) results.push([crypto.randomUUID(), name, department, null]);
+      if (name) results.push([generateId(), name, department, null]);
     })
     .on('end', async () => {
       let connection;
@@ -432,7 +442,7 @@ app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
       const prizeName = data[prizeNameKey];
       if (prizeName) {
         results.push([
-          crypto.randomUUID(),
+          generateId(),
           data[sessKey] || 'Session 1',
           parseInt(data[rankKey] || '0'),
           prizeName,

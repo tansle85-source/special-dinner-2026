@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import LuckyDrawWheel from './LuckyDrawWheel';
+import ClaimScanner from './ClaimScanner';
 
 const SITE_VERSION = "v1.5.0";
 
@@ -209,6 +210,31 @@ const Admin = () => {
     }
   };
 
+  const handleManualClaim = async (winnerId) => {
+    try {
+      setLoading(true);
+      await axios.post('/api/draw/claim', { winnerId });
+      fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.error || "Claim failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUnclaim = async (winnerId) => {
+    if (!window.confirm("Undo claim for this winner?")) return;
+    try {
+      setLoading(true);
+      await axios.post('/api/draw/unclaim', { winnerId });
+      fetchAllData();
+    } catch (err) {
+      alert("Unclaim failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const saveItem = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -296,6 +322,7 @@ const Admin = () => {
                 <button className={activeSubTab === 'conduct' ? 'active' : ''} onClick={() => setActiveSubTab('conduct')}>Conduct Draw</button>
                 <button className={activeSubTab === 'manage' ? 'active' : ''} onClick={() => setActiveSubTab('manage')}>Manage Prizes</button>
                 <button className={activeSubTab === 'winners' ? 'active' : ''} onClick={() => setActiveSubTab('winners')}>Winners List</button>
+                <button className={activeSubTab === 'claims' ? 'active' : ''} onClick={() => setActiveSubTab('claims')}>🎁 Claims</button>
               </div>
 
               {activeSubTab === 'conduct' && (() => {
@@ -327,28 +354,28 @@ const Admin = () => {
                         <p style={{ color: '#64748b', fontSize: '1.1rem', marginBottom: '3rem' }}>{selectedSession ? `Remaining Prizes: ${remainingToDraw}` : 'Select a session above to view prize counts and start the draw.'}</p>
                         
                         <div className="draw-actions" style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', opacity: selectedSession ? 1 : 0.5, pointerEvents: selectedSession ? 'auto' : 'none' }}>
-                          <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner} style={{ background: '#df3d4e', color: 'white', border: 'none', padding: '1.25rem 2.5rem', borderRadius: '99px', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 20px rgba(223, 61, 78, 0.15)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span className="icon">🔄</span> Redraw (No Show)
+                          <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner} style={{ background: 'rgba(223, 61, 78, 0.08)', color: '#df3d4e', border: '2px solid #df3d4e', padding: '1.25rem 2.5rem', borderRadius: '99px', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span className="icon">🔄</span> Redraw
                           </button>
-                          <button className="btn-draw-main" onClick={handleNextDraw} disabled={!selectedSession || loading || remainingToDraw <= 0}>
-                            <span className="icon">🎁</span> Next Prize
+                          <button className="btn-draw-main" onClick={handleNextDraw} disabled={!selectedSession || loading || remainingToDraw <= 0} style={{ background: 'linear-gradient(135deg, #0a8276 0%, #0d9488 100%)', color: 'white', border: 'none', padding: '1.25rem 3.5rem', borderRadius: '99px', fontSize: '1.5rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 20px 40px rgba(10, 130, 118, 0.25)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                            <span className="icon">🎁</span> NEXT PRIZE
                           </button>
-                          <button className="btn-draw-batch" onClick={handleDrawAll} disabled={!selectedSession || loading || remainingToDraw <= 0}>
-                            <span className="icon">📋</span> Draw All ({remainingToDraw})
+                          <button className="btn-draw-batch" onClick={handleDrawAll} disabled={!selectedSession || loading || remainingToDraw <= 0} style={{ background: '#1e293b', color: 'white', border: 'none', padding: '1.25rem 2.5rem', borderRadius: '99px', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span className="icon">📋</span> Batch Draw
                           </button>
                         </div>
                       
-                      <div className="secondary-actions" style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                        <select value={selectedPrizeId} onChange={(e) => setSelectedPrizeId(e.target.value)} className="modern-select" style={{ width: 'auto' }}>
-                          <option value="">-- Manual Quick Pick --</option>
-                          {prizes.filter(p => !selectedSession || p.session === selectedSession).map(p => (
-                             <option key={p.id} value={p.id} disabled={(p.quantity - getDrawnCount(p.name)) <= 0}>{p.rank}. {p.name}</option>
-                          ))}
-                        </select>
-                        {selectedPrizeId && <button className="secondary-btn" onClick={conductDraw}>Launch Wheel</button>}
-                        <button className="btn-reset session-reset-btn" onClick={handleResetSession} disabled={!selectedSession} style={{ background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>
-                          Reset Current Session
-                        </button>
+                      <div className="secondary-actions" style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center', gap: '1.5rem', alignItems: 'center' }}>
+                        <div className="manual-pick-box" style={{ background: '#f8fafc', padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b' }}>MANUAL:</span>
+                          <select value={selectedPrizeId} onChange={(e) => setSelectedPrizeId(e.target.value)} className="modern-select" style={{ border: 'none', background: 'transparent', fontWeight: 700 }}>
+                            <option value="">Quick Pick Prize...</option>
+                            {prizes.filter(p => !selectedSession || p.session === selectedSession).map(p => (
+                               <option key={p.id} value={p.id} disabled={(p.quantity - getDrawnCount(p.name)) <= 0}>{p.rank}. {p.name}</option>
+                            ))}
+                          </select>
+                          {selectedPrizeId && <button className="secondary-btn" onClick={conductDraw} style={{ padding: '0.4rem 0.8rem' }}>Go</button>}
+                        </div>
                       </div>
 
                       {isProcessingBatch && (
@@ -422,14 +449,85 @@ const Admin = () => {
 
               {activeSubTab === 'winners' && (
                  <div className="card shadow-card">
-                   <h3>Winner Registry</h3>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                     <h3>Winner Registry</h3>
+                     {selectedSession && (
+                       <button className="btn-reset session-reset-btn" onClick={handleResetSession} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid #ef4444', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>
+                         ⚠️ Reset {selectedSession} Winners
+                       </button>
+                     )}
+                   </div>
                    <table className="modern-table">
-                     <thead><tr><th>NAME</th><th>DEPARTMENT</th><th>PRIZE</th></tr></thead>
+                     <thead><tr><th>NAME</th><th>DEPARTMENT</th><th>PRIZE</th><th>CLAIM STATUS</th><th>ACTIONS</th></tr></thead>
                      <tbody>
-                       {employees.filter(e => e.won_prize).map(e => (<tr key={e.id}><td>{e.name}</td><td>{e.department}</td><td className="bold text-teal">{e.won_prize}</td></tr>))}
+                       {employees.filter(e => e.won_prize).filter(e => !selectedSession || prizes.find(p => p.name === e.won_prize)?.session === selectedSession).map(e => (
+                         <tr key={e.id}>
+                           <td>{e.name}</td>
+                           <td>{e.department}</td>
+                           <td className="bold text-teal">{e.won_prize}</td>
+                           <td>
+                             {e.is_claimed ? (
+                               <span className="pill done">Claimed</span>
+                             ) : (
+                               <span className="pill pending">Unclaimed</span>
+                             )}
+                           </td>
+                           <td>
+                             {!e.is_claimed ? (
+                               <button onClick={() => handleManualClaim(e.id)} className="table-btn claim-btn" style={{ color: '#059669', borderColor: '#059669' }}>Confirm Claim</button>
+                             ) : (
+                               <button onClick={() => handleUnclaim(e.id)} className="table-btn" style={{ color: '#94a3b8' }}>Undo</button>
+                             )}
+                           </td>
+                         </tr>
+                       ))}
                      </tbody>
                    </table>
                  </div>
+              )}
+
+              {activeSubTab === 'claims' && (
+                <div className="claims-module">
+                  <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '400px' }}>
+                      <div className="card shadow-card">
+                        <h3>Scan Winner QR</h3>
+                        <p style={{ color: '#64748b', marginBottom: '2rem' }}>Focus the winner's QR code in the camera frame to auto-claim the prize.</p>
+                        <ClaimScanner onClaimSuccess={fetchAllData} />
+                      </div>
+                    </div>
+                    <div style={{ flex: 1.5, minWidth: '400px' }}>
+                      <div className="card shadow-card">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                          <h3>Claim Status ({employees.filter(e => e.won_prize && e.is_claimed).length} / {employees.filter(e => e.won_prize).length})</h3>
+                          <div className="progress-mini" style={{ width: '150px', height: '10px', background: '#f1f5f9', borderRadius: '5px', overflow: 'hidden' }}>
+                            <div style={{ width: `${(employees.filter(e => e.won_prize && e.is_claimed).length / Math.max(1, employees.filter(e => e.won_prize).length)) * 100}%`, height: '100%', background: '#10b981' }}></div>
+                          </div>
+                        </div>
+                        <div className="winner-scroll-list" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                          <table className="modern-table">
+                            <thead><tr><th>NAME</th><th>PRIZE</th><th>CLAIMED</th></tr></thead>
+                            <tbody>
+                              {employees.filter(e => e.won_prize).map(e => (
+                                <tr key={e.id}>
+                                  <td>{e.name}</td>
+                                  <td className="bold">{e.won_prize}</td>
+                                  <td>
+                                    {e.is_claimed ? (
+                                      <span style={{ color: '#10b981', fontWeight: 800 }}>✅ YES</span>
+                                    ) : (
+                                      <button onClick={() => handleManualClaim(e.id)} className="table-btn" style={{ color: '#0a8276', borderColor: '#0a8276' }}>Click to Claim</button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -542,6 +640,13 @@ const Admin = () => {
         .btn-redraw .icon { margin-right: 12px; font-size: 1.2rem; }
         .btn-next { background: #0a7065; color: white; border: none; padding: 1.2rem 2.5rem; border-radius: 99px; font-size: 1.2rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 220px; transition: 0.3s; box-shadow: 0 10px 20px rgba(10, 112, 101, 0.15); }
         .btn-next:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(10, 112, 101, 0.25); }
+        .btn-draw-main:not(:disabled) { animation: pulse-glow 2s infinite; border: none; }
+        .btn-draw-main:hover:not(:disabled) { transform: scale(1.05) translateY(-5px); box-shadow: 0 25px 50px rgba(10, 130, 118, 0.4); }
+        @keyframes pulse-glow {
+          0% { box-shadow: 0 0 0 0 rgba(10, 130, 118, 0.4); }
+          70% { box-shadow: 0 0 0 20px rgba(10, 130, 118, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(10, 130, 118, 0); }
+        }
         .btn-redraw { background: #df3d4e; color: white; border: none; padding: 1.2rem 2.5rem; border-radius: 99px; font-size: 1.2rem; font-weight: 800; cursor: pointer; min-width: 220px; transition: 0.3s; box-shadow: 0 10px 20px rgba(223, 61, 78, 0.15); display: flex; align-items: center; justify-content: center; }
         .btn-redraw:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(223, 61, 78, 0.25); }
         .btn-batch { background: #1e293b; color: white; border: none; padding: 1.2rem 2.5rem; border-radius: 99px; font-size: 1.2rem; font-weight: 800; cursor: pointer; min-width: 220px; transition: 0.3s; box-shadow: 0 10px 20px rgba(30, 41, 59, 0.15); display: flex; align-items: center; justify-content: center; }

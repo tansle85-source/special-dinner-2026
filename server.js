@@ -88,9 +88,23 @@ const initDB = async () => {
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         department VARCHAR(255),
-        won_prize VARCHAR(255) DEFAULT NULL
+        won_prize VARCHAR(255) DEFAULT NULL,
+        is_claimed BOOLEAN DEFAULT FALSE,
+        claimed_at DATETIME DEFAULT NULL
       )
     `);
+
+    // Migration logic for existing tables
+    try {
+      const [cols] = await connection.query('SHOW COLUMNS FROM employees');
+      if (!cols.some(c => c.Field === 'is_claimed')) {
+        console.log("[MIGRATE] Adding is_claimed to employees");
+        await connection.query('ALTER TABLE employees ADD COLUMN is_claimed BOOLEAN DEFAULT FALSE');
+      }
+      if (!cols.some(c => c.Field === 'claimed_at')) {
+        await connection.query('ALTER TABLE employees ADD COLUMN claimed_at DATETIME DEFAULT NULL');
+      }
+    } catch (migErr) { console.warn("Migration warning:", migErr.message); }
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS prizes (
@@ -355,6 +369,34 @@ app.post('/api/draw/publish', async (req, res) => {
     if (rows.length === 0) return res.status(400).json({ error: 'Employee ineligible or already won' });
     
     await pool.query('UPDATE employees SET won_prize = ? WHERE id = ?', [prizeName, winnerId]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+// --- CLAIM API ---
+app.post('/api/draw/claim', async (req, res) => {
+  const { winnerId } = req.body;
+  try {
+    const [rows] = await pool.query('SELECT name, won_prize, is_claimed FROM employees WHERE id = ?', [winnerId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
+    
+    const emp = rows[0];
+    if (!emp.won_prize) return res.status(400).json({ error: 'This employee has not won a prize' });
+    if (emp.is_claimed) return res.status(400).json({ error: 'Prize already claimed' });
+
+    await pool.query('UPDATE employees SET is_claimed = TRUE, claimed_at = NOW() WHERE id = ?', [winnerId]);
+    res.json({ success: true, name: emp.name, prize: emp.won_prize });
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+app.post('/api/draw/unclaim', async (req, res) => {
+  const { winnerId } = req.body;
+  try {
+    await pool.query('UPDATE employees SET is_claimed = FALSE, claimed_at = NULL WHERE id = ?', [winnerId]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).send(err.message);

@@ -286,6 +286,7 @@ const Admin = () => {
           <div className="nav-group">
             <div className="group-label">Core Management</div>
             <SidebarItem id="lucky-draw" label="Lucky Draw" icon="🎪" />
+            <SidebarItem id="lucky-draw-claim" label="Lucky Draw Claim" icon="🎁" />
             <SidebarItem id="employees" label="Employee Database" icon="👥" />
           </div>
           <div className="nav-group">
@@ -322,7 +323,6 @@ const Admin = () => {
                 <button className={activeSubTab === 'conduct' ? 'active' : ''} onClick={() => setActiveSubTab('conduct')}>Conduct Draw</button>
                 <button className={activeSubTab === 'manage' ? 'active' : ''} onClick={() => setActiveSubTab('manage')}>Manage Prizes</button>
                 <button className={activeSubTab === 'winners' ? 'active' : ''} onClick={() => setActiveSubTab('winners')}>Winners List</button>
-                <button className={activeSubTab === 'claims' ? 'active' : ''} onClick={() => setActiveSubTab('claims')}>🎁 Claims</button>
               </div>
 
               {activeSubTab === 'conduct' && (() => {
@@ -484,51 +484,54 @@ const Admin = () => {
                      </tbody>
                    </table>
                  </div>
-              )}
+               )}
+             </div>
+           )}
 
-              {activeSubTab === 'claims' && (
-                <div className="claims-module">
-                  <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: '400px' }}>
-                      <div className="card shadow-card">
-                        <h3>Scan Winner QR</h3>
-                        <p style={{ color: '#64748b', marginBottom: '2rem' }}>Focus the winner's QR code in the camera frame to auto-claim the prize.</p>
-                        <ClaimScanner onClaimSuccess={fetchAllData} />
+          {activeModule === 'lucky-draw-claim' && (
+            <div className="claims-module">
+              <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '400px' }}>
+                  <div className="card shadow-card">
+                    <h3>Scan Winner QR</h3>
+                    <p style={{ color: '#64748b', marginBottom: '2rem' }}>Focus the winner's QR code in the camera frame to auto-claim the prize.</p>
+                    <ClaimScanner onClaimSuccess={fetchAllData} />
+                  </div>
+                </div>
+                <div style={{ flex: 1.5, minWidth: '400px' }}>
+                  <div className="card shadow-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h3>Claim Status ({employees.filter(e => e.won_prize && e.is_claimed).length} / {employees.filter(e => e.won_prize).length})</h3>
+                      <div className="progress-mini" style={{ width: '150px', height: '10px', background: '#f1f5f9', borderRadius: '5px', overflow: 'hidden' }}>
+                        <div style={{ width: `${(employees.filter(e => e.won_prize && e.is_claimed).length / Math.max(1, employees.filter(e => e.won_prize).length)) * 100}%`, height: '100%', background: '#10b981' }}></div>
                       </div>
                     </div>
-                    <div style={{ flex: 1.5, minWidth: '400px' }}>
-                      <div className="card shadow-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                          <h3>Claim Status ({employees.filter(e => e.won_prize && e.is_claimed).length} / {employees.filter(e => e.won_prize).length})</h3>
-                          <div className="progress-mini" style={{ width: '150px', height: '10px', background: '#f1f5f9', borderRadius: '5px', overflow: 'hidden' }}>
-                            <div style={{ width: `${(employees.filter(e => e.won_prize && e.is_claimed).length / Math.max(1, employees.filter(e => e.won_prize).length)) * 100}%`, height: '100%', background: '#10b981' }}></div>
-                          </div>
-                        </div>
-                        <div className="winner-scroll-list" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                          <table className="modern-table">
-                            <thead><tr><th>NAME</th><th>PRIZE</th><th>CLAIMED</th></tr></thead>
-                            <tbody>
-                              {employees.filter(e => e.won_prize).map(e => (
-                                <tr key={e.id}>
-                                  <td>{e.name}</td>
-                                  <td className="bold">{e.won_prize}</td>
-                                  <td>
-                                    {e.is_claimed ? (
-                                      <span style={{ color: '#10b981', fontWeight: 800 }}>✅ YES</span>
-                                    ) : (
-                                      <button onClick={() => handleManualClaim(e.id)} className="table-btn" style={{ color: '#0a8276', borderColor: '#0a8276' }}>Click to Claim</button>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
+                    <div className="winner-scroll-list" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                      <table className="modern-table">
+                        <thead><tr><th>NAME</th><th>PRIZE</th><th>STATUS</th></tr></thead>
+                        <tbody>
+                          {employees.filter(e => e.won_prize).map(e => (
+                            <tr key={e.id}>
+                              <td>{e.name}</td>
+                              <td className="bold">{e.won_prize}</td>
+                              <td>
+                                {e.is_claimed ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ color: '#10b981', fontWeight: 800 }}>✅ CLAIMED</span>
+                                    <button onClick={() => handleUnclaim(e.id)} className="table-btn" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>Undo</button>
+                                  </div>
+                                ) : (
+                                  <button onClick={() => handleManualClaim(e.id)} className="table-btn" style={{ color: '#0a8276', borderColor: '#0a8276' }}>Click to Claim</button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
 

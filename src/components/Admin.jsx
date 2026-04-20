@@ -625,6 +625,19 @@ const Admin = () => {
                       >
                         {performanceStatus?.voting_status === 'OPEN' ? 'Stop Voting Now' : 'Start Performance Voting'}
                       </button>
+                      <button 
+                        className="table-btn" 
+                        style={{ color: '#f43f5e', border: '1px solid #f43f5e', padding: '0.6rem 1rem', borderRadius: '8px' }}
+                        onClick={async () => {
+                          if (confirm('⚠️ WARNING: This will DELETE ALL GUEST VOTES and RESET MANUAL SCORES to 0. Are you sure?')) {
+                            await axios.post('/api/performance/reset');
+                            fetchAllData();
+                            alert('All performance data has been reset.');
+                          }
+                        }}
+                      >
+                        Reset ALL Scores
+                      </button>
                     </div>
                   </div>
                   <div className="card shadow-card" style={{ flex: 1 }}>

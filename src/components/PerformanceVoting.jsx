@@ -33,9 +33,10 @@ const PerformanceVoting = () => {
       setCriteria(cRes.data);
       setStatus(sRes.data.voting_status);
 
-      // Load previous ratings from localStorage to show "Voted" state immediately
-      const savedRatings = JSON.parse(localStorage.getItem(`ratings_${voterId}`) || '{}');
-      setMyRatings(savedRatings);
+      // Load previous ratings from server for persistence across refresh
+      const myRatingsRes = await axios.get(`/api/performance/my-ratings/${voterId}`);
+      setMyRatings(myRatingsRes.data);
+      localStorage.setItem(`ratings_${voterId}`, JSON.stringify(myRatingsRes.data));
     } catch (err) {
       console.error("Fetch failed", err);
     } finally {
@@ -192,7 +193,7 @@ const PerformanceVoting = () => {
           background: #f8fafc; 
           color: #94a3b8; 
           font-weight: 800; 
-          font-size: 1.2rem;
+          font-size: 0.9rem;
           cursor: pointer; 
           display: flex; 
           align-items: center; 

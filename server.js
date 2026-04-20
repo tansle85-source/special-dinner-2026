@@ -321,6 +321,23 @@ app.post('/api/performance/status', async (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/api/performance/my-ratings/:voterId', async (req, res) => {
+  const [rows] = await pool.query('SELECT participant_id, score_1, score_2, score_3 FROM performance_scores WHERE voter_id = ?', [req.params.voterId]);
+  const ratings = {};
+  rows.forEach(r => {
+    ratings[r.participant_id] = [r.score_1, r.score_2, r.score_3];
+  });
+  res.json(ratings);
+});
+
+app.post('/api/performance/reset', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM performance_scores');
+    await pool.query('UPDATE performance_participants SET manual_score = 0');
+    res.json({ success: true });
+  } catch (err) { res.status(500).send(err.message); }
+});
+
 app.get('/api/performance/results', async (req, res) => {
   const [rows] = await pool.query(`
     SELECT p.id, p.name, p.department, p.song_name, p.manual_score,

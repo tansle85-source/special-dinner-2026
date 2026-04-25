@@ -176,11 +176,18 @@ const FeedbackModule = () => {
         <div className="card shadow-card">
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
             <h4 style={{ margin:0, fontWeight:800 }}>Responses ({fbResponses.total})</h4>
-            <button onClick={clearResponses}
-              style={{ padding:'0.4rem 0.9rem', background:'rgba(239,68,68,0.08)', border:'1px solid #ef4444',
-                borderRadius:'8px', color:'#ef4444', fontWeight:700, cursor:'pointer', fontSize:'0.8rem', fontFamily:'Outfit,sans-serif' }}>
-              Clear All
-            </button>
+            <div style={{ display:'flex', gap:'0.75rem' }}>
+              <button onClick={() => window.open('/api/feedback/export', '_blank')}
+                style={{ padding:'0.4rem 0.9rem', background:'rgba(10,130,118,0.08)', border:'1px solid #0A8276',
+                  borderRadius:'8px', color:'#0A8276', fontWeight:700, cursor:'pointer', fontSize:'0.8rem', fontFamily:'Outfit,sans-serif' }}>
+                Download CSV
+              </button>
+              <button onClick={clearResponses}
+                style={{ padding:'0.4rem 0.9rem', background:'rgba(239,68,68,0.08)', border:'1px solid #ef4444',
+                  borderRadius:'8px', color:'#ef4444', fontWeight:700, cursor:'pointer', fontSize:'0.8rem', fontFamily:'Outfit,sans-serif' }}>
+                Clear All
+              </button>
+            </div>
           </div>
 
           {!fbResponses.questions?.length

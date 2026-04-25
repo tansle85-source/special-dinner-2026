@@ -546,6 +546,38 @@ app.get('/api/feedback/responses', async (req, res) => {
   res.json({ questions: result, total: (await pool.query('SELECT COUNT(*) AS c FROM feedback_responses'))[0][0].c });
 });
 
+// Admin: Export CSV
+app.get('/api/feedback/export', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        fr.id AS response_id,
+        fr.created_at,
+        fq.question_text,
+        fq.type AS question_type,
+        fa.answer_text,
+        fa.rating
+      FROM feedback_responses fr
+      JOIN feedback_answers fa ON fr.id = fa.response_id
+      JOIN feedback_questions fq ON fa.question_id = fq.id
+      ORDER BY fr.id DESC, fq.order_num, fq.id
+    `);
+
+    let csvContent = "Response ID,Date,Question,Type,Answer/Rating\n";
+    rows.forEach(r => {
+      const date = new Date(r.created_at).toLocaleString('en-GB');
+      const answer = r.question_type === 'rating' ? r.rating : (r.answer_text || '').replace(/"/g, '""');
+      csvContent += `${r.response_id},"${date}","${r.question_text}","${r.question_type}","${answer}"\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=guest_feedback.csv');
+    res.send(csvContent);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
 // Admin: clear all responses
 app.delete('/api/feedback/responses', async (req, res) => {
   await pool.query('DELETE FROM feedback_answers');

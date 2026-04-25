@@ -125,9 +125,14 @@ const Home = () => {
         ))}
       </div>
 
-      <p style={{ color:'#d1d5db', fontSize:'0.72rem', paddingBottom:'2rem' }}>
-        eventjor.com · Appreciation Night 2026
-      </p>
+      <div style={{ textAlign:'center', paddingBottom:'2.5rem', paddingLeft:'1rem', paddingRight:'1rem' }}>
+        <p style={{ color:'#9ca3af', fontSize:'0.72rem', marginBottom:'3px' }}>
+          Penang Appreciation Dinner 2026 Committees
+        </p>
+        <p style={{ color:'#d1d5db', fontSize:'0.68rem' }}>
+          Developed by : Steven Tan (BE DEV APT APD PNG)
+        </p>
+      </div>
     </div>
   );
 };

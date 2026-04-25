@@ -38,6 +38,7 @@ const Admin = () => {
   const [showBatchSummary, setShowBatchSummary] = useState(false);
   const [isProcessingBatch, setIsProcessingBatch] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingSub, setEditingSub] = useState(null); // { id, name, department, gender }
 
   const sortResults = (list, query) => {
     if (!query) return list;
@@ -878,14 +879,20 @@ const Admin = () => {
                           </span>
                         </div>
                         {sub.ai_score != null && <div style={{ marginTop:'4px', fontSize:'0.7rem', color:'#0A8276', fontWeight:700 }}>AI: {sub.ai_score}/100</div>}
-                        <button
-                          onClick={async () => {
-                            if (!confirm(`Delete ${sub.name}'s submission?`)) return;
-                            try { await axios.delete(`/api/best-dress/submissions/${sub.id}`); fetchAllData(); }
-                            catch(e) { alert('Delete failed'); }
-                          }}
-                          style={{ marginTop:'6px', width:'100%', padding:'4px', borderRadius:'8px', border:'1px solid #fca5a5', background:'#fef2f2', color:'#ef4444', fontSize:'0.7rem', fontWeight:700, cursor:'pointer' }}
-                        >Delete</button>
+                        <div style={{ display:'flex', gap:'4px', marginTop:'6px' }}>
+                          <button
+                            onClick={() => setEditingSub({ id: sub.id, name: sub.name, department: sub.department, gender: sub.gender })}
+                            style={{ flex:1, padding:'4px', borderRadius:'8px', border:'1px solid #bae6fd', background:'#f0f9ff', color:'#0369a1', fontSize:'0.7rem', fontWeight:700, cursor:'pointer' }}
+                          >Edit</button>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Delete ${sub.name}'s submission?`)) return;
+                              try { await axios.delete(`/api/best-dress/submissions/${sub.id}`); fetchAllData(); }
+                              catch(e) { alert('Delete failed'); }
+                            }}
+                            style={{ flex:1, padding:'4px', borderRadius:'8px', border:'1px solid #fca5a5', background:'#fef2f2', color:'#ef4444', fontSize:'0.7rem', fontWeight:700, cursor:'pointer' }}
+                          >Delete</button>
+                        </div>
                       </div>
                     ))}
                     {bdSubmissions.length === 0 && <div style={{ gridColumn:'1/-1', textAlign:'center', color:'#94a3b8', padding:'2rem' }}>No submissions yet</div>}
@@ -1044,6 +1051,60 @@ const Admin = () => {
         @keyframes progress { from { width: 0%; } to { width: 100%; } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
+
+      {/* Edit Submission Modal */}
+      {editingSub && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ background:'white', borderRadius:'20px', padding:'2rem', width:'360px', maxWidth:'90vw', boxShadow:'0 25px 50px rgba(0,0,0,0.3)' }}>
+            <h3 style={{ margin:'0 0 1.5rem', fontSize:'1.2rem', fontWeight:800 }}>Edit Submission</h3>
+
+            <label style={{ display:'block', fontSize:'0.75rem', fontWeight:700, color:'#64748b', marginBottom:'4px', textTransform:'uppercase' }}>Full Name</label>
+            <input
+              value={editingSub.name}
+              onChange={e => setEditingSub(p => ({ ...p, name: e.target.value }))}
+              style={{ width:'100%', padding:'0.6rem 0.9rem', borderRadius:'10px', border:'1.5px solid #e2e8f0', fontSize:'0.95rem', marginBottom:'1rem', boxSizing:'border-box' }}
+            />
+
+            <label style={{ display:'block', fontSize:'0.75rem', fontWeight:700, color:'#64748b', marginBottom:'4px', textTransform:'uppercase' }}>Department</label>
+            <input
+              value={editingSub.department}
+              onChange={e => setEditingSub(p => ({ ...p, department: e.target.value }))}
+              style={{ width:'100%', padding:'0.6rem 0.9rem', borderRadius:'10px', border:'1.5px solid #e2e8f0', fontSize:'0.95rem', marginBottom:'1rem', boxSizing:'border-box' }}
+            />
+
+            <label style={{ display:'block', fontSize:'0.75rem', fontWeight:700, color:'#64748b', marginBottom:'8px', textTransform:'uppercase' }}>Category</label>
+            <div style={{ display:'flex', gap:'0.75rem', marginBottom:'1.5rem' }}>
+              {['Male','Female'].map(g => (
+                <button key={g} onClick={() => setEditingSub(p => ({ ...p, gender: g }))}
+                  style={{ flex:1, padding:'0.6rem', borderRadius:'10px', fontWeight:700, fontSize:'0.9rem', cursor:'pointer',
+                    border: editingSub.gender === g ? '2px solid #0A8276' : '2px solid #e2e8f0',
+                    background: editingSub.gender === g ? 'rgba(10,130,118,0.08)' : 'white',
+                    color: editingSub.gender === g ? '#0A8276' : '#64748b' }}
+                >{g === 'Male' ? '👔' : '👗'} {g}</button>
+              ))}
+            </div>
+
+            <div style={{ display:'flex', gap:'0.75rem' }}>
+              <button
+                onClick={() => setEditingSub(null)}
+                style={{ flex:1, padding:'0.75rem', borderRadius:'10px', border:'1.5px solid #e2e8f0', background:'white', fontWeight:700, cursor:'pointer', color:'#64748b' }}
+              >Cancel</button>
+              <button
+                onClick={async () => {
+                  try {
+                    await axios.put(`/api/best-dress/submissions/${editingSub.id}`, {
+                      name: editingSub.name, department: editingSub.department, gender: editingSub.gender
+                    });
+                    setEditingSub(null);
+                    fetchAllData();
+                  } catch(e) { alert('Save failed: ' + (e.response?.data?.error || e.message)); }
+                }}
+                style={{ flex:1, padding:'0.75rem', borderRadius:'10px', border:'none', background:'#0A8276', color:'white', fontWeight:800, cursor:'pointer' }}
+              >Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -496,6 +496,19 @@ app.delete('/api/best-dress/submissions/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Admin: edit a submission's name / department / gender
+app.put('/api/best-dress/submissions/:id', async (req, res) => {
+  const { name, department, gender } = req.body;
+  if (!name || !department || !gender) return res.status(400).json({ error: 'Missing fields' });
+  try {
+    await pool.query(
+      'UPDATE best_dress_submissions SET name = ?, department = ?, gender = ? WHERE id = ?',
+      [name, department, gender, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Admin: AI ranking — pick top 3 male + top 3 female and promote to nominees
 app.post('/api/best-dress/ai-rank', async (req, res) => {
   try {

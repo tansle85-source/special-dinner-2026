@@ -4,6 +4,7 @@ import Admin from './components/Admin';
 import PerformanceVoting from './components/PerformanceVoting';
 import LuckyDraw from './components/LuckyDraw';
 import BestDress from './components/BestDress';
+import BestDressAnnounce from './components/BestDressAnnounce';
 
 const App = () => {
   return (
@@ -14,6 +15,7 @@ const App = () => {
           <Route path="/admin" element={<Admin />} />
           <Route path="/voting" element={<PerformanceVoting defaultTab="performance" />} />
           <Route path="/bestdress" element={<BestDress />} />
+          <Route path="/bestdress/announce" element={<BestDressAnnounce />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

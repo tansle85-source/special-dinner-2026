@@ -867,9 +867,9 @@ const Admin = () => {
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:'1rem', maxHeight:'500px', overflowY:'auto' }}>
                     {bdSubmissions.map(sub => (
                       <div key={sub.id} style={{ background:'#f8fafc', borderRadius:'16px', padding:'0.75rem', border:'1px solid #e2e8f0', textAlign:'center' }}>
-                        {sub.photo_path
-                          ? <img src={`/api/photos/bd/${sub.photo_path}`} alt={sub.name} style={{ width:'100%', height:'120px', objectFit:'cover', borderRadius:'12px', marginBottom:'0.5rem' }} />
-                          : <div style={{ width:'100%', height:'120px', background:'#e2e8f0', borderRadius:'12px', marginBottom:'0.5rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem' }}>No Photo</div>
+                        {sub.photo_data
+                          ? <img src={`/api/photos/bd/sub/${sub.id}`} alt={sub.name} style={{ width:'100%', height:'120px', objectFit:'cover', borderRadius:'12px', marginBottom:'0.5rem' }} />
+                          : <div style={{ width:'100%', height:'120px', background:'#e2e8f0', borderRadius:'12px', marginBottom:'0.5rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem' }}>📷</div>
                         }
                         <div style={{ fontWeight:800, fontSize:'0.85rem', color:'#1e293b', marginBottom:'2px' }}>{sub.name}</div>
                         <div style={{ fontSize:'0.72rem', color:'#64748b' }}>{sub.department}</div>
@@ -901,8 +901,17 @@ const Admin = () => {
 
                 {/* Finalists & Voting Standings */}
                 <div className="card shadow-card" style={{ flex: 1 }}>
-                  <h3>Voting Finalists</h3>
-                  <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>These names appear on the guest voting page during the VOTING phase.</p>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem' }}>
+                    <div>
+                      <h3 style={{ margin:0 }}>Voting Finalists</h3>
+                      <p style={{ color: '#64748b', fontSize: '0.85rem', margin:'4px 0 0' }}>These names appear on the guest voting page during the VOTING phase.</p>
+                    </div>
+                    <button
+                      onClick={() => window.open('/bestdress/announce', '_blank')}
+                      style={{ padding:'0.6rem 1.2rem', borderRadius:'12px', border:'none', background:'linear-gradient(135deg,#7c3aed,#4f46e5)', color:'white', fontWeight:800, fontSize:'0.85rem', cursor:'pointer', whiteSpace:'nowrap' }}
+                    >🎞️ Announce Finalists
+                    </button>
+                  </div>
                   <table className="modern-table">
                     <thead><tr><th>FINALIST</th><th>VOTES</th><th>ACTIONS</th></tr></thead>
                     <tbody>

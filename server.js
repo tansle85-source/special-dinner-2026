@@ -180,8 +180,8 @@ const initDB = async () => {
       )
     `);
 
-    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_votes (id VARCHAR(255) PRIMARY KEY, nominee_name VARCHAR(255) NOT NULL, vote_count INT DEFAULT 0, gender VARCHAR(10), department VARCHAR(255), photo_path VARCHAR(500))`);
-    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_submissions (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL, department VARCHAR(255), gender VARCHAR(10), photo_path VARCHAR(500), voter_id VARCHAR(255), ai_score FLOAT DEFAULT NULL, ai_reasoning TEXT, submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_votes (id VARCHAR(255) PRIMARY KEY, nominee_name VARCHAR(255) NOT NULL, vote_count INT DEFAULT 0, gender VARCHAR(10), department VARCHAR(255), photo_path VARCHAR(500), ai_reasoning TEXT)`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_submissions (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL, department VARCHAR(255), gender VARCHAR(10), photo_path VARCHAR(500), photo_data LONGTEXT, voter_id VARCHAR(255), ai_score FLOAT DEFAULT NULL, ai_reasoning TEXT, submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_nominations (id VARCHAR(255) PRIMARY KEY, employee_id VARCHAR(255), nominee_name VARCHAR(255), voter_id VARCHAR(255))`);
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_voters (voter_id VARCHAR(255), gender VARCHAR(10), nominee_id VARCHAR(255), PRIMARY KEY (voter_id, gender))`);
     await connection.query(`CREATE TABLE IF NOT EXISTS feedback (id INT AUTO_INCREMENT PRIMARY KEY, comment TEXT, rating INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
@@ -213,17 +213,26 @@ const initDB = async () => {
       const [bdvCols] = await connection.query('SHOW COLUMNS FROM best_dress_votes');
       if (!bdvCols.some(c => c.Field === 'gender')) {
         await connection.query('ALTER TABLE best_dress_votes ADD COLUMN gender VARCHAR(10) DEFAULT NULL');
-        console.log('[MIGRATE] Added gender to best_dress_votes');
       }
       if (!bdvCols.some(c => c.Field === 'department')) {
         await connection.query('ALTER TABLE best_dress_votes ADD COLUMN department VARCHAR(255) DEFAULT NULL');
-        console.log('[MIGRATE] Added department to best_dress_votes');
       }
       if (!bdvCols.some(c => c.Field === 'photo_path')) {
         await connection.query('ALTER TABLE best_dress_votes ADD COLUMN photo_path VARCHAR(500) DEFAULT NULL');
-        console.log('[MIGRATE] Added photo_path to best_dress_votes');
+      }
+      if (!bdvCols.some(c => c.Field === 'ai_reasoning')) {
+        await connection.query('ALTER TABLE best_dress_votes ADD COLUMN ai_reasoning TEXT DEFAULT NULL');
       }
     } catch (migErr) { console.warn('[MIGRATE] best_dress_votes columns migration:', migErr.message); }
+
+    // Migration: add photo_data to best_dress_submissions
+    try {
+      const [subCols] = await connection.query('SHOW COLUMNS FROM best_dress_submissions');
+      if (!subCols.some(c => c.Field === 'photo_data')) {
+        await connection.query('ALTER TABLE best_dress_submissions ADD COLUMN photo_data LONGTEXT DEFAULT NULL');
+        console.log('[MIGRATE] Added photo_data to best_dress_submissions');
+      }
+    } catch (migErr) { console.warn('[MIGRATE] photo_data migration:', migErr.message); }
 
     // Migration Logic: Add song_name and voter_id if missing from existing tables
     try {
@@ -454,18 +463,17 @@ app.get('/api/feedback', async (req, res) => {
 
 // Best Dress Endpoints
 
-// Submit nomination with photo (unlimited per device)
-app.post('/api/best-dress/submit', bdUpload.single('photo'), async (req, res) => {
-  const { name, department, gender, voter_id } = req.body;
+// Submit nomination with photo (unlimited per device) — base64 stored in DB
+app.post('/api/best-dress/submit', async (req, res) => {
+  const { name, department, gender, voter_id, photo_data } = req.body;
   if (!name || !department || !gender || !voter_id) return res.status(400).json({ error: 'Missing fields' });
   const [settings] = await pool.query('SELECT best_dress_status FROM performance_settings WHERE id = "global"');
   if (settings[0]?.best_dress_status !== 'NOMINATING') return res.status(403).json({ error: 'Submissions are not open' });
   try {
     const id = generateId();
-    const photoPath = req.file ? req.file.filename : null;
     await pool.query(
-      'INSERT INTO best_dress_submissions (id, name, department, gender, photo_path, voter_id) VALUES (?, ?, ?, ?, ?, ?)',
-      [id, name, department, gender, photoPath, voter_id]
+      'INSERT INTO best_dress_submissions (id, name, department, gender, photo_data, voter_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, name, department, gender, photo_data || null, voter_id]
     );
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -477,6 +485,43 @@ app.get('/api/best-dress/my-submission/:voterId', async (req, res) => {
   res.json({ count: rows.length, submissions: rows });
 });
 
+// Serve photo by submission ID from DB
+app.get('/api/photos/bd/sub/:id', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT photo_data FROM best_dress_submissions WHERE id = ?', [req.params.id]);
+    if (!rows[0]?.photo_data) return res.status(404).send('No photo');
+    const dataUrl = rows[0].photo_data;
+    // dataUrl format: data:image/jpeg;base64,<data>
+    const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
+    if (!matches) return res.status(400).send('Invalid photo data');
+    const mimeType = matches[1];
+    const buf = Buffer.from(matches[2], 'base64');
+    res.set('Content-Type', mimeType);
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(buf);
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+// Serve photo for finalist by vote record ID
+app.get('/api/photos/bd/vote/:id', async (req, res) => {
+  try {
+    const [voteRows] = await pool.query('SELECT photo_data FROM best_dress_votes WHERE id = ?', [req.params.id]);
+    if (!voteRows[0]?.photo_data) return res.status(404).send('No photo');
+    const dataUrl = voteRows[0].photo_data;
+    const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
+    if (!matches) return res.status(400).send('Invalid photo data');
+    res.set('Content-Type', matches[1]);
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(Buffer.from(matches[2], 'base64'));
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+// Finalists with full data (photo_data, ai_reasoning) for announce page
+app.get('/api/best-dress/finalists', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM best_dress_votes ORDER BY gender, vote_count DESC');
+  res.json(rows);
+});
+
 // Admin: list all submissions
 app.get('/api/best-dress/submissions', async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM best_dress_submissions ORDER BY submitted_at DESC');
@@ -486,11 +531,6 @@ app.get('/api/best-dress/submissions', async (req, res) => {
 // Admin: delete a submission
 app.delete('/api/best-dress/submissions/:id', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT photo_path FROM best_dress_submissions WHERE id = ?', [req.params.id]);
-    if (rows[0]?.photo_path) {
-      const filePath = path.join(__dirname, 'uploads', 'bd', rows[0].photo_path);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
     await pool.query('DELETE FROM best_dress_submissions WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -512,7 +552,7 @@ app.put('/api/best-dress/submissions/:id', async (req, res) => {
 // Admin: AI ranking — pick top 3 male + top 3 female and promote to nominees
 app.post('/api/best-dress/ai-rank', async (req, res) => {
   try {
-    const [subs] = await pool.query('SELECT * FROM best_dress_submissions WHERE photo_path IS NOT NULL');
+    const [subs] = await pool.query('SELECT * FROM best_dress_submissions WHERE photo_data IS NOT NULL');
     if (subs.length === 0) return res.status(400).json({ error: 'No submissions with photos' });
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -521,12 +561,12 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
     // Score each submission
     const scored = await Promise.all(subs.map(async (sub) => {
       try {
-        const imgPath = path.join(__dirname, 'uploads', 'bd', sub.photo_path);
-        if (!fs.existsSync(imgPath)) return { ...sub, ai_score: 50 };
-        const imgData = fs.readFileSync(imgPath);
-        const b64 = imgData.toString('base64');
-        const ext = path.extname(sub.photo_path).toLowerCase().replace('.', '');
-        const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
+        if (!sub.photo_data) return { ...sub, ai_score: 50, ai_reasoning: 'No photo provided' };
+        // photo_data is a data URL: data:image/jpeg;base64,...
+        const matches = sub.photo_data.match(/^data:(.+);base64,(.+)$/);
+        if (!matches) return { ...sub, ai_score: 50 };
+        const mime = matches[1];
+        const b64 = matches[2];
         const prompt = `You are a fashion judge for a company dinner Best Dress competition. Rate this outfit from 0-100 based on elegance, style, colour coordination, and appropriateness for a formal gala dinner. Return ONLY valid JSON: {"score": 85, "reasoning": "brief reason"}`;
         const result = await model.generateContent([
           { inlineData: { data: b64, mimeType: mime } },
@@ -544,13 +584,13 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
     const byGender = (g) => scored.filter(s => s.gender === g).sort((a, b) => b.ai_score - a.ai_score).slice(0, 3);
     const finalists = [...byGender('Female'), ...byGender('Male')];
 
-    // Clear existing nominees and insert finalists
+    // Clear existing nominees and insert finalists (with photo_data + ai_reasoning)
     await pool.query('DELETE FROM best_dress_votes');
     await pool.query('DELETE FROM best_dress_voters');
     for (const f of finalists) {
       await pool.query(
-        'INSERT INTO best_dress_votes (id, nominee_name, vote_count, gender, department, photo_path) VALUES (?, ?, 0, ?, ?, ?)',
-        [generateId(), f.name, f.gender, f.department, f.photo_path]
+        'INSERT INTO best_dress_votes (id, nominee_name, vote_count, gender, department, photo_data, ai_reasoning) VALUES (?, ?, 0, ?, ?, ?, ?)',
+        [generateId(), f.name, f.gender, f.department, f.photo_data || null, f.ai_reasoning || '']
       );
     }
     res.json({ success: true, selected: finalists.map(f => ({ name: f.name, gender: f.gender, score: f.ai_score })) });

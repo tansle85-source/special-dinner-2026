@@ -71,11 +71,9 @@ const BestDress = () => {
       const canvas = document.createElement('canvas');
       canvas.width = width; canvas.height = height;
       canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-      canvas.toBlob(blob => {
-        const compressed = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-        setPhoto(compressed);
-        setPreview(canvas.toDataURL('image/jpeg', 0.85));
-      }, 'image/jpeg', 0.85);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      setPhoto(dataUrl);   // store base64 data URL
+      setPreview(dataUrl);
     };
     img.src = objectUrl;
   };
@@ -87,13 +85,10 @@ const BestDress = () => {
     if (!photo) return showToast('Please take/upload a photo', '#ef4444');
     setSubmitting(true);
     try {
-      const fd = new FormData();
-      fd.append('name', name.trim());
-      fd.append('department', dept.trim());
-      fd.append('gender', gender);
-      fd.append('voter_id', voterId);
-      fd.append('photo', photo);
-      await axios.post('/api/best-dress/submit', fd, { timeout: 20000 });
+      // Send as JSON with base64 photo — no filesystem needed, survives redeploys
+      await axios.post('/api/best-dress/submit', {
+        name: name.trim(), department: dept.trim(), gender, voter_id: voterId, photo_data: photo
+      }, { timeout: 30000 });
       setSubmitted(true);
       setSubmitCount(c => c + 1);
     } catch (e) {

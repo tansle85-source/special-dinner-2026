@@ -775,7 +775,7 @@ const Admin = () => {
 
 
 
-          {activeModule === 'guest-feedback' && <FeedbackModule />}
+          {activeModule === 'feedback' && <FeedbackModule />}
 
 
         </div>

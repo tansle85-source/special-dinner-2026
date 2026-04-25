@@ -35,15 +35,16 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
   }, []);
 
   const fetchData = async (vid) => {
-    const timeout = setTimeout(() => setLoading(false), 5000); // 5s safety fallback
+    const timeout = setTimeout(() => setLoading(false), 3000);
+    const cfg = { timeout: 3000 };
     try {
       const [pRes, cRes, sRes, bdStatRes, bdNomRes, empRes] = await Promise.all([
-        axios.get('/api/performance/participants'),
-        axios.get('/api/performance/criteria'),
-        axios.get('/api/performance/status'),
-        axios.get('/api/best-dress/status'),
-        axios.get('/api/best-dress/nominees'),
-        axios.get('/api/employees')
+        axios.get('/api/performance/participants', cfg),
+        axios.get('/api/performance/criteria', cfg),
+        axios.get('/api/performance/status', cfg),
+        axios.get('/api/best-dress/status', cfg),
+        axios.get('/api/best-dress/nominees', cfg),
+        axios.get('/api/employees', cfg)
       ]);
       
       setParticipants(pRes.data);
@@ -53,16 +54,17 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
       setBdNominees(bdNomRes.data);
       setEmployees(empRes.data);
 
-      const [myRatingsRes, myNomRes, myVoteRes] = await Promise.all([
-        axios.get(`/api/performance/my-ratings/${vid}`),
-        axios.get(`/api/best-dress/my-nomination/${vid}`),
-        axios.get(`/api/best-dress/my-vote/${vid}`)
-      ]);
-      
-      setMyRatings(myRatingsRes.data);
-      setMyBdNomination(myNomRes.data);
-      setMyBdVote(myVoteRes.data?.nominee_id);
-      
+      // Secondary calls — non-blocking
+      Promise.all([
+        axios.get(`/api/performance/my-ratings/${vid}`, cfg),
+        axios.get(`/api/best-dress/my-nomination/${vid}`, cfg),
+        axios.get(`/api/best-dress/my-vote/${vid}`, cfg)
+      ]).then(([myRatingsRes, myNomRes, myVoteRes]) => {
+        setMyRatings(myRatingsRes.data);
+        setMyBdNomination(myNomRes.data);
+        setMyBdVote(myVoteRes.data?.nominee_id);
+      }).catch(() => {});
+
     } catch (err) {
       console.error("Fetch failed", err);
     } finally {
@@ -70,6 +72,7 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
       setLoading(false);
     }
   };
+
 
 
   const handlePerformanceVote = async (participantId, scores) => {

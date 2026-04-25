@@ -17,6 +17,8 @@ const BestDress = () => {
   const [submitted, setSubmitted] = useState(false);
   const [toast, setToast] = useState(null);
   const fileRef = useRef(null);
+  const cameraRef = useRef(null);
+
 
   const voterId = (() => {
     let id = localStorage.getItem('bd_voter_id');
@@ -100,12 +102,13 @@ const BestDress = () => {
       <header style={s.header}>
         <div style={{ fontSize:'3.5rem' }}>👗</div>
         <h1 style={s.title}>Best Dress Award</h1>
-        <p style={{ color:'rgba(255,255,255,0.45)', marginTop:'0.25rem', fontSize:'0.85rem' }}>Appreciation Night 2026</p>
+        <p style={{ color:'rgba(255,255,255,0.85)', marginTop:'0.25rem', fontSize:'0.85rem', fontWeight:600 }}>Appreciation Night 2026</p>
         <span style={{ ...s.badge, ...(phase==='NOMINATING'?s.badgeGreen:phase==='VOTING'?s.badgeGold:s.badgeGray) }}>
-          <span style={{ width:7, height:7, borderRadius:'50%', background: phase==='NOMINATING'?'#22c55e':phase==='VOTING'?'#fbbf24':'#6b7280', display:'inline-block', marginRight:6 }}></span>
+          <span style={{ width:7, height:7, borderRadius:'50%', background: phase==='NOMINATING'?'#fff':phase==='VOTING'?'#fff':'rgba(255,255,255,0.4)', display:'inline-block', marginRight:6 }}></span>
           {phase==='CLOSED'?'Coming Soon':phase==='NOMINATING'?'Submissions Open':'VOTING LIVE'}
         </span>
       </header>
+
 
       <div style={{ padding:'0 1rem' }}>
         {/* CLOSED */}
@@ -123,16 +126,27 @@ const BestDress = () => {
             <h2 style={s.h2}>Submit Your Look</h2>
             <p style={{ ...s.muted, marginBottom:'1.5rem' }}>Nominate yourself! Fill your details and upload a photo.</p>
 
-            <div style={s.photoBox} onClick={() => fileRef.current?.click()}>
+            <div style={s.photoBox}>
               {preview
-                ? <img src={preview} alt="preview" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                : <div style={{ textAlign:'center' }}>
-                    <div style={{ fontSize:'2.5rem' }}>📷</div>
-                    <p style={{ color:'rgba(255,255,255,0.45)', fontSize:'0.85rem', marginTop:'0.5rem' }}>Tap to take / upload photo</p>
+                ? <div style={{ position:'relative', width:'100%', height:'100%' }}>
+                    <img src={preview} alt="preview" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    <button onClick={()=>setPreview(null)} style={{ position:'absolute', top:8, right:8, background:'rgba(0,0,0,0.5)', color:'white', border:'none', borderRadius:'99px', padding:'4px 10px', fontSize:'0.75rem', cursor:'pointer' }}>✕ Redo</button>
+                  </div>
+                : <div style={{ textAlign:'center', padding:'1rem' }}>
+                    <div style={{ fontSize:'2.5rem', marginBottom:'0.75rem' }}>📸</div>
+                    <div style={{ display:'flex', gap:'0.75rem', justifyContent:'center' }}>
+                      <button onClick={()=>cameraRef.current?.click()} style={s.photoBtn}>📷 Camera</button>
+                      <button onClick={()=>fileRef.current?.click()} style={s.photoBtn}>🖼️ Gallery</button>
+                    </div>
+                    <p style={{ color:'#9ca3af', fontSize:'0.8rem', marginTop:'0.75rem' }}>iPhone · Android · Any device</p>
                   </div>
               }
             </div>
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={onPhoto} />
+            {/* Camera input — opens camera */}
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={onPhoto} />
+            {/* Gallery input — opens photo library */}
+            <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={onPhoto} />
+
 
             <Field label="Full Name">
               <input style={s.input} placeholder="Your full name" value={name} onChange={e=>setName(e.target.value)} />
@@ -195,10 +209,11 @@ const BestDress = () => {
 
 const Field = ({ label, children }) => (
   <div style={{ marginBottom:'1.25rem' }}>
-    <label style={{ display:'block', fontSize:'0.72rem', fontWeight:700, color:'rgba(255,255,255,0.45)', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:'0.5rem' }}>{label}</label>
+    <label style={{ display:'block', fontSize:'0.72rem', fontWeight:700, color:'#6b7280', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:'0.5rem' }}>{label}</label>
     {children}
   </div>
 );
+
 
 const FinalistCard = ({ item, myVote, onVote }) => {
   const voted = myVote === item.id;
@@ -207,7 +222,8 @@ const FinalistCard = ({ item, myVote, onVote }) => {
       {item.photo_path && <img src={`/uploads/bd/${item.photo_path}`} alt="" style={s.fImg} />}
       <div style={{ flex:1 }}>
         <div style={{ fontWeight:800, fontSize:'1.05rem' }}>{item.nominee_name}</div>
-        <div style={{ color:'rgba(255,255,255,0.5)', fontSize:'0.8rem', marginTop:'2px' }}>{item.department}</div>
+        <div style={{ color:'#6b7280', fontSize:'0.8rem', marginTop:'2px' }}>{item.department}</div>
+
       </div>
       {voted && <span style={{ background:'#0A8276', color:'#FFFFFF', padding:'4px 12px', borderRadius:'99px', fontSize:'0.75rem', fontWeight:700 }}>My Choice ✓</span>}
     </div>
@@ -225,16 +241,17 @@ const Styles = () => (
 
 const s = {
   page: { minHeight:'100vh', background:'#FFFFFF', fontFamily:"'Outfit',sans-serif", color:'#1D1D1D', paddingBottom:'5rem' },
-  header: { textAlign:'center', padding:'2.5rem 1.5rem 1.5rem', background:'linear-gradient(180deg, #0A8276 0%, #FFFFFF 100%)' },
+  header: { textAlign:'center', padding:'2.5rem 1.5rem 1.5rem', background:'#0A8276' },
   title: { fontSize:'2.2rem', fontWeight:800, margin:'0.5rem 0 0', letterSpacing:'-1px', color:'#FFFFFF' },
   badge: { display:'inline-flex', alignItems:'center', padding:'5px 14px', borderRadius:'99px', border:'1px solid', fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.5px', textTransform:'uppercase', marginTop:'0.75rem' },
-  badgeGreen: { background:'rgba(10,130,118,0.1)', borderColor:'#0A8276', color:'#0A8276' },
-  badgeGold:  { background:'rgba(10,130,118,0.15)', borderColor:'#0A8276', color:'#0A8276' },
-  badgeGray:  { background:'rgba(29,29,29,0.06)', borderColor:'rgba(29,29,29,0.2)', color:'#888' },
+  badgeGreen: { background:'rgba(255,255,255,0.2)', borderColor:'rgba(255,255,255,0.6)', color:'#FFFFFF' },
+  badgeGold:  { background:'rgba(255,255,255,0.2)', borderColor:'rgba(255,255,255,0.6)', color:'#FFFFFF' },
+  badgeGray:  { background:'rgba(255,255,255,0.1)', borderColor:'rgba(255,255,255,0.3)', color:'rgba(255,255,255,0.7)' },
   card: { background:'#FFFFFF', borderRadius:'24px', border:'1px solid #e8e8e8', boxShadow:'0 2px 16px rgba(0,0,0,0.07)', padding:'1.75rem', marginBottom:'1rem' },
   h2: { fontSize:'1.4rem', fontWeight:800, margin:'0.5rem 0', color:'#1D1D1D' },
   muted: { color:'#6b7280', lineHeight:1.6, fontSize:'0.9rem', margin:0 },
-  photoBox: { width:'100%', height:'210px', borderRadius:'18px', border:'2px dashed rgba(10,130,118,0.4)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', marginBottom:'1.5rem', background:'rgba(10,130,118,0.04)' },
+  photoBox: { width:'100%', minHeight:'170px', borderRadius:'18px', border:'2px dashed rgba(10,130,118,0.35)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', marginBottom:'1.5rem', background:'#f9fafb' },
+  photoBtn: { padding:'0.6rem 1.1rem', borderRadius:'10px', border:'1.5px solid #0A8276', background:'#FFFFFF', color:'#0A8276', fontWeight:700, cursor:'pointer', fontSize:'0.85rem', fontFamily:"'Outfit',sans-serif" },
   input: { width:'100%', padding:'0.9rem 1.1rem', background:'#f5f5f5', border:'1px solid #e0e0e0', borderRadius:'12px', color:'#1D1D1D', fontSize:'1rem', fontFamily:"'Outfit',sans-serif", fontWeight:600, outline:'none' },
   gBtn: { flex:1, padding:'0.9rem', borderRadius:'12px', border:'2px solid #e0e0e0', background:'#f5f5f5', color:'#9ca3af', textAlign:'center', fontWeight:700, cursor:'pointer', fontSize:'0.95rem' },
   gBtnM: { border:'2px solid #0A8276', background:'rgba(10,130,118,0.08)', color:'#0A8276' },
@@ -247,6 +264,7 @@ const s = {
   fVoted: { border:'2px solid #0A8276', background:'rgba(10,130,118,0.06)' },
   fImg: { width:56, height:56, borderRadius:'50%', objectFit:'cover', flexShrink:0, border:'2px solid #0A8276' },
 };
+
 
 
 

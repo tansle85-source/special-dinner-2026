@@ -186,7 +186,32 @@ const initDB = async () => {
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_submissions (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL, department VARCHAR(255), gender VARCHAR(10), photo_path VARCHAR(500), photo_data LONGTEXT, voter_id VARCHAR(255), ai_score FLOAT DEFAULT NULL, ai_reasoning TEXT, submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_nominations (id VARCHAR(255) PRIMARY KEY, employee_id VARCHAR(255), nominee_name VARCHAR(255), voter_id VARCHAR(255))`);
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_voters (voter_id VARCHAR(255), gender VARCHAR(10), nominee_id VARCHAR(255), PRIMARY KEY (voter_id, gender))`);
-    await connection.query(`CREATE TABLE IF NOT EXISTS feedback (id INT AUTO_INCREMENT PRIMARY KEY, comment TEXT, rating INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS feedback_settings (
+      id VARCHAR(20) PRIMARY KEY,
+      status VARCHAR(20) DEFAULT 'CLOSED'
+    )`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS feedback_questions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      question_text TEXT NOT NULL,
+      type VARCHAR(20) DEFAULT 'text',
+      order_num INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS feedback_responses (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      session_id VARCHAR(255),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS feedback_answers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      response_id INT,
+      question_id INT,
+      answer_text TEXT,
+      rating INT DEFAULT NULL
+    )`);
+    // Seed settings row
+    await connection.query(`INSERT IGNORE INTO feedback_settings (id, status) VALUES ('global', 'CLOSED')`);
+
 
     // Migration: drop unique constraint on voter_id in best_dress_submissions if it exists
     try {
@@ -452,15 +477,75 @@ app.put('/api/performance/participants/:id/manual-score', async (req, res) => {
   res.json({ success: true });
 });
 
-// --- FEEDBACK & BEST DRESS ---
-app.post('/api/feedback', async (req, res) => {
-  await pool.query('INSERT INTO feedback (comment, rating) VALUES (?, ?)', [req.body.comment, req.body.rating]);
+// ─── FEEDBACK SYSTEM ─────────────────────────────────────────────────────────
+
+// Status
+app.get('/api/feedback/status', async (req, res) => {
+  const [rows] = await pool.query('SELECT status FROM feedback_settings WHERE id = "global"');
+  res.json({ status: rows[0]?.status || 'CLOSED' });
+});
+app.put('/api/feedback/status', async (req, res) => {
+  await pool.query('UPDATE feedback_settings SET status = ? WHERE id = "global"', [req.body.status]);
   res.json({ success: true });
 });
 
-app.get('/api/feedback', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM feedback ORDER BY created_at DESC');
+// Questions CRUD
+app.get('/api/feedback/questions', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM feedback_questions ORDER BY order_num, id');
   res.json(rows);
+});
+app.post('/api/feedback/questions', async (req, res) => {
+  const { question_text, type } = req.body;
+  if (!question_text) return res.status(400).json({ error: 'question_text required' });
+  const [r] = await pool.query('INSERT INTO feedback_questions (question_text, type) VALUES (?, ?)', [question_text, type || 'text']);
+  res.json({ id: r.insertId });
+});
+app.put('/api/feedback/questions/:id', async (req, res) => {
+  const { question_text, type } = req.body;
+  await pool.query('UPDATE feedback_questions SET question_text = ?, type = ? WHERE id = ?', [question_text, type, req.params.id]);
+  res.json({ success: true });
+});
+app.delete('/api/feedback/questions/:id', async (req, res) => {
+  await pool.query('DELETE FROM feedback_questions WHERE id = ?', [req.params.id]);
+  res.json({ success: true });
+});
+
+// Submit answers (one session per device — session_id from frontend)
+app.post('/api/feedback/submit', async (req, res) => {
+  const { session_id, answers } = req.body; // answers: [{ question_id, answer_text, rating }]
+  if (!answers || !answers.length) return res.status(400).json({ error: 'No answers provided' });
+  const [r] = await pool.query('INSERT INTO feedback_responses (session_id) VALUES (?)', [session_id || null]);
+  const responseId = r.insertId;
+  for (const a of answers) {
+    await pool.query(
+      'INSERT INTO feedback_answers (response_id, question_id, answer_text, rating) VALUES (?, ?, ?, ?)',
+      [responseId, a.question_id, a.answer_text || null, a.rating || null]
+    );
+  }
+  res.json({ success: true });
+});
+
+// Admin: all responses grouped by question
+app.get('/api/feedback/responses', async (req, res) => {
+  const [questions] = await pool.query('SELECT * FROM feedback_questions ORDER BY order_num, id');
+  const [answers] = await pool.query(`
+    SELECT fa.*, fr.created_at
+    FROM feedback_answers fa
+    JOIN feedback_responses fr ON fa.response_id = fr.id
+    ORDER BY fr.created_at DESC
+  `);
+  const result = questions.map(q => ({
+    ...q,
+    answers: answers.filter(a => a.question_id === q.id)
+  }));
+  res.json({ questions: result, total: (await pool.query('SELECT COUNT(*) AS c FROM feedback_responses'))[0][0].c });
+});
+
+// Admin: clear all responses
+app.delete('/api/feedback/responses', async (req, res) => {
+  await pool.query('DELETE FROM feedback_answers');
+  await pool.query('DELETE FROM feedback_responses');
+  res.json({ success: true });
 });
 
 // Best Dress Endpoints

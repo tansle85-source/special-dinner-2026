@@ -16,7 +16,10 @@ const App = () => {
           <Route path="/admin" element={<Admin />} />
           
           {/* Guest Voting Page */}
-          <Route path="/voting" element={<PerformanceVoting />} />
+          <Route path="/voting" element={<PerformanceVoting defaultTab="performance" />} />
+          
+          {/* Best Dress standalone route */}
+          <Route path="/bestdress" element={<PerformanceVoting defaultTab="best-dress" />} />
           
           {/* Fallback to Dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />

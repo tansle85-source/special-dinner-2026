@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const PerformanceVoting = () => {
-  const [activeTab, setActiveTab] = useState('performance'); // 'performance' or 'best-dress'
+const PerformanceVoting = ({ defaultTab = 'performance' }) => {
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
   const [participants, setParticipants] = useState([]);
   const [criteria, setCriteria] = useState([]);
   const [status, setStatus] = useState('CLOSED');

@@ -51,10 +51,28 @@ const BestDress = () => {
   const onPhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setPhoto(file);
-    const r = new FileReader();
-    r.onloadend = () => setPreview(r.result);
-    r.readAsDataURL(file);
+
+    // Compress image using canvas before uploading
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX = 1200;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+        else { width = Math.round(width * MAX / height); height = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => {
+        const compressed = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+        setPhoto(compressed);
+        setPreview(canvas.toDataURL('image/jpeg', 0.85));
+      }, 'image/jpeg', 0.85);
+    };
+    img.src = objectUrl;
   };
 
   const handleSubmit = async () => {

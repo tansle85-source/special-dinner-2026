@@ -878,6 +878,14 @@ const Admin = () => {
                           </span>
                         </div>
                         {sub.ai_score != null && <div style={{ marginTop:'4px', fontSize:'0.7rem', color:'#0A8276', fontWeight:700 }}>AI: {sub.ai_score}/100</div>}
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Delete ${sub.name}'s submission?`)) return;
+                            try { await axios.delete(`/api/best-dress/submissions/${sub.id}`); fetchAllData(); }
+                            catch(e) { alert('Delete failed'); }
+                          }}
+                          style={{ marginTop:'6px', width:'100%', padding:'4px', borderRadius:'8px', border:'1px solid #fca5a5', background:'#fef2f2', color:'#ef4444', fontSize:'0.7rem', fontWeight:700, cursor:'pointer' }}
+                        >Delete</button>
                       </div>
                     ))}
                     {bdSubmissions.length === 0 && <div style={{ gridColumn:'1/-1', textAlign:'center', color:'#94a3b8', padding:'2rem' }}>No submissions yet</div>}

@@ -61,12 +61,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Ensure upload directory exists - Wrapped in try/catch to prevent 503 startup crashes
+// Ensure upload directories exist - Wrapped in try/catch to prevent 503 startup crashes
 try {
   const uploadDir = path.join(__dirname, 'uploads');
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
+  const bdDir = path.join(__dirname, 'uploads', 'bd');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  if (!fs.existsSync(bdDir)) fs.mkdirSync(bdDir, { recursive: true });
+  console.log('Upload directories ready:', uploadDir);
 } catch (err) {
   console.warn('Warning: Could not create uploads directory:', err.message);
 }
@@ -441,6 +442,19 @@ app.get('/api/best-dress/my-submission/:voterId', async (req, res) => {
 app.get('/api/best-dress/submissions', async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM best_dress_submissions ORDER BY submitted_at DESC');
   res.json(rows);
+});
+
+// Admin: delete a submission
+app.delete('/api/best-dress/submissions/:id', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT photo_path FROM best_dress_submissions WHERE id = ?', [req.params.id]);
+    if (rows[0]?.photo_path) {
+      const filePath = path.join(__dirname, 'uploads', 'bd', rows[0].photo_path);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+    await pool.query('DELETE FROM best_dress_submissions WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Admin: AI ranking — pick top 3 male + top 3 female and promote to nominees

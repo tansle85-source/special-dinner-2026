@@ -360,211 +360,123 @@ const Admin = () => {
 
         <div className="scroll-container">
           {activeModule === 'lucky-draw' && (
-            <div className="module-grid">
-              <div className="tabs-strip">
-                <button className={activeSubTab === 'conduct' ? 'active' : ''} onClick={() => setActiveSubTab('conduct')}>Conduct Draw</button>
-                <button className={activeSubTab === 'manage' ? 'active' : ''} onClick={() => setActiveSubTab('manage')}>Manage Prizes</button>
-                <button className={activeSubTab === 'winners' ? 'active' : ''} onClick={() => setActiveSubTab('winners')}>Winners List</button>
+            <div className="module-grid" style={{ display:'flex', flexDirection:'column', gap:'2rem' }}>
+
+              {/* === UPLOAD SECTION === */}
+              <div style={{ display:'flex', gap:'2rem', flexWrap:'wrap' }}>
+
+                {/* Upload Employee List */}
+                <div className="card shadow-card" style={{ flex:1, minWidth:'280px' }}>
+                  <h3 style={{ marginBottom:'0.4rem' }}>👥 Step 1 — Employee List</h3>
+                  <p style={{ color:'#64748b', fontSize:'0.85rem', marginBottom:'1.25rem' }}>
+                    Upload CSV with columns: <strong>name, department</strong>.<br/>
+                    This sets the full staff pool.
+                  </p>
+                  <label style={{ display:'inline-flex', alignItems:'center', gap:'0.5rem', background:'#0A8276', color:'white', padding:'0.65rem 1.2rem', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'0.9rem' }}>
+                    📂 Upload Employees CSV
+                    <input type="file" accept=".csv" style={{ display:'none' }}
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const fd = new FormData();
+                        fd.append('file', file);
+                        try {
+                          setLoading(true);
+                          setUploadStatus('Uploading employees…');
+                          const r = await axios.post('/api/upload', fd, { headers:{ 'Content-Type':'multipart/form-data' } });
+                          setUploadStatus(`✅ ${r.data.count} employees loaded`);
+                          fetchAllData();
+                        } catch(err) { setUploadStatus('❌ ' + (err.response?.data || err.message)); }
+                        finally { setLoading(false); e.target.value = ''; }
+                      }}
+                    />
+                  </label>
+                  <p style={{ marginTop:'0.75rem', fontSize:'0.78rem', color:'#94a3b8' }}>Currently {employees.length} employees in system.</p>
+                </div>
+
+                {/* Upload Winners Results */}
+                <div className="card shadow-card" style={{ flex:1, minWidth:'280px' }}>
+                  <h3 style={{ marginBottom:'0.4rem' }}>🏆 Step 2 — Upload Winners Result</h3>
+                  <p style={{ color:'#64748b', fontSize:'0.85rem', marginBottom:'1.25rem' }}>
+                    Upload CSV with columns: <strong>name, prize</strong>.<br/>
+                    This publishes the draw results. All previous results will be cleared.
+                  </p>
+                  <label style={{ display:'inline-flex', alignItems:'center', gap:'0.5rem', background:'#1D1D1D', color:'white', padding:'0.65rem 1.2rem', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'0.9rem' }}>
+                    📤 Upload Winners CSV
+                    <input type="file" accept=".csv" style={{ display:'none' }}
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        if (!confirm('This will REPLACE all current winner results. Continue?')) { e.target.value=''; return; }
+                        const fd = new FormData();
+                        fd.append('file', file);
+                        try {
+                          setLoading(true);
+                          setUploadStatus('Publishing results…');
+                          const r = await axios.post('/api/upload-winners', fd, { headers:{ 'Content-Type':'multipart/form-data' } });
+                          setUploadStatus(`✅ ${r.data.matched} winners published (${r.data.skipped} skipped)`);
+                          fetchAllData();
+                        } catch(err) { setUploadStatus('❌ ' + (err.response?.data || err.message)); }
+                        finally { setLoading(false); e.target.value = ''; }
+                      }}
+                    />
+                  </label>
+                  {uploadStatus && <p style={{ marginTop:'0.75rem', fontSize:'0.82rem', color:'#0A8276', fontWeight:700 }}>{uploadStatus}</p>}
+                </div>
               </div>
 
-              {activeSubTab === 'conduct' && (() => {
-                const sessionPrizes = prizes.filter(p => p.session === selectedSession);
-                const totalQuantity = sessionPrizes.reduce((sum, p) => sum + p.quantity, 0);
-                const currentWinners = (employees || []).filter(e => sessionPrizes.some(p => p.name === e.won_prize)).length;
-                const remainingToDraw = totalQuantity - currentWinners;
-
-                return (
-                  <div className="hero-draw-card" style={{ padding: '3rem', margin: '2rem 0', background: 'white' }}>
-                    {showStageView && drawResult ? (
-                      <LuckyDrawWheel 
-                        prize={drawResult.prize} 
-                        winner={drawResult.winner} 
-                        isInline={true}
-                        onFinish={() => {}}
-                        onClose={() => { setShowStageView(false); fetchAllData(); }}
-                      />
-                    ) : (
-                      <div className="ready-state" style={{ textAlign: 'center' }}>
-                        <div className="input-row" style={{ maxWidth: '400px', margin: '0 auto 2.5rem' }}>
-                          <select value={selectedSession} onChange={(e) => { setSelectedSession(e.target.value); setSelectedPrizeId(''); }} className="modern-select" style={{ padding: '1rem', fontSize: '1.1rem', borderRadius: '12px', width: '100%', border: '2px solid #e2e8f0', fontWeight: 700 }}>
-                            <option value="">-- Choose Session to Begin --</option>
-                            {[...new Set(prizes.map(p => p.session))].map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </div>
-                        
-                        <h2 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '0.5rem' }}>Ready for the next draw?</h2>
-                        <p style={{ color: '#64748b', fontSize: '1.1rem', marginBottom: '3rem' }}>{selectedSession ? `Remaining Prizes: ${remainingToDraw}` : 'Select a session above to view prize counts and start the draw.'}</p>
-                        
-                        <div className="draw-actions" style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', opacity: selectedSession ? 1 : 0.5, pointerEvents: selectedSession ? 'auto' : 'none' }}>
-                          <button className="btn-redraw" onClick={handleRedraw} disabled={loading || !lastWinner} style={{ background: 'rgba(223, 61, 78, 0.08)', color: '#df3d4e', border: '2px solid #df3d4e', padding: '1.25rem 2.5rem', borderRadius: '99px', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span className="icon">🔄</span> Redraw
-                          </button>
-                          <button className="btn-draw-main" onClick={handleNextDraw} disabled={!selectedSession || loading || remainingToDraw <= 0} style={{ background: 'linear-gradient(135deg, #0a8276 0%, #0d9488 100%)', color: 'white', border: 'none', padding: '1.25rem 3.5rem', borderRadius: '99px', fontSize: '1.5rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 20px 40px rgba(10, 130, 118, 0.25)', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <span className="icon">🎁</span> NEXT PRIZE
-                          </button>
-                          <button className="btn-draw-batch" onClick={handleDrawAll} disabled={!selectedSession || loading || remainingToDraw <= 0} style={{ background: '#1e293b', color: 'white', border: 'none', padding: '1.25rem 2.5rem', borderRadius: '99px', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span className="icon">📋</span> Batch Draw
-                          </button>
-                        </div>
-                      
-                      <div className="secondary-actions" style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center', gap: '1.5rem', alignItems: 'center' }}>
-                        <div className="manual-pick-box" style={{ background: '#f8fafc', padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b' }}>MANUAL:</span>
-                          <select value={selectedPrizeId} onChange={(e) => setSelectedPrizeId(e.target.value)} className="modern-select" style={{ border: 'none', background: 'transparent', fontWeight: 700 }}>
-                            <option value="">Quick Pick Prize...</option>
-                            {prizes.filter(p => !selectedSession || p.session === selectedSession).map(p => (
-                               <option key={p.id} value={p.id} disabled={(p.quantity - getDrawnCount(p.name)) <= 0}>{p.rank}. {p.name}</option>
-                            ))}
-                          </select>
-                          {selectedPrizeId && <button className="secondary-btn" onClick={conductDraw} style={{ padding: '0.4rem 0.8rem' }}>Go</button>}
-                        </div>
-                      </div>
-
-                      {isProcessingBatch && (
-                        <div className="batch-process-view" style={{ marginTop: '3rem', padding: '3rem', background: '#f8fafc', borderRadius: '24px', textAlign: 'center' }}>
-                          <div className="spinner-large" style={{ fontSize: '4rem', animation: 'spin 1s linear infinite' }}>🎲</div>
-                          <h2 style={{ fontSize: '2rem', fontWeight: 900, marginTop: '1.5rem' }}>Drawing {selectedSession} Winners...</h2>
-                          <p style={{ color: '#0a8276', fontWeight: 800, fontSize: '1.2rem', marginTop: '1rem' }}>Processing prize algorithm for {batchDrawResults.length} items</p>
-                          <div className="progress-bar-container" style={{ width: '100%', maxWidth: '400px', height: '8px', background: '#e2e8f0', borderRadius: '4px', margin: '2rem auto', overflow: 'hidden' }}>
-                            <div className="progress-fill" style={{ width: '100%', height: '100%', background: '#0a8276', animation: 'progress 3s linear' }}></div>
-                          </div>
-                        </div>
-                      )}
-
-                      {showBatchSummary && !isProcessingBatch && (
-                        <div className="batch-results-overlay" style={{ marginTop: '3rem', borderTop: '2px dashed #e2e8f0', paddingTop: '3rem' }}>
-                          <div className="batch-header" style={{ marginBottom: '2rem' }}>
-                             <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎊</div>
-                             <h2 style={{ fontSize: '2.5rem', fontWeight: 900 }}>Grand Draw Success!</h2>
-                             <p style={{ fontSize: '1.2rem', color: '#0a8276', fontWeight: 800 }}>Successfully drawn {batchDrawResults.length} winners for {selectedSession}</p>
-                          </div>
-                          <div className="batch-winner-scroller" style={{ maxHeight: '400px', overflowY: 'auto', background: '#f8fafc', borderRadius: '16px', padding: '2rem' }}>
-                             <table className="clean-table">
-                               <thead>
-                                 <tr><th>WINNER NAME</th><th>PRIZE WON</th></tr>
-                               </thead>
-                               <tbody>
-                                 {batchDrawResults.map((res, idx) => (
-                                   <tr key={idx}>
-                                     <td style={{ fontWeight: 800, color: '#1e293b' }}>{res.winner}</td>
-                                     <td style={{ fontWeight: 600, color: '#64748b' }}>{res.prize}</td>
-                                   </tr>
-                                 ))}
-                               </tbody>
-                             </table>
-                          </div>
-                          <button className="btn-next" style={{ marginTop: '2rem', margin: '2rem auto 0' }} onClick={() => setShowBatchSummary(false)}>Got it, Close Summary</button>
-                        </div>
-                      )}
-                    </div>
-                    )}
+              {/* === WINNERS TABLE === */}
+              <div className="card shadow-card">
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem', flexWrap:'wrap', gap:'1rem' }}>
+                  <div>
+                    <h3 style={{ margin:0 }}>🎁 Published Results ({employees.filter(e => e.won_prize).length} winners)</h3>
+                    <p style={{ color:'#64748b', fontSize:'0.82rem', margin:'4px 0 0' }}>Employees will see these results when they search their name on the front page.</p>
                   </div>
-                );
-              })()}
-
-              {activeSubTab === 'manage' && (
-                <div style={{ display:'flex', flexDirection:'column', gap:'2rem' }}>
-                  {/* Employee CSV Upload */}
-                  <div className="card shadow-card">
-                    <h3>Upload Employee List (CSV)</h3>
-                    <p style={{ color:'#64748b', fontSize:'0.9rem', marginBottom:'1.5rem' }}>Upload a CSV with columns: <strong>name, department</strong>. This replaces the eligible pool for lucky draw.</p>
-                    <div className="btn-group">
-                      <label className="secondary-btn" style={{ cursor:'pointer' }}>
-                        📂 Choose CSV File
-                        <input type="file" accept=".csv" onChange={(e) => handleFileUpload(e, 'employees')} style={{display:'none'}} />
-                      </label>
-                      {uploadStatus && <span style={{ color:'#0A8276', fontWeight:700, alignSelf:'center' }}>{uploadStatus}</span>}
-                    </div>
-                    <p style={{ marginTop:'1rem', fontSize:'0.8rem', color:'#94a3b8' }}>Currently {employees.length} employees in the system.</p>
-                  </div>
-
-                  {/* Prize Inventory */}
-                  <div className="card shadow-card">
-                    <div className="card-header-actions">
-                       <h3>Prize Inventory</h3>
-                       <div className="btn-group">
-                         <label className="secondary-btn">CSV Bulk Update <input type="file" accept=".csv" onChange={(e) => handleFileUpload(e, 'prizes')} style={{display:'none'}} /></label>
-                         <button className="modern-add-btn" onClick={() => { setEditingItem(null); setIsModalOpen(true); }}>+ Add New Prize</button>
-                       </div>
-                    </div>
-                    <table className="modern-table">
-                      <thead><tr><th>SESSION</th><th>RANK</th><th>PRIZE NAME</th><th>QTY</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
-                      <tbody>
-                        {prizes.map(p => {
-                          const drawn = getDrawnCount(p.name);
-                          return (
-                            <tr key={p.id}>
-                              <td>{p.session}</td><td>{p.rank}</td><td className="bold">{p.name}</td><td>{p.quantity}</td>
-                              <td><span className={`pill ${drawn >= p.quantity ? 'done' : 'pending'}`}>{drawn}/{p.quantity} Done</span></td>
-                              <td><button onClick={() => { setEditingItem(p); setIsModalOpen(true); }} className="table-btn">Edit</button></td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <button
+                    style={{ background:'rgba(239,68,68,0.08)', color:'#ef4444', border:'1px solid #ef4444', padding:'0.5rem 1rem', borderRadius:'8px', fontWeight:700, cursor:'pointer', fontSize:'0.85rem' }}
+                    onClick={async () => {
+                      if (!confirm('Clear ALL winner results? Employees will no longer see prizes.')) return;
+                      await axios.post('/api/reset-draw');
+                      fetchAllData();
+                      setUploadStatus('');
+                    }}
+                  >⚠️ Clear All Results</button>
                 </div>
-              )}
 
-              {activeSubTab === 'winners' && (
-                 <div className="card shadow-card">
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                     <h3>Winner Registry</h3>
-                     {selectedSession && (
-                       <button className="btn-reset session-reset-btn" onClick={handleResetSession} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid #ef4444', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>
-                         ⚠️ Reset {selectedSession} Winners
-                       </button>
-                     )}
-                   </div>
-                   <div style={{ marginBottom: '1.5rem', padding: '0 1rem' }}>
-                      <input 
-                        type="text" 
-                        placeholder="Search winners by name or department..." 
-                        value={searchTerm} 
-                        onChange={(e) => setSearchTerm(e.target.value)} 
-                        style={{ width: '100%', padding: '0.8rem 1.2rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '1rem' }}
-                      />
-                   </div>
-                   <table className="modern-table">
-                     <thead><tr><th>NAME</th><th>DEPARTMENT</th><th>PRIZE</th><th>CLAIM STATUS</th><th>ACTIONS</th></tr></thead>
-                     <tbody>
-                       {sortResults(
-                         employees
-                           .filter(e => e.won_prize)
-                           .filter(e => !selectedSession || prizes.find(p => p.name === e.won_prize)?.session === selectedSession)
-                           .filter(e => 
-                             e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             (e.department && e.department.toLowerCase().includes(searchTerm.toLowerCase()))
-                           ), 
-                         searchTerm
-                       ).map(e => (
-                         <tr key={e.id}>
-                           <td>{e.name}</td>
-                           <td>{e.department}</td>
-                           <td className="bold text-teal">{e.won_prize}</td>
-                           <td>
-                             {e.is_claimed ? (
-                               <span className="pill done">Claimed</span>
-                             ) : (
-                               <span className="pill pending">Unclaimed</span>
-                             )}
-                           </td>
-                           <td>
-                             {!e.is_claimed ? (
-                               <button onClick={() => handleManualClaim(e.id)} className="table-btn claim-btn" style={{ color: '#059669', borderColor: '#059669' }}>Confirm Claim</button>
-                             ) : (
-                               <button onClick={() => handleUnclaim(e.id)} className="table-btn" style={{ color: '#94a3b8' }}>Undo</button>
-                             )}
-                           </td>
-                         </tr>
-                       ))}
-                     </tbody>
-                   </table>
-                 </div>
-               )}
-             </div>
-           )}
+                <input
+                  type="text"
+                  placeholder="Search by name or department…"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  style={{ width:'100%', padding:'0.75rem 1rem', borderRadius:'10px', border:'1px solid #e2e8f0', fontSize:'0.95rem', marginBottom:'1.25rem', boxSizing:'border-box' }}
+                />
 
+                <table className="modern-table">
+                  <thead><tr><th>NAME</th><th>DEPARTMENT</th><th>PRIZE WON</th></tr></thead>
+                  <tbody>
+                    {employees
+                      .filter(e => e.won_prize)
+                      .filter(e =>
+                        e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (e.department && e.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                        (e.won_prize && e.won_prize.toLowerCase().includes(searchTerm.toLowerCase()))
+                      )
+                      .map(e => (
+                        <tr key={e.id}>
+                          <td className="bold">{e.name}</td>
+                          <td style={{ color:'#64748b' }}>{e.department}</td>
+                          <td><span style={{ background:'rgba(10,130,118,0.1)', color:'#0A8276', padding:'3px 10px', borderRadius:'99px', fontWeight:800, fontSize:'0.82rem' }}>{e.won_prize}</span></td>
+                        </tr>
+                      ))
+                    }
+                    {employees.filter(e => e.won_prize).length === 0 && (
+                      <tr><td colSpan="3" style={{ textAlign:'center', color:'#94a3b8', padding:'3rem' }}>No results yet. Upload a Winners CSV above to publish results.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Performance and other modules remain the same as previous logic but with consistent styling */}
           {activeModule === 'performance' && (

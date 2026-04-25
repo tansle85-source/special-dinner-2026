@@ -783,6 +783,66 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     });
 });
 
+// Upload Winners CSV (name, prize) — matches by name, sets won_prize
+// CSV columns: name, prize  (case-insensitive, partial match allowed)
+app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).send('No file uploaded.');
+
+  const rows = [];
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (row) => {
+      const rowKeys = Object.keys(row);
+      const cleanKeys = rowKeys.map(k => k.replace(/^\uFEFF/, '').trim());
+      const data = {};
+      cleanKeys.forEach((key, i) => data[key.toLowerCase()] = (row[rowKeys[i]] || '').trim());
+
+      const nameKey = cleanKeys.find(k => k.toLowerCase().includes('name'))?.toLowerCase();
+      const prizeKey = cleanKeys.find(k => k.toLowerCase().includes('prize') || k.toLowerCase().includes('award') || k.toLowerCase().includes('won'))?.toLowerCase();
+
+      const name = data[nameKey] || data['name'];
+      const prize = data[prizeKey] || data['prize'];
+      if (name && prize) rows.push({ name, prize });
+    })
+    .on('end', async () => {
+      try {
+        if (rows.length === 0) throw new Error('No valid winner rows found. CSV must have name and prize columns.');
+        await fs.remove(req.file.path);
+
+        // Reset all prizes first
+        await pool.query('UPDATE employees SET won_prize = NULL');
+
+        let matched = 0, skipped = 0;
+        for (const { name, prize } of rows) {
+          // Case-insensitive name match
+          const [found] = await pool.query(
+            'SELECT id FROM employees WHERE LOWER(name) = LOWER(?)', [name.trim()]
+          );
+          if (found.length > 0) {
+            await pool.query('UPDATE employees SET won_prize = ? WHERE id = ?', [prize, found[0].id]);
+            matched++;
+          } else {
+            // Try partial name match
+            const [partial] = await pool.query(
+              'SELECT id FROM employees WHERE LOWER(name) LIKE ? LIMIT 1', [`%${name.trim().toLowerCase()}%`]
+            );
+            if (partial.length > 0) {
+              await pool.query('UPDATE employees SET won_prize = ? WHERE id = ?', [prize, partial[0].id]);
+              matched++;
+            } else {
+              skipped++;
+            }
+          }
+        }
+        res.json({ success: true, matched, skipped, total: rows.length });
+      } catch (err) {
+        console.error('Winners upload error:', err.message);
+        res.status(500).send(err.message);
+      }
+    })
+    .on('error', (err) => res.status(500).send(err.message));
+});
+
 // Upload Prizes (Session, Prize Name, Quantity, Rank)
 app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded.');

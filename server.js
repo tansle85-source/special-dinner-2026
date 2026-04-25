@@ -41,25 +41,7 @@ app.use(cors());
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
-// Serve static assets (JS/CSS) with long cache — filenames are content-hashed so safe
-app.use('/assets', express.static(path.join(__dirname, 'dist', 'assets'), {
-  maxAge: '1y',
-  immutable: true,
-}));
-
-// Serve index.html with NO-CACHE so Hostinger never serves stale HTML
-app.use(express.static(path.join(__dirname, 'dist'), {
-  etag: false,
-  lastModified: false,
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('index.html')) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('Surrogate-Control', 'no-store');
-    }
-  }
-}));
+app.use(express.static(path.join(__dirname, 'dist')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Build version endpoint — admin can check this matches the latest deploy

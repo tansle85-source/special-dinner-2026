@@ -7,6 +7,8 @@ const BestDress = () => {
   const [phase, setPhase] = useState('loading');
   const [finalists, setFinalists] = useState([]);
   const [myVote, setMyVote] = useState({});
+  const [pendingVote, setPendingVote] = useState({}); // local selections before submit
+  const [voteSubmitted, setVoteSubmitted] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [submitCount, setSubmitCount] = useState(0);
   const [name, setName] = useState('');
@@ -39,7 +41,12 @@ const BestDress = () => {
       ]);
       setPhase(s.status === 'fulfilled' ? s.value.data.best_dress_status : 'CLOSED');
       if (f.status === 'fulfilled') setFinalists(f.value.data);
-      if (v.status === 'fulfilled') setMyVote(v.value.data || {});
+      if (v.status === 'fulfilled') {
+        const votes = v.value.data || {};
+        setMyVote(votes);
+        setPendingVote(votes); // pre-fill pending with existing votes
+        if (votes.Female && votes.Male) setVoteSubmitted(true);
+      }
       if (sub.status === 'fulfilled' && sub.value.data) {
         const cnt = sub.value.data.count || 0;
         setSubmitCount(cnt);
@@ -97,14 +104,29 @@ const BestDress = () => {
   };
 
   const handleVote = async (id, gender) => {
+    // Just update local pending selection — no API call yet
+    setPendingVote(prev => ({ ...prev, [gender]: id }));
+  };
+
+  const handleSubmitVotes = async () => {
+    if (!pendingVote.Female) return showToast('Please select a Best Dressed Female first', '#ef4444');
+    if (!pendingVote.Male) return showToast('Please select a Best Dressed Male first', '#ef4444');
+    setSubmitting(true);
     try {
-      await axios.post('/api/best-dress/vote', { nominee_id: id, voter_id: voterId }, API);
-      // Update per-gender vote state
-      setMyVote(prev => ({ ...prev, [gender]: id }));
-      showToast(`Vote for Best ${gender} recorded!`, '#7c3aed');
+      // Submit both votes
+      if (pendingVote.Female !== myVote.Female) {
+        await axios.post('/api/best-dress/vote', { nominee_id: pendingVote.Female, voter_id: voterId }, API);
+      }
+      if (pendingVote.Male !== myVote.Male) {
+        await axios.post('/api/best-dress/vote', { nominee_id: pendingVote.Male, voter_id: voterId }, API);
+      }
+      setMyVote({ ...pendingVote });
+      setVoteSubmitted(true);
+      showToast('Votes submitted! 🎉', '#0A8276');
       const r = await axios.get('/api/best-dress/nominees', API);
       setFinalists(r.data);
     } catch (e) { showToast(e.response?.data?.error || 'Vote failed', '#ef4444'); }
+    finally { setSubmitting(false); }
   };
 
   if (phase === 'loading') return (
@@ -209,21 +231,73 @@ const BestDress = () => {
         {/* VOTING */}
         {phase === 'VOTING' && (
           <>
-            <h2 style={{ ...s.h2, textAlign:'center', marginBottom:'0.25rem' }}>Vote for the Best!</h2>
-            <p style={{ ...s.muted, textAlign:'center', marginBottom:'1.5rem' }}>Tap a finalist to cast your vote</p>
-            {['Female','Male'].map(g => {
-              const list = finalists.filter(f=>f.gender===g);
-              if (!list.length) return null;
-              return (
-                <div key={g}>
-                  <div style={{ ...s.gHeader, ...(g==='Female'?{}:{ background:'linear-gradient(135deg,rgba(59,130,246,0.2),rgba(99,102,241,0.2))' }) }}>
-                    {g==='Female'?'👗':'👔'} Best Dressed {g}
-                  </div>
-                  {list.map(n => <FinalistCard key={n.id} item={n} myVoteForGender={myVote[g]} onVote={(id) => handleVote(id, g)} />)}
+            {voteSubmitted ? (
+              <div style={{ ...s.card, textAlign:'center' }}>
+                <div style={{ fontSize:'4rem' }}>🎉</div>
+                <h2 style={{ ...s.h2, marginTop:'0.75rem' }}>Votes Submitted!</h2>
+                <p style={s.muted}>Your picks have been counted. Thank you for voting!</p>
+                <div style={{ marginTop:'1.25rem', display:'flex', flexDirection:'column', gap:'0.5rem' }}>
+                  {pendingVote.Female && <div style={{ background:'rgba(236,72,153,0.08)', border:'1px solid rgba(236,72,153,0.3)', borderRadius:'12px', padding:'0.6rem 1rem', fontSize:'0.9rem' }}>👗 Female: <strong>{finalists.find(f=>f.id===pendingVote.Female)?.nominee_name || 'Selected'}</strong></div>}
+                  {pendingVote.Male   && <div style={{ background:'rgba(99,102,241,0.08)', border:'1px solid rgba(99,102,241,0.3)', borderRadius:'12px', padding:'0.6rem 1rem', fontSize:'0.9rem' }}>👔 Male: <strong>{finalists.find(f=>f.id===pendingVote.Male)?.nominee_name || 'Selected'}</strong></div>}
                 </div>
-              );
-            })}
-            {finalists.length === 0 && <div style={s.card}><p style={{ ...s.muted, textAlign:'center' }}>Finalists will be announced shortly…</p></div>}
+                <button style={{ ...s.btn, marginTop:'1.25rem', background:'#0A8276', fontSize:'0.85rem' }}
+                  onClick={() => setVoteSubmitted(false)}>Change My Votes ✎</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ ...s.card, marginBottom:'0.5rem' }}>
+                  <h2 style={{ ...s.h2, textAlign:'center', marginBottom:'0.25rem' }}>Vote for the Best!</h2>
+                  <p style={{ ...s.muted, textAlign:'center', marginBottom:'1.25rem' }}>Pick 1 Female and 1 Male, then press Submit</p>
+
+                  {/* Progress indicator */}
+                  <div style={{ display:'flex', gap:'0.75rem', marginBottom:'0.5rem' }}>
+                    <div style={{ flex:1, padding:'0.5rem', borderRadius:'10px', textAlign:'center', fontSize:'0.8rem', fontWeight:700,
+                      background: pendingVote.Female ? 'rgba(10,130,118,0.12)' : '#f1f5f9',
+                      color: pendingVote.Female ? '#0A8276' : '#94a3b8',
+                      border: pendingVote.Female ? '1.5px solid #0A8276' : '1.5px solid #e2e8f0' }}>
+                      {pendingVote.Female ? '✅ Female chosen' : '○ Select Female'}
+                    </div>
+                    <div style={{ flex:1, padding:'0.5rem', borderRadius:'10px', textAlign:'center', fontSize:'0.8rem', fontWeight:700,
+                      background: pendingVote.Male ? 'rgba(10,130,118,0.12)' : '#f1f5f9',
+                      color: pendingVote.Male ? '#0A8276' : '#94a3b8',
+                      border: pendingVote.Male ? '1.5px solid #0A8276' : '1.5px solid #e2e8f0' }}>
+                      {pendingVote.Male ? '✅ Male chosen' : '○ Select Male'}
+                    </div>
+                  </div>
+                </div>
+
+                {['Female','Male'].map(g => {
+                  const list = finalists.filter(f => f.gender === g);
+                  if (!list.length) return null;
+                  return (
+                    <div key={g}>
+                      <div style={{ ...s.gHeader, ...(g==='Female'?{}:{ background:'linear-gradient(135deg,rgba(59,130,246,0.2),rgba(99,102,241,0.2))' }) }}>
+                        {g==='Female'?'👗':'👔'} Best Dressed {g}
+                      </div>
+                      {list.map(n => <FinalistCard key={n.id} item={n} myVoteForGender={pendingVote[g]} onVote={(id) => handleVote(id, g)} />)}
+                    </div>
+                  );
+                })}
+
+                {finalists.length === 0 && <div style={s.card}><p style={{ ...s.muted, textAlign:'center' }}>Finalists will be announced shortly…</p></div>}
+
+                {/* Submit button — sticky at bottom */}
+                {finalists.length > 0 && (
+                  <div style={{ position:'sticky', bottom:'1rem', zIndex:10, padding:'1rem 0 0.5rem' }}>
+                    <button
+                      onClick={handleSubmitVotes}
+                      disabled={submitting || (!pendingVote.Female && !pendingVote.Male)}
+                      style={{ ...s.btn,
+                        width:'100%', fontSize:'1.05rem', padding:'1rem',
+                        background: (pendingVote.Female && pendingVote.Male) ? '#0A8276' : '#94a3b8',
+                        boxShadow:'0 8px 24px rgba(10,130,118,0.4)',
+                        opacity: submitting ? 0.6 : 1,
+                      }}
+                    >{submitting ? 'Submitting…' : '🗳️ Submit My Votes'}</button>
+                  </div>
+                )}
+              </>
+            )}
           </>
         )}
       </div>
@@ -243,16 +317,18 @@ const Field = ({ label, children }) => (
 
 
 const FinalistCard = ({ item, myVoteForGender, onVote }) => {
-  const voted = myVoteForGender === item.id;
+  const selected = myVoteForGender === item.id;
   return (
-    <div onClick={()=>onVote(item.id)} style={{ ...s.fCard, ...(voted?s.fVoted:{}) }}>
-      {item.photo_path && <img src={`/api/photos/bd/${item.photo_path}`} alt="" style={s.fImg} />}
+    <div onClick={() => onVote(item.id)} style={{ ...s.fCard, ...(selected ? s.fVoted : {}), cursor:'pointer', transition:'all 0.2s', transform: selected ? 'scale(1.02)' : 'scale(1)' }}>
+      {item.photo_data
+        ? <img src={`/api/photos/bd/vote/${item.id}`} alt="" style={s.fImg} />
+        : <div style={{ ...s.fImg, background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.8rem' }}>👤</div>
+      }
       <div style={{ flex:1 }}>
         <div style={{ fontWeight:800, fontSize:'1.05rem' }}>{item.nominee_name}</div>
         <div style={{ color:'#6b7280', fontSize:'0.8rem', marginTop:'2px' }}>{item.department}</div>
-
       </div>
-      {voted && <span style={{ background:'#0A8276', color:'#FFFFFF', padding:'4px 12px', borderRadius:'99px', fontSize:'0.75rem', fontWeight:700 }}>My Choice ✓</span>}
+      {selected && <span style={{ background:'#0A8276', color:'#FFFFFF', padding:'4px 12px', borderRadius:'99px', fontSize:'0.75rem', fontWeight:700, whiteSpace:'nowrap' }}>✔ My Pick</span>}
     </div>
   );
 };

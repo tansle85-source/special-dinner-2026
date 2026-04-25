@@ -901,30 +901,32 @@ const Admin = () => {
 
                 {/* Finalists & Voting Standings */}
                 <div className="card shadow-card" style={{ flex: 1 }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem' }}>
-                    <div>
-                      <h3 style={{ margin:0 }}>Voting Finalists</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.85rem', margin:'4px 0 0' }}>These names appear on the guest voting page during the VOTING phase.</p>
-                    </div>
-                    <button
-                      onClick={() => window.open('/bestdress/announce', '_blank')}
-                      style={{ padding:'0.6rem 1.2rem', borderRadius:'12px', border:'none', background:'linear-gradient(135deg,#7c3aed,#4f46e5)', color:'white', fontWeight:800, fontSize:'0.85rem', cursor:'pointer', whiteSpace:'nowrap' }}
-                    >🎞️ Announce Finalists
-                    </button>
-                  </div>
+                  <h3 style={{ marginBottom:'0.5rem' }}>Voting Finalists</h3>
+                  <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1rem' }}>These names appear on the guest voting page during the VOTING phase.</p>
+
+                  {/* Announce button — prominent */}
+                  <button
+                    onClick={() => window.open('/bestdress/announce', '_blank')}
+                    style={{ width:'100%', padding:'0.85rem', marginBottom:'1.5rem', borderRadius:'14px', border:'none',
+                      background:'linear-gradient(135deg,#7c3aed,#4f46e5)',
+                      color:'white', fontWeight:800, fontSize:'1rem', cursor:'pointer',
+                      boxShadow:'0 6px 24px rgba(124,58,237,0.4)', letterSpacing:'0.3px' }}
+                  >🖥️ Open Fullscreen Announce Page ↗</button>
+
                   <table className="modern-table">
-                    <thead><tr><th>FINALIST</th><th>VOTES</th><th>ACTIONS</th></tr></thead>
+                    <thead><tr><th>Finalist</th><th>Gender</th><th>AI Score</th><th>AI Comment</th><th>Votes</th><th>Del</th></tr></thead>
                     <tbody>
                       {bestDressNominees.map(n => (
                         <tr key={n.id}>
-                          <td className="bold">{n.nominee_name}</td>
+                          <td className="bold">{n.nominee_name}<br/><span style={{ color:'#94a3b8', fontSize:'0.75rem', fontWeight:400 }}>{n.department}</span></td>
+                          <td><span style={{ padding:'2px 8px', borderRadius:'99px', fontSize:'0.72rem', fontWeight:700, background: n.gender==='Female'?'#fce7f3':'#dbeafe', color: n.gender==='Female'?'#be185d':'#1d4ed8' }}>{n.gender || '—'}</span></td>
+                          <td style={{ fontWeight:800, color:'#0A8276', fontSize:'0.85rem' }}>{n.ai_score != null ? `${n.ai_score}/100` : '—'}</td>
+                          <td style={{ fontSize:'0.75rem', color:'#64748b', maxWidth:'160px', lineHeight:1.4 }}>{n.ai_reasoning || '—'}</td>
                           <td className="text-teal" style={{fontWeight: 900}}>{n.vote_count}</td>
-                          <td>
-                            <button onClick={async () => { if(confirm('Remove finalist?')) { await axios.delete(`/api/best-dress/nominees/${n.id}`); fetchAllData(); } }} className="table-btn" style={{color:'#f43f5e'}}>Delete</button>
-                          </td>
+                          <td><button onClick={async () => { if(confirm('Remove finalist?')) { await axios.delete(`/api/best-dress/nominees/${n.id}`); fetchAllData(); } }} className="table-btn" style={{color:'#f43f5e'}}>✕</button></td>
                         </tr>
                       ))}
-                      {bestDressNominees.length === 0 && <tr><td colSpan="3" style={{textAlign:'center', color:'#94a3b8'}}>No finalists added yet</td></tr>}
+                      {bestDressNominees.length === 0 && <tr><td colSpan="6" style={{textAlign:'center', color:'#94a3b8'}}>No finalists added yet. Run AI Rank first.</td></tr>}
                     </tbody>
                   </table>
                 </div>

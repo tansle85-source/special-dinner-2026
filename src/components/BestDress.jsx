@@ -209,7 +209,7 @@ const FinalistCard = ({ item, myVote, onVote }) => {
         <div style={{ fontWeight:800, fontSize:'1.05rem' }}>{item.nominee_name}</div>
         <div style={{ color:'rgba(255,255,255,0.5)', fontSize:'0.8rem', marginTop:'2px' }}>{item.department}</div>
       </div>
-      {voted && <span style={{ background:'#7c3aed', color:'white', padding:'4px 12px', borderRadius:'99px', fontSize:'0.75rem', fontWeight:700 }}>My Choice ✓</span>}
+      {voted && <span style={{ background:'#0A8276', color:'#FFFFFF', padding:'4px 12px', borderRadius:'99px', fontSize:'0.75rem', fontWeight:700 }}>My Choice ✓</span>}
     </div>
   );
 };
@@ -224,28 +224,29 @@ const Styles = () => (
 );
 
 const s = {
-  page: { minHeight:'100vh', background:'linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%)', fontFamily:"'Outfit',sans-serif", color:'white', paddingBottom:'5rem' },
-  header: { textAlign:'center', padding:'2.5rem 1.5rem 1.5rem' },
-  title: { fontSize:'2.2rem', fontWeight:800, margin:'0.5rem 0 0', letterSpacing:'-1px' },
+  page: { minHeight:'100vh', background:'#1D1D1D', fontFamily:"'Outfit',sans-serif", color:'#FFFFFF', paddingBottom:'5rem' },
+  header: { textAlign:'center', padding:'2.5rem 1.5rem 1.5rem', background:'linear-gradient(180deg, #0A8276 0%, #1D1D1D 100%)' },
+  title: { fontSize:'2.2rem', fontWeight:800, margin:'0.5rem 0 0', letterSpacing:'-1px', color:'#FFFFFF' },
   badge: { display:'inline-flex', alignItems:'center', padding:'5px 14px', borderRadius:'99px', border:'1px solid', fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.5px', textTransform:'uppercase', marginTop:'0.75rem' },
-  badgeGreen: { background:'rgba(34,197,94,0.15)', borderColor:'#22c55e', color:'#86efac' },
-  badgeGold:  { background:'rgba(251,191,36,0.15)', borderColor:'#fbbf24', color:'#fde68a' },
+  badgeGreen: { background:'rgba(10,130,118,0.2)', borderColor:'#0A8276', color:'#0A8276' },
+  badgeGold:  { background:'rgba(10,130,118,0.3)', borderColor:'#0A8276', color:'#FFFFFF' },
   badgeGray:  { background:'rgba(255,255,255,0.08)', borderColor:'rgba(255,255,255,0.2)', color:'rgba(255,255,255,0.5)' },
-  card: { background:'rgba(255,255,255,0.06)', backdropFilter:'blur(20px)', borderRadius:'24px', border:'1px solid rgba(255,255,255,0.1)', padding:'1.75rem', marginBottom:'1rem' },
-  h2: { fontSize:'1.4rem', fontWeight:800, margin:'0.5rem 0' },
+  card: { background:'#2a2a2a', borderRadius:'24px', border:'1px solid rgba(10,130,118,0.3)', padding:'1.75rem', marginBottom:'1rem' },
+  h2: { fontSize:'1.4rem', fontWeight:800, margin:'0.5rem 0', color:'#FFFFFF' },
   muted: { color:'rgba(255,255,255,0.55)', lineHeight:1.6, fontSize:'0.9rem', margin:0 },
-  photoBox: { width:'100%', height:'210px', borderRadius:'18px', border:'2px dashed rgba(255,255,255,0.18)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', marginBottom:'1.5rem', background:'rgba(255,255,255,0.03)' },
-  input: { width:'100%', padding:'0.9rem 1.1rem', background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'12px', color:'white', fontSize:'1rem', fontFamily:"'Outfit',sans-serif", fontWeight:600, outline:'none' },
+  photoBox: { width:'100%', height:'210px', borderRadius:'18px', border:'2px dashed rgba(10,130,118,0.5)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', marginBottom:'1.5rem', background:'rgba(10,130,118,0.05)' },
+  input: { width:'100%', padding:'0.9rem 1.1rem', background:'#1D1D1D', border:'1px solid rgba(10,130,118,0.4)', borderRadius:'12px', color:'#FFFFFF', fontSize:'1rem', fontFamily:"'Outfit',sans-serif", fontWeight:600, outline:'none' },
   gBtn: { flex:1, padding:'0.9rem', borderRadius:'12px', border:'2px solid rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.04)', color:'rgba(255,255,255,0.55)', textAlign:'center', fontWeight:700, cursor:'pointer', fontSize:'0.95rem' },
-  gBtnM: { border:'2px solid rgba(99,102,241,0.8)', background:'rgba(99,102,241,0.18)', color:'white' },
-  gBtnF: { border:'2px solid rgba(236,72,153,0.8)', background:'rgba(236,72,153,0.18)', color:'white' },
-  btn: { width:'100%', padding:'1.1rem', background:'linear-gradient(135deg,#7c3aed,#db2777)', border:'none', borderRadius:'14px', color:'white', fontSize:'1.05rem', fontWeight:800, cursor:'pointer', marginTop:'0.5rem', fontFamily:"'Outfit',sans-serif", boxShadow:'0 8px 24px rgba(124,58,237,0.35)' },
-  spinner: { width:36, height:36, border:'3px solid rgba(255,255,255,0.1)', borderTop:'3px solid white', borderRadius:'50%', animation:'spin 0.8s linear infinite' },
-  toast: { position:'fixed', bottom:'2rem', left:'50%', transform:'translateX(-50%)', padding:'0.9rem 1.75rem', borderRadius:'99px', fontWeight:700, whiteSpace:'nowrap', zIndex:999, animation:'slideUp 0.3s ease', color:'white', boxShadow:'0 10px 30px rgba(0,0,0,0.4)', fontFamily:"'Outfit',sans-serif" },
-  gHeader: { padding:'0.7rem 1.1rem', borderRadius:'14px', background:'linear-gradient(135deg,rgba(236,72,153,0.2),rgba(168,85,247,0.2))', fontWeight:800, fontSize:'0.85rem', marginBottom:'0.75rem', letterSpacing:'0.5px' },
-  fCard: { display:'flex', alignItems:'center', gap:'1rem', background:'rgba(255,255,255,0.05)', borderRadius:'18px', border:'2px solid rgba(255,255,255,0.07)', padding:'0.9rem 1rem', marginBottom:'0.75rem', cursor:'pointer' },
-  fVoted: { border:'2px solid rgba(124,58,237,0.6)', background:'rgba(124,58,237,0.12)' },
-  fImg: { width:56, height:56, borderRadius:'50%', objectFit:'cover', flexShrink:0, border:'2px solid rgba(255,255,255,0.2)' },
+  gBtnM: { border:'2px solid #0A8276', background:'rgba(10,130,118,0.2)', color:'#FFFFFF' },
+  gBtnF: { border:'2px solid #0A8276', background:'rgba(10,130,118,0.25)', color:'#FFFFFF' },
+  btn: { width:'100%', padding:'1.1rem', background:'#0A8276', border:'none', borderRadius:'14px', color:'#FFFFFF', fontSize:'1.05rem', fontWeight:800, cursor:'pointer', marginTop:'0.5rem', fontFamily:"'Outfit',sans-serif", boxShadow:'0 8px 24px rgba(10,130,118,0.4)' },
+  spinner: { width:36, height:36, border:'3px solid rgba(10,130,118,0.2)', borderTop:'3px solid #0A8276', borderRadius:'50%', animation:'spin 0.8s linear infinite' },
+  toast: { position:'fixed', bottom:'2rem', left:'50%', transform:'translateX(-50%)', padding:'0.9rem 1.75rem', borderRadius:'99px', fontWeight:700, whiteSpace:'nowrap', zIndex:999, animation:'slideUp 0.3s ease', color:'#FFFFFF', boxShadow:'0 10px 30px rgba(0,0,0,0.4)', fontFamily:"'Outfit',sans-serif" },
+  gHeader: { padding:'0.7rem 1.1rem', borderRadius:'14px', background:'rgba(10,130,118,0.2)', border:'1px solid rgba(10,130,118,0.3)', fontWeight:800, fontSize:'0.85rem', marginBottom:'0.75rem', letterSpacing:'0.5px', color:'#FFFFFF' },
+  fCard: { display:'flex', alignItems:'center', gap:'1rem', background:'#2a2a2a', borderRadius:'18px', border:'2px solid rgba(10,130,118,0.2)', padding:'0.9rem 1rem', marginBottom:'0.75rem', cursor:'pointer' },
+  fVoted: { border:'2px solid #0A8276', background:'rgba(10,130,118,0.15)' },
+  fImg: { width:56, height:56, borderRadius:'50%', objectFit:'cover', flexShrink:0, border:'2px solid #0A8276' },
 };
+
 
 export default BestDress;

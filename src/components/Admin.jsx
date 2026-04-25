@@ -867,7 +867,7 @@ const Admin = () => {
                     {bdSubmissions.map(sub => (
                       <div key={sub.id} style={{ background:'#f8fafc', borderRadius:'16px', padding:'0.75rem', border:'1px solid #e2e8f0', textAlign:'center' }}>
                         {sub.photo_path
-                          ? <img src={`/uploads/bd/${sub.photo_path}`} alt={sub.name} style={{ width:'100%', height:'120px', objectFit:'cover', borderRadius:'12px', marginBottom:'0.5rem' }} />
+                          ? <img src={`/api/photos/bd/${sub.photo_path}`} alt={sub.name} style={{ width:'100%', height:'120px', objectFit:'cover', borderRadius:'12px', marginBottom:'0.5rem' }} />
                           : <div style={{ width:'100%', height:'120px', background:'#e2e8f0', borderRadius:'12px', marginBottom:'0.5rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem' }}>No Photo</div>
                         }
                         <div style={{ fontWeight:800, fontSize:'0.85rem', color:'#1e293b', marginBottom:'2px' }}>{sub.name}</div>

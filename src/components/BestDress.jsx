@@ -219,7 +219,7 @@ const FinalistCard = ({ item, myVote, onVote }) => {
   const voted = myVote === item.id;
   return (
     <div onClick={()=>onVote(item.id)} style={{ ...s.fCard, ...(voted?s.fVoted:{}) }}>
-      {item.photo_path && <img src={`/uploads/bd/${item.photo_path}`} alt="" style={s.fImg} />}
+      {item.photo_path && <img src={`/api/photos/bd/${item.photo_path}`} alt="" style={s.fImg} />}
       <div style={{ flex:1 }}>
         <div style={{ fontWeight:800, fontSize:'1.05rem' }}>{item.nominee_name}</div>
         <div style={{ color:'#6b7280', fontSize:'0.8rem', marginTop:'2px' }}>{item.department}</div>

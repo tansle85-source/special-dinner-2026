@@ -42,6 +42,14 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Explicit API route for BD photos (bypasses nginx restrictions on /uploads)
+app.get('/api/photos/bd/:filename', (req, res) => {
+  const safe = path.basename(req.params.filename); // prevent path traversal
+  const filePath = path.join(__dirname, 'uploads', 'bd', safe);
+  if (!fs.existsSync(filePath)) return res.status(404).send('Not found');
+  res.sendFile(filePath);
+});
+
 
 // Health Check for 503 Monitoring
 app.get('/api/health', (req, res) => {

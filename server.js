@@ -183,7 +183,7 @@ const initDB = async () => {
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_votes (id VARCHAR(255) PRIMARY KEY, nominee_name VARCHAR(255) NOT NULL, vote_count INT DEFAULT 0, gender VARCHAR(10), department VARCHAR(255), photo_path VARCHAR(500))`);
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_submissions (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL, department VARCHAR(255), gender VARCHAR(10), photo_path VARCHAR(500), voter_id VARCHAR(255), ai_score FLOAT DEFAULT NULL, ai_reasoning TEXT, submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_nominations (id VARCHAR(255) PRIMARY KEY, employee_id VARCHAR(255), nominee_name VARCHAR(255), voter_id VARCHAR(255))`);
-    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_voters (voter_id VARCHAR(255) PRIMARY KEY, nominee_id VARCHAR(255))`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_voters (voter_id VARCHAR(255), gender VARCHAR(10), nominee_id VARCHAR(255), PRIMARY KEY (voter_id, gender))`);
     await connection.query(`CREATE TABLE IF NOT EXISTS feedback (id INT AUTO_INCREMENT PRIMARY KEY, comment TEXT, rating INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 
     // Migration: drop unique constraint on voter_id in best_dress_submissions if it exists
@@ -197,6 +197,16 @@ const initDB = async () => {
         }
       }
     } catch (migErr) { console.warn('[MIGRATE] voter_id constraint check:', migErr.message); }
+
+    // Migration: upgrade best_dress_voters to composite PK (voter_id, gender)
+    try {
+      const [voterCols] = await connection.query('SHOW COLUMNS FROM best_dress_voters');
+      if (!voterCols.some(c => c.Field === 'gender')) {
+        await connection.query('DROP TABLE IF EXISTS best_dress_voters');
+        await connection.query('CREATE TABLE best_dress_voters (voter_id VARCHAR(255), gender VARCHAR(10), nominee_id VARCHAR(255), PRIMARY KEY (voter_id, gender))');
+        console.log('[MIGRATE] Recreated best_dress_voters with composite PK');
+      }
+    } catch (migErr) { console.warn('[MIGRATE] best_dress_voters migration:', migErr.message); }
 
     // Migration Logic: Add song_name and voter_id if missing from existing tables
     try {
@@ -427,17 +437,13 @@ app.get('/api/feedback', async (req, res) => {
 
 // Best Dress Endpoints
 
-// Submit nomination with photo (max 2 per device)
+// Submit nomination with photo (unlimited per device)
 app.post('/api/best-dress/submit', bdUpload.single('photo'), async (req, res) => {
   const { name, department, gender, voter_id } = req.body;
   if (!name || !department || !gender || !voter_id) return res.status(400).json({ error: 'Missing fields' });
   const [settings] = await pool.query('SELECT best_dress_status FROM performance_settings WHERE id = "global"');
   if (settings[0]?.best_dress_status !== 'NOMINATING') return res.status(403).json({ error: 'Submissions are not open' });
   try {
-    // Check how many submissions this device already made
-    const [existing] = await pool.query('SELECT COUNT(*) as cnt FROM best_dress_submissions WHERE voter_id = ?', [voter_id]);
-    if (existing[0].cnt >= 2) return res.status(400).json({ error: 'Maximum 2 submissions per device reached' });
-
     const id = generateId();
     const photoPath = req.file ? req.file.filename : null;
     await pool.query(
@@ -448,7 +454,7 @@ app.post('/api/best-dress/submit', bdUpload.single('photo'), async (req, res) =>
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Check how many times voter already submitted
+// Count how many times voter already submitted (informational only)
 app.get('/api/best-dress/my-submission/:voterId', async (req, res) => {
   const [rows] = await pool.query('SELECT id, name, gender FROM best_dress_submissions WHERE voter_id = ? ORDER BY submitted_at ASC', [req.params.voterId]);
   res.json({ count: rows.length, submissions: rows });
@@ -586,26 +592,28 @@ app.post('/api/best-dress/vote', async (req, res) => {
   const { nominee_id, voter_id } = req.body;
   const [settings] = await pool.query('SELECT best_dress_status FROM performance_settings WHERE id = "global"');
   if (settings[0]?.best_dress_status !== 'VOTING') return res.status(403).json({ error: 'Voting is CLOSED' });
-  
+
+  // Get nominee gender
+  const [nomineeRows] = await pool.query('SELECT gender FROM best_dress_votes WHERE id = ?', [nominee_id]);
+  if (!nomineeRows.length) return res.status(404).json({ error: 'Nominee not found' });
+  const gender = nomineeRows[0].gender;
+
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
-    
-    // Check if already voted
-    const [existing] = await connection.query('SELECT nominee_id FROM best_dress_voters WHERE voter_id = ?', [voter_id]);
+    // Check if already voted for this gender
+    const [existing] = await connection.query('SELECT nominee_id FROM best_dress_voters WHERE voter_id = ? AND gender = ?', [voter_id, gender]);
     if (existing.length > 0) {
-      // Switch vote
+      // Switch vote within same gender category
       const prevId = existing[0].nominee_id;
       await connection.query('UPDATE best_dress_votes SET vote_count = vote_count - 1 WHERE id = ?', [prevId]);
-      await connection.query('UPDATE best_dress_voters SET nominee_id = ? WHERE voter_id = ?', [nominee_id, voter_id]);
+      await connection.query('UPDATE best_dress_voters SET nominee_id = ? WHERE voter_id = ? AND gender = ?', [nominee_id, voter_id, gender]);
     } else {
-      await connection.query('INSERT INTO best_dress_voters (voter_id, nominee_id) VALUES (?, ?)', [voter_id, nominee_id]);
+      await connection.query('INSERT INTO best_dress_voters (voter_id, gender, nominee_id) VALUES (?, ?, ?)', [voter_id, gender, nominee_id]);
     }
-    
     await connection.query('UPDATE best_dress_votes SET vote_count = vote_count + 1 WHERE id = ?', [nominee_id]);
-    
     await connection.commit();
-    res.json({ success: true });
+    res.json({ success: true, gender });
   } catch (err) {
     await connection.rollback();
     res.status(500).send(err.message);
@@ -614,9 +622,12 @@ app.post('/api/best-dress/vote', async (req, res) => {
   }
 });
 
+// Returns { Female: nominee_id, Male: nominee_id } — 1 vote per gender per device
 app.get('/api/best-dress/my-vote/:voterId', async (req, res) => {
-  const [rows] = await pool.query('SELECT nominee_id FROM best_dress_voters WHERE voter_id = ?', [req.params.voterId]);
-  res.json(rows[0] || null);
+  const [rows] = await pool.query('SELECT gender, nominee_id FROM best_dress_voters WHERE voter_id = ?', [req.params.voterId]);
+  const result = {};
+  rows.forEach(r => { result[r.gender] = r.nominee_id; });
+  res.json(result); // e.g. { Female: 'abc', Male: 'xyz' } or {}
 });
 
 app.post('/api/best-dress/reset', async (req, res) => {

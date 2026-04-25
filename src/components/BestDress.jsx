@@ -6,7 +6,7 @@ const API = { timeout: 8000 };
 const BestDress = () => {
   const [phase, setPhase] = useState('loading');
   const [finalists, setFinalists] = useState([]);
-  const [myVote, setMyVote] = useState(null);
+  const [myVote, setMyVote] = useState({});
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [submitCount, setSubmitCount] = useState(0);
   const [name, setName] = useState('');
@@ -39,7 +39,7 @@ const BestDress = () => {
       ]);
       setPhase(s.status === 'fulfilled' ? s.value.data.best_dress_status : 'CLOSED');
       if (f.status === 'fulfilled') setFinalists(f.value.data);
-      if (v.status === 'fulfilled') setMyVote(v.value.data?.nominee_id);
+      if (v.status === 'fulfilled') setMyVote(v.value.data || {});
       if (sub.status === 'fulfilled' && sub.value.data) {
         const cnt = sub.value.data.count || 0;
         setSubmitCount(cnt);
@@ -101,11 +101,12 @@ const BestDress = () => {
     } finally { setSubmitting(false); }
   };
 
-  const handleVote = async (id) => {
+  const handleVote = async (id, gender) => {
     try {
       await axios.post('/api/best-dress/vote', { nominee_id: id, voter_id: voterId }, API);
-      setMyVote(id);
-      showToast('Vote recorded! 🎉', '#7c3aed');
+      // Update per-gender vote state
+      setMyVote(prev => ({ ...prev, [gender]: id }));
+      showToast(`Vote for Best ${gender} recorded!`, '#7c3aed');
       const r = await axios.get('/api/best-dress/nominees', API);
       setFinalists(r.data);
     } catch (e) { showToast(e.response?.data?.error || 'Vote failed', '#ef4444'); }
@@ -144,8 +145,8 @@ const BestDress = () => {
           </div>
         )}
 
-        {/* NOMINATING — form */}
-        {phase === 'NOMINATING' && !submitted && !alreadySubmitted && (
+        {/* NOMINATING — form (always shown when phase=NOMINATING and not submitted) */}
+        {phase === 'NOMINATING' && !submitted && (
           <div style={s.card}>
             <h2 style={s.h2}>Submit Your Look</h2>
             <p style={{ ...s.muted, marginBottom:'1.5rem' }}>Nominate yourself! Fill your details and upload a photo.</p>
@@ -194,28 +195,19 @@ const BestDress = () => {
           </div>
         )}
 
-        {/* NOMINATING — already submitted */}
-        {phase === 'NOMINATING' && (submitted || alreadySubmitted) && (
+        {/* NOMINATING — success screen after submit (unlimited: always show submit-another) */}
+        {phase === 'NOMINATING' && submitted && (
           <div style={{ ...s.card, textAlign:'center' }}>
-            <div style={{ fontSize:'4.5rem' }}>{submitCount >= 2 ? '🎉' : '✅'}</div>
-            <h2 style={{ ...s.h2, marginTop:'0.75rem' }}>
-              {submitCount >= 2 ? "Both submitted!" : "You're In!"}
-            </h2>
-            <p style={s.muted}>
-              {submitCount >= 2
-                ? 'Max 2 submissions reached. Our AI judge will shortlist the top finalists. Stay tuned!'
-                : 'First submission received! You can submit one more person from this device.'}
-            </p>
-            {submitCount < 2 && (
-              <button
-                style={{ ...s.btn, marginTop:'1.25rem', background:'#0A8276' }}
-                onClick={() => {
-                  setSubmitted(false);
-                  setAlreadySubmitted(false);
-                  setName(''); setDept(''); setGender(''); setPhoto(null); setPreview(null);
-                }}
-              >Submit Another Person ➕</button>
-            )}
+            <div style={{ fontSize:'4.5rem' }}>✅</div>
+            <h2 style={{ ...s.h2, marginTop:'0.75rem' }}>Submitted!</h2>
+            <p style={s.muted}>Photo received. Want to nominate someone else?</p>
+            <button
+              style={{ ...s.btn, marginTop:'1.25rem', background:'#0A8276' }}
+              onClick={() => {
+                setSubmitted(false);
+                setName(''); setDept(''); setGender(''); setPhoto(null); setPreview(null);
+              }}
+            >Submit Another Person ➕</button>
           </div>
         )}
 
@@ -232,7 +224,7 @@ const BestDress = () => {
                   <div style={{ ...s.gHeader, ...(g==='Female'?{}:{ background:'linear-gradient(135deg,rgba(59,130,246,0.2),rgba(99,102,241,0.2))' }) }}>
                     {g==='Female'?'👗':'👔'} Best Dressed {g}
                   </div>
-                  {list.map(n => <FinalistCard key={n.id} item={n} myVote={myVote} onVote={handleVote} />)}
+                  {list.map(n => <FinalistCard key={n.id} item={n} myVoteForGender={myVote[g]} onVote={(id) => handleVote(id, g)} />)}
                 </div>
               );
             })}
@@ -255,8 +247,8 @@ const Field = ({ label, children }) => (
 );
 
 
-const FinalistCard = ({ item, myVote, onVote }) => {
-  const voted = myVote === item.id;
+const FinalistCard = ({ item, myVoteForGender, onVote }) => {
+  const voted = myVoteForGender === item.id;
   return (
     <div onClick={()=>onVote(item.id)} style={{ ...s.fCard, ...(voted?s.fVoted:{}) }}>
       {item.photo_path && <img src={`/api/photos/bd/${item.photo_path}`} alt="" style={s.fImg} />}

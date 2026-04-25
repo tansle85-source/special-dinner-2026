@@ -1,238 +1,233 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
-import LuckyDrawWheel from './LuckyDrawWheel';
 
 const LuckyDraw = () => {
-  const [employees, setEmployees] = useState([]);
-  const [prizes, setPrizes] = useState([]);
-  const [activeSession, setActiveSession] = useState('Session 1');
-  const [loading, setLoading] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showWheel, setShowWheel] = useState(false);
-  const [currentDraw, setCurrentDraw] = useState(null); // { prize, winner }
-  const [lastWinner, setLastWinner] = useState(null); // To enable Redraw
+  const [query, setQuery]         = useState('');
+  const [results, setResults]     = useState([]);
+  const [allEmployees, setAllEmployees] = useState([]);
+  const [searched, setSearched]   = useState(false);
+  const [loading, setLoading]     = useState(true);
+  const inputRef = useRef(null);
 
+  // Load employee list once
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 3000);
-    return () => clearInterval(interval);
+    axios.get('/api/employees').then(r => {
+      setAllEmployees(r.data || []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const [empRes, prizeRes] = await Promise.all([
-        axios.get('/api/employees'),
-        axios.get('/api/prizes')
-      ]);
-      setEmployees(empRes.data);
-      setPrizes(prizeRes.data);
-    } catch (err) {
-      console.error('Data sync failed', err);
-    }
+  const handleSearch = () => {
+    const q = query.trim().toLowerCase();
+    if (!q) return;
+    const found = allEmployees.filter(e =>
+      e.name.toLowerCase().includes(q) ||
+      (e.department && e.department.toLowerCase().includes(q))
+    );
+    setResults(found);
+    setSearched(true);
   };
 
-  const handleNextDraw = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.post('/api/draw/next', { session: activeSession });
-      setCurrentDraw(res.data);
-      setLastWinner(res.data.winner);
-      setShowWheel(true);
-      fetchData();
-    } catch (err) {
-      alert(err.response?.data?.error || "Draw failed");
-    } finally {
-      setLoading(false);
-    }
+  const handleClear = () => {
+    setQuery('');
+    setResults([]);
+    setSearched(false);
+    inputRef.current?.focus();
   };
-
-  const handleRedraw = async () => {
-    if (!lastWinner) return alert("No recent winner to redraw");
-    if (!window.confirm(`Mark ${lastWinner.name} as NO-SHOW and draw again?`)) return;
-    
-    try {
-      setLoading(true);
-      const res = await axios.post('/api/draw/redraw', { 
-        winnerId: lastWinner.id, 
-        prizeName: currentDraw?.prize?.name 
-      });
-      setCurrentDraw({ prize: currentDraw.prize, winner: res.data.winner });
-      setLastWinner(res.data.winner);
-      setShowWheel(true); // Restart wheel animation
-      fetchData();
-    } catch (err) {
-      alert("Redraw failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDrawAll = async () => {
-    if (!window.confirm(`Draw ALL remaining prizes for ${activeSession}?`)) return;
-    try {
-      setLoading(true);
-      await axios.post('/api/draw/session-all', { session: activeSession });
-      fetchData();
-    } catch (err) {
-      alert("Batch draw failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResetSession = async () => {
-    if (!window.confirm(`Reset ALL winners for ${activeSession} only?`)) return;
-    try {
-      setLoading(true);
-      await axios.post('/api/draw/session-reset', { session: activeSession });
-      fetchData();
-    } catch (err) {
-      alert("Reset failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
-      }
-    }
-  };
-
-  // Logic: Get winners specifically for current session
-  const sessionPrizes = (prizes || []).filter(p => p.session === activeSession);
-  const winnersForSession = [];
-  sessionPrizes.forEach(prize => {
-    const winners = (employees || []).filter(e => e.won_prize === prize.name);
-    winners.forEach(w => winnersForSession.push({ ...w, prizeName: prize.name, rank: prize.rank }));
-    
-    // Add pending slots
-    const remaining = prize.quantity - winners.length;
-    for (let i = 0; i < remaining; i++) {
-      winnersForSession.push({ name: '-', department: '-', prizeName: prize.name, rank: prize.rank, isPending: true });
-    }
-  });
-
-  const eligibleEmployees = (employees || []).filter(e => !e.won_prize);
-  const uniqueSessions = [...new Set((prizes || []).map(p => p.session))].sort();
 
   return (
-    <div className="professional-layout public-view">
-      {/* Main Area - No Sidebar for Public */}
-      <main className="main-area" style={{ flex: 1, height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <header className="top-bar" style={{ justifyContent: 'space-between', padding: '0 3rem' }}>
-          <div className="sidebar-logo" style={{ marginBottom: 0, textAlign: 'left' }}>
-            <h2 style={{ fontSize: '1.5rem' }}>Appreciation <span>Night 2026</span></h2>
-          </div>
-          <div className="live-actions">
-            <Link to="/voting" className="vote-pulse-btn">
-              <span className="icon">🎤</span> Rate Performers
-            </Link>
-          </div>
-        </header>
+    <div style={{ minHeight:'100vh', background:'#f8fafc', fontFamily:'Outfit, sans-serif' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        <div className="content-scroll" style={{ padding: '4rem', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
-          {/* Sub Header */}
-          <div className="draw-sub-header" style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '0.5rem' }}>Lucky Draw Results</h1>
-            <p style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 600 }}>Check the winners for each session below.</p>
-          </div>
+        .ld-header {
+          background: linear-gradient(135deg, #0A8276 0%, #0cb89e 100%);
+          padding: 2.5rem 1.5rem 3.5rem;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+        }
+        .ld-header::before {
+          content: '';
+          position: absolute; inset: 0;
+          background: radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.12), transparent 60%);
+          pointer-events: none;
+        }
+        .ld-search-wrap {
+          position: relative;
+          margin-top: -1.75rem;
+          max-width: 560px;
+          margin-left: auto; margin-right: auto;
+          z-index: 10;
+          padding: 0 1rem;
+        }
+        .ld-search-box {
+          display: flex;
+          gap: 0;
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 12px 40px rgba(10,130,118,0.2);
+          overflow: hidden;
+        }
+        .ld-input {
+          flex: 1;
+          border: none;
+          padding: 1rem 1.25rem;
+          font-size: 1rem;
+          font-family: Outfit, sans-serif;
+          font-weight: 600;
+          color: #1D1D1D;
+          outline: none;
+          background: transparent;
+        }
+        .ld-input::placeholder { color: #94a3b8; font-weight: 500; }
+        .ld-btn {
+          border: none;
+          padding: 0 1.4rem;
+          background: #0A8276;
+          color: white;
+          font-family: Outfit, sans-serif;
+          font-weight: 800;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .ld-btn:hover { background: #076b61; }
+        .ld-clear {
+          border: none; padding: 0 0.9rem;
+          background: #f1f5f9; color: #64748b;
+          font-family: Outfit, sans-serif; font-weight: 700; font-size: 1rem;
+          cursor: pointer;
+        }
 
-          {/* Session Selector Pills */}
-          <div className="session-pill-bar" style={{ margin: '0 auto 3rem' }}>
-            {uniqueSessions.map(session => (
-              <button 
-                key={session}
-                className={`session-pill ${activeSession === session ? 'active' : ''}`}
-                onClick={() => setActiveSession(session)}
-              >
-                {session}
-              </button>
-            ))}
-          </div>
+        .ld-results { max-width: 560px; margin: 2rem auto; padding: 0 1rem; }
 
-          {/* Winners Pillar - Full Width for Public */}
-          <div className="registry-card shadow-card">
-            <div className="card-header" style={{ padding: '2rem 3rem' }}>
-              <h3 style={{ fontSize: '1.4rem' }}>🏆 {activeSession} Winners</h3>
-              <div className="header-btns">
-                 <button className="btn-fullscreen" onClick={toggleFullscreen}>
-                   {isFullscreen ? "Exit Fullscreen" : "⛶ Fullscreen"}
-                 </button>
-              </div>
-            </div>
-            <div className="table-scroller" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-              <table className="clean-table" style={{ fontSize: '1.1rem' }}>
-                <thead>
-                  <tr><th style={{ padding: '20px 30px' }}>RANK</th><th>PRIZE</th><th>WINNER</th><th>DEPARTMENT</th></tr>
-                </thead>
-                <tbody>
-                  {winnersForSession.map((w, i) => (
-                    <tr key={i}>
-                      <td style={{ fontWeight: 900, color: '#94a3b8', padding: '20px 30px' }}>{w.rank}</td>
-                      <td style={{ fontWeight: 800 }}>{w.prizeName}</td>
-                      <td style={{ fontWeight: 700, color: w.isPending ? '#94a3b8' : '#1e293b' }}>
-                        {w.isPending ? 'Pending Draw...' : w.name}
-                      </td>
-                      <td style={{ color: '#64748b' }}>
-                         {w.isPending ? '-' : w.department}
-                      </td>
-                    </tr>
-                  ))}
-                  {winnersForSession.length === 0 && (
-                    <tr><td colSpan="4" style={{ textAlign: 'center', padding: '4rem', color: '#94a3b8', fontStyle: 'italic' }}>Results will appear here once the draw begins.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        .ld-card {
+          background: white;
+          border-radius: 16px;
+          margin-bottom: 1rem;
+          padding: 1.25rem 1.5rem;
+          border: 1.5px solid #e2e8f0;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+        .ld-card.winner {
+          border-color: #0A8276;
+          background: linear-gradient(135deg, rgba(10,130,118,0.04), rgba(12,184,158,0.06));
+          box-shadow: 0 4px 20px rgba(10,130,118,0.12);
+        }
+        .ld-avatar {
+          width: 48px; height: 48px; border-radius: 50%;
+          background: #e2e8f0;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 1.4rem; flex-shrink: 0;
+        }
+        .ld-avatar.win { background: rgba(10,130,118,0.12); }
+        .ld-name { font-weight: 800; font-size: 1.05rem; color: #1D1D1D; }
+        .ld-dept { font-size: 0.82rem; color: #64748b; margin-top: 2px; }
+        .ld-prize-label {
+          margin-left: auto; flex-shrink: 0;
+          background: #0A8276; color: white;
+          padding: 0.4rem 0.9rem;
+          border-radius: 99px;
+          font-size: 0.8rem; font-weight: 800;
+          text-align: center;
+          max-width: 160px;
+        }
+        .ld-no-prize {
+          margin-left: auto; flex-shrink: 0;
+          color: #94a3b8; font-size: 0.82rem; font-weight: 600;
+        }
+
+        .ld-empty {
+          text-align: center; padding: 3rem 1rem;
+        }
+        .ld-hint {
+          max-width: 560px; margin: 1.5rem auto 0;
+          padding: 0 1rem;
+          text-align: center;
+          color: #94a3b8; font-size: 0.85rem;
+        }
+      `}</style>
+
+      {/* Header */}
+      <div className="ld-header">
+        <div style={{ fontSize:'2.5rem', marginBottom:'0.75rem' }}>🎁</div>
+        <h1 style={{ color:'white', fontSize:'clamp(1.6rem,5vw,2.4rem)', fontWeight:900, letterSpacing:'-0.5px' }}>
+          Lucky Draw
+        </h1>
+        <p style={{ color:'rgba(255,255,255,0.85)', marginTop:'0.4rem', fontSize:'0.95rem', fontWeight:500 }}>
+          Appreciation Night 2026 · Search your name to check results
+        </p>
+      </div>
+
+      {/* Search Box */}
+      <div className="ld-search-wrap">
+        <div className="ld-search-box">
+          <input
+            ref={inputRef}
+            className="ld-input"
+            placeholder="Enter your name or department…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            autoComplete="off"
+          />
+          {searched && (
+            <button className="ld-clear" onClick={handleClear} title="Clear">✕</button>
+          )}
+          <button className="ld-btn" onClick={handleSearch}>Search</button>
         </div>
-      </main>
+      </div>
+
+      {/* Results */}
+      <div className="ld-results">
+        {loading && (
+          <div style={{ textAlign:'center', color:'#94a3b8', paddingTop:'2rem' }}>Loading…</div>
+        )}
+
+        {!loading && searched && results.length === 0 && (
+          <div className="ld-empty">
+            <div style={{ fontSize:'3rem' }}>🔍</div>
+            <p style={{ color:'#475569', fontWeight:700, marginTop:'1rem' }}>No match found</p>
+            <p style={{ color:'#94a3b8', fontSize:'0.88rem', marginTop:'0.4rem' }}>Try a different name or partial spelling</p>
+          </div>
+        )}
+
+        {!loading && searched && results.length > 0 && (
+          <>
+            <p style={{ color:'#64748b', fontSize:'0.85rem', marginBottom:'1rem', fontWeight:600 }}>
+              Found {results.length} result{results.length > 1 ? 's' : ''}
+            </p>
+            {results.map(e => (
+              <div key={e.id} className={`ld-card ${e.won_prize ? 'winner' : ''}`}>
+                <div className={`ld-avatar ${e.won_prize ? 'win' : ''}`}>
+                  {e.won_prize ? '🏆' : '👤'}
+                </div>
+                <div>
+                  <div className="ld-name">{e.name}</div>
+                  <div className="ld-dept">{e.department}</div>
+                </div>
+                {e.won_prize
+                  ? <div className="ld-prize-label">🎉 {e.won_prize}</div>
+                  : <div className="ld-no-prize">Not drawn yet</div>
+                }
+              </div>
+            ))}
+          </>
+        )}
+
+        {!searched && !loading && (
+          <div className="ld-hint">
+            Type your name above and press <strong>Search</strong> to find out if you've won a prize tonight 🎊
+          </div>
+        )}
+      </div>
     </div>
   );
 };
-
-// Add styles directly for the pulsing vote button
-const extraStyles = `
-  .vote-pulse-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    padding: 0.8rem 1.5rem;
-    background: #10b981;
-    color: white;
-    text-decoration: none;
-    border-radius: 99px;
-    font-weight: 800;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-    animation: pulse-green 2s infinite;
-    transition: 0.3s;
-  }
-  .vote-pulse-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-    background: #059669;
-  }
-  .vote-pulse-btn .icon { font-size: 1.2rem; }
-
-  @keyframes pulse-green {
-    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-  }
-`;
-
-// Inject styles
-const styleSheet = document.createElement("style");
-styleSheet.innerText = extraStyles;
-document.head.appendChild(styleSheet);
 
 export default LuckyDraw;

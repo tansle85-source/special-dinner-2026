@@ -330,8 +330,6 @@ const Admin = () => {
           <div className="nav-group">
             <div className="group-label">Core Management</div>
             <SidebarItem id="lucky-draw" label="Lucky Draw" icon="🎪" />
-            <SidebarItem id="lucky-draw-claim" label="Lucky Draw Claim" icon="🎁" />
-            <SidebarItem id="employees" label="Employee Database" icon="👥" />
           </div>
           <div className="nav-group">
             <div className="group-label">Event Features</div>
@@ -465,29 +463,46 @@ const Admin = () => {
               })()}
 
               {activeSubTab === 'manage' && (
-                <div className="card shadow-card">
-                   <div className="card-header-actions">
-                      <h3>Prize Inventory</h3>
-                      <div className="btn-group">
-                        <label className="secondary-btn">CSV Bulk Update <input type="file" accept=".csv" onChange={(e) => handleFileUpload(e, 'prizes')} style={{display:'none'}} /></label>
-                        <button className="modern-add-btn" onClick={() => { setEditingItem(null); setIsModalOpen(true); }}>+ Add New Prize</button>
-                      </div>
-                   </div>
-                   <table className="modern-table">
-                     <thead><tr><th>SESSION</th><th>RANK</th><th>PRIZE NAME</th><th>QTY</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
-                     <tbody>
-                       {prizes.map(p => {
-                         const drawn = getDrawnCount(p.name);
-                         return (
-                           <tr key={p.id}>
-                             <td>{p.session}</td><td>{p.rank}</td><td className="bold">{p.name}</td><td>{p.quantity}</td>
-                             <td><span className={`pill ${drawn >= p.quantity ? 'done' : 'pending'}`}>{drawn}/{p.quantity} Done</span></td>
-                             <td><button onClick={() => { setEditingItem(p); setIsModalOpen(true); }} className="table-btn">Edit</button></td>
-                           </tr>
-                         );
-                       })}
-                     </tbody>
-                   </table>
+                <div style={{ display:'flex', flexDirection:'column', gap:'2rem' }}>
+                  {/* Employee CSV Upload */}
+                  <div className="card shadow-card">
+                    <h3>Upload Employee List (CSV)</h3>
+                    <p style={{ color:'#64748b', fontSize:'0.9rem', marginBottom:'1.5rem' }}>Upload a CSV with columns: <strong>name, department</strong>. This replaces the eligible pool for lucky draw.</p>
+                    <div className="btn-group">
+                      <label className="secondary-btn" style={{ cursor:'pointer' }}>
+                        📂 Choose CSV File
+                        <input type="file" accept=".csv" onChange={(e) => handleFileUpload(e, 'employees')} style={{display:'none'}} />
+                      </label>
+                      {uploadStatus && <span style={{ color:'#0A8276', fontWeight:700, alignSelf:'center' }}>{uploadStatus}</span>}
+                    </div>
+                    <p style={{ marginTop:'1rem', fontSize:'0.8rem', color:'#94a3b8' }}>Currently {employees.length} employees in the system.</p>
+                  </div>
+
+                  {/* Prize Inventory */}
+                  <div className="card shadow-card">
+                    <div className="card-header-actions">
+                       <h3>Prize Inventory</h3>
+                       <div className="btn-group">
+                         <label className="secondary-btn">CSV Bulk Update <input type="file" accept=".csv" onChange={(e) => handleFileUpload(e, 'prizes')} style={{display:'none'}} /></label>
+                         <button className="modern-add-btn" onClick={() => { setEditingItem(null); setIsModalOpen(true); }}>+ Add New Prize</button>
+                       </div>
+                    </div>
+                    <table className="modern-table">
+                      <thead><tr><th>SESSION</th><th>RANK</th><th>PRIZE NAME</th><th>QTY</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+                      <tbody>
+                        {prizes.map(p => {
+                          const drawn = getDrawnCount(p.name);
+                          return (
+                            <tr key={p.id}>
+                              <td>{p.session}</td><td>{p.rank}</td><td className="bold">{p.name}</td><td>{p.quantity}</td>
+                              <td><span className={`pill ${drawn >= p.quantity ? 'done' : 'pending'}`}>{drawn}/{p.quantity} Done</span></td>
+                              <td><button onClick={() => { setEditingItem(p); setIsModalOpen(true); }} className="table-btn">Edit</button></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 
@@ -550,98 +565,7 @@ const Admin = () => {
              </div>
            )}
 
-          {activeModule === 'lucky-draw-claim' && (
-            <div className="claims-module">
-              <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: '400px' }}>
-                  <div className="card shadow-card">
-                    <h3>Scan Winner QR</h3>
-                    <p style={{ color: '#64748b', marginBottom: '2rem' }}>Focus the winner's QR code in the camera frame to auto-claim the prize.</p>
-                    <ClaimScanner onClaimSuccess={fetchAllData} />
-                  </div>
-                </div>
-                <div style={{ flex: 1.5, minWidth: '400px' }}>
-                  <div className="card shadow-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h3>Claim Status ({employees.filter(e => e.won_prize && e.is_claimed).length} / {employees.filter(e => e.won_prize).length})</h3>
-                      <div className="progress-mini" style={{ width: '150px', height: '10px', background: '#f1f5f9', borderRadius: '5px', overflow: 'hidden' }}>
-                        <div style={{ width: `${(employees.filter(e => e.won_prize && e.is_claimed).length / Math.max(1, employees.filter(e => e.won_prize).length)) * 100}%`, height: '100%', background: '#10b981' }}></div>
-                      </div>
-                    </div>
-                    <div className="winner-scroll-list" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                      <table className="modern-table">
-                        <thead><tr><th>NAME</th><th>PRIZE</th><th>STATUS</th></tr></thead>
-                        <tbody>
-                          {employees.filter(e => e.won_prize).map(e => (
-                            <tr key={e.id}>
-                              <td>{e.name}</td>
-                              <td className="bold">{e.won_prize}</td>
-                              <td>
-                                {e.is_claimed ? (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <span style={{ color: '#10b981', fontWeight: 800 }}>✅ CLAIMED</span>
-                                    <button onClick={() => handleUnclaim(e.id)} className="table-btn" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>Undo</button>
-                                  </div>
-                                ) : (
-                                  <button onClick={() => handleManualClaim(e.id)} className="table-btn" style={{ color: '#0a8276', borderColor: '#0a8276' }}>Click to Claim</button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {activeModule === 'employees' && (
-            <div className="card shadow-card">
-              <div className="card-header-actions" style={{ padding: '2rem 2rem 1rem' }}>
-                <h3>Employee Database ({employees.length})</h3>
-                <div className="btn-group">
-                  <label className="secondary-btn">CSV Bulk Update <input type="file" accept=".csv" onChange={(e) => handleFileUpload(e, 'employees')} style={{display:'none'}} /></label>
-                  <button className="modern-add-btn" onClick={() => { setEditingItem(null); setIsModalOpen(true); }}>+ Add Employee</button>
-                </div>
-              </div>
-              <div style={{ padding: '0 2rem 1.5rem' }}>
-                 <input 
-                   type="text" 
-                   placeholder="Search employees by name, ID or department..." 
-                   value={searchTerm} 
-                   onChange={(e) => setSearchTerm(e.target.value)} 
-                   style={{ width: '100%', padding: '0.8rem 1.2rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '1rem' }}
-                 />
-              </div>
-              <table className="modern-table">
-                <thead><tr><th>NAME</th><th>DEPARTMENT</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
-                <tbody>
-                  {sortResults(
-                    employees.filter(e => 
-                      e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                      (e.id && String(e.id).toLowerCase().includes(searchTerm.toLowerCase())) ||
-                      e.department.toLowerCase().includes(searchTerm.toLowerCase())
-                    ), 
-                    searchTerm
-                  ).map(e => (
-                    <tr key={e.id}>
-                      <td className="bold">{e.name}</td><td>{e.department}</td>
-                      <td>
-                        {e.won_prize ? (
-                          <span className="pill drawn">Won: {e.won_prize}</span>
-                        ) : (
-                          <span className="pill eligible">Eligible</span>
-                        )}
-                      </td>
-                      <td><button onClick={() => { setEditingItem(e); setIsModalOpen(true); }} className="table-btn">Edit</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
           {/* Performance and other modules remain the same as previous logic but with consistent styling */}
           {activeModule === 'performance' && (
             <div className="performance-module">

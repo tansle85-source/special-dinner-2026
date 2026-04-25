@@ -11,12 +11,13 @@ const App = () => {
     <BrowserRouter>
       <div className="app-container">
         <Routes>
-          <Route path="/" element={<LuckyDraw />} />
+          <Route path="/" element={<Navigate to="/luckydraw" replace />} />
+          <Route path="/luckydraw" element={<LuckyDraw />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/voting" element={<PerformanceVoting defaultTab="performance" />} />
           <Route path="/bestdress" element={<BestDress />} />
           <Route path="/bestdress/announce" element={<BestDressAnnounce />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/luckydraw" replace />} />
         </Routes>
       </div>
     </BrowserRouter>

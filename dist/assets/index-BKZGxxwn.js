@@ -333,80 +333,43 @@ Please change the parent <Route path="${e}"> to <Route path="${e===`/`?`*`:`${e}
         @keyframes twinkle  { from { opacity:0.15; transform:scale(0.8); } to { opacity:0.9; transform:scale(1.3); } }
         @keyframes floatIn  { from { opacity:0; transform:translateY(32px); } to { opacity:1; transform:translateY(0); } }
         @keyframes scorebar { from { width:0%; } to { width:var(--score); } }
-      `})]})},ls=e=>({padding:`0.5rem 1rem`,borderRadius:`10px`,border:`none`,background:e,color:`#FFFFFF`,fontFamily:`Outfit,sans-serif`,fontWeight:700,fontSize:`0.85rem`,cursor:`pointer`}),us=({title:e,emoji:t,items:n,rankLabel:r,accent:i,accentAlt:a})=>(0,X.jsxs)(`div`,{style:{flex:`1`,minWidth:`300px`,maxWidth:`580px`},children:[(0,X.jsxs)(`div`,{style:{textAlign:`center`,marginBottom:`1.5rem`,background:`linear-gradient(135deg, ${i}22, ${a}33)`,borderRadius:`20px`,padding:`1.25rem`,border:`1.5px solid ${i}55`},children:[(0,X.jsx)(`div`,{style:{fontSize:`2.8rem`,lineHeight:1},children:t}),(0,X.jsx)(`h2`,{style:{color:`#FFFFFF`,margin:`0.5rem 0 0`,fontSize:`1.6rem`,fontWeight:900,letterSpacing:`-0.5px`},children:e})]}),(0,X.jsx)(`div`,{style:{display:`flex`,flexDirection:`column`,gap:`1rem`},children:n.length===0?(0,X.jsx)(`div`,{style:{color:`rgba(255,255,255,0.3)`,textAlign:`center`,padding:`2rem`},children:`No finalists yet`}):n.map((e,n)=>(0,X.jsx)(`div`,{style:{background:`rgba(255,255,255,0.04)`,borderRadius:`18px`,border:`1.5px solid ${i}44`,overflow:`hidden`,animation:`floatIn 0.55s ease ${n*.18}s both`,boxShadow:`0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)`},children:(0,X.jsxs)(`div`,{style:{display:`flex`,alignItems:`stretch`},children:[(0,X.jsxs)(`div`,{style:{width:`140px`,flexShrink:0,position:`relative`,background:`#111`},children:[e.has_photo?(0,X.jsx)(`img`,{src:`/api/photos/bd/vote/${e.id}`,alt:e.nominee_name,style:{width:`100%`,height:`100%`,objectFit:`cover`,minHeight:`170px`,display:`block`},onError:e=>{e.target.style.display=`none`,e.target.nextSibling.style.display=`flex`}}):null,(0,X.jsx)(`div`,{style:{width:`100%`,minHeight:`170px`,background:`${i}18`,display:e.has_photo?`none`:`flex`,alignItems:`center`,justifyContent:`center`,fontSize:`3.5rem`},children:t}),(0,X.jsx)(`div`,{style:{position:`absolute`,top:`8px`,left:`8px`,background:`rgba(0,0,0,0.75)`,backdropFilter:`blur(8px)`,borderRadius:`99px`,padding:`2px 10px`,fontSize:`1.2rem`,border:`1px solid ${i}66`},children:r(n)})]}),(0,X.jsxs)(`div`,{style:{flex:1,padding:`1.25rem 1.25rem 1rem`,display:`flex`,flexDirection:`column`,gap:`0.5rem`},children:[(0,X.jsxs)(`div`,{children:[(0,X.jsx)(`div`,{style:{color:`#FFFFFF`,fontWeight:900,fontSize:`1.3rem`,lineHeight:1.2},children:e.nominee_name}),(0,X.jsx)(`div`,{style:{color:i,fontWeight:700,fontSize:`0.82rem`,marginTop:`3px`,letterSpacing:`0.3px`},children:e.department})]}),e.ai_reasoning&&(0,X.jsxs)(`div`,{style:{background:`rgba(10,130,118,0.08)`,borderRadius:`10px`,padding:`0.55rem 0.75rem`,borderLeft:`3px solid ${i}`},children:[(0,X.jsx)(`div`,{style:{color:`${i}`,fontSize:`0.63rem`,fontWeight:700,textTransform:`uppercase`,letterSpacing:`0.6px`,marginBottom:`3px`},children:`🤖 AI Judge`}),(0,X.jsxs)(`div`,{style:{color:`rgba(255,255,255,0.8)`,fontSize:`0.8rem`,lineHeight:1.5,fontStyle:`italic`},children:[`"`,e.ai_reasoning,`"`]})]}),e.ai_score!=null&&(0,X.jsxs)(`div`,{style:{display:`flex`,alignItems:`center`,gap:`8px`},children:[(0,X.jsx)(`div`,{style:{flex:1,height:`5px`,borderRadius:`99px`,background:`rgba(255,255,255,0.08)`,overflow:`hidden`},children:(0,X.jsx)(`div`,{style:{width:`${e.ai_score}%`,height:`100%`,borderRadius:`99px`,background:`linear-gradient(90deg, ${i}, #0ef5d8)`}})}),(0,X.jsxs)(`div`,{style:{color:i,fontWeight:800,fontSize:`0.78rem`,whiteSpace:`nowrap`},children:[e.ai_score,`/100`]})]}),(0,X.jsxs)(`div`,{style:{display:`flex`,alignItems:`center`,gap:`6px`,marginTop:`auto`},children:[(0,X.jsx)(`span`,{style:{color:`rgba(255,255,255,0.4)`,fontSize:`0.75rem`},children:`Votes`}),(0,X.jsx)(`span`,{style:{color:`#FFFFFF`,fontWeight:900,fontSize:`1.1rem`},children:e.vote_count})]})]})]})},e.id))})]}),ds=[{id:`luckydraw`,icon:`🎁`,label:`Lucky Draw`,desc:`Check if you won a prize tonight`,path:`/luckydraw`,color:`#0A8276`,gradient:`linear-gradient(135deg, #0A8276 0%, #0fd9c0 100%)`,glow:`rgba(10,130,118,0.35)`},{id:`bestdress`,icon:`👗`,label:`Best Dress`,desc:`Submit & vote for the best outfit`,path:`/bestdress`,color:`#db2777`,gradient:`linear-gradient(135deg, #be185d 0%, #f472b6 100%)`,glow:`rgba(219,39,119,0.35)`},{id:`voting`,icon:`🎤`,label:`Performance`,desc:`Rate the performers on stage`,path:`/voting`,color:`#7c3aed`,gradient:`linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)`,glow:`rgba(124,58,237,0.35)`},{id:`feedback`,icon:`💬`,label:`Guest Feedback`,desc:`Share your thoughts with us`,path:`/feedback`,color:`#d97706`,gradient:`linear-gradient(135deg, #b45309 0%, #fbbf24 100%)`,glow:`rgba(217,119,6,0.35)`}],fs=()=>{let e=st();return(0,X.jsxs)(`div`,{style:{minHeight:`100vh`,background:`#1D1D1D`,fontFamily:`Outfit, sans-serif`,display:`flex`,flexDirection:`column`,alignItems:`center`},children:[(0,X.jsx)(`style`,{children:`
+      `})]})},ls=e=>({padding:`0.5rem 1rem`,borderRadius:`10px`,border:`none`,background:e,color:`#FFFFFF`,fontFamily:`Outfit,sans-serif`,fontWeight:700,fontSize:`0.85rem`,cursor:`pointer`}),us=({title:e,emoji:t,items:n,rankLabel:r,accent:i,accentAlt:a})=>(0,X.jsxs)(`div`,{style:{flex:`1`,minWidth:`300px`,maxWidth:`580px`},children:[(0,X.jsxs)(`div`,{style:{textAlign:`center`,marginBottom:`1.5rem`,background:`linear-gradient(135deg, ${i}22, ${a}33)`,borderRadius:`20px`,padding:`1.25rem`,border:`1.5px solid ${i}55`},children:[(0,X.jsx)(`div`,{style:{fontSize:`2.8rem`,lineHeight:1},children:t}),(0,X.jsx)(`h2`,{style:{color:`#FFFFFF`,margin:`0.5rem 0 0`,fontSize:`1.6rem`,fontWeight:900,letterSpacing:`-0.5px`},children:e})]}),(0,X.jsx)(`div`,{style:{display:`flex`,flexDirection:`column`,gap:`1rem`},children:n.length===0?(0,X.jsx)(`div`,{style:{color:`rgba(255,255,255,0.3)`,textAlign:`center`,padding:`2rem`},children:`No finalists yet`}):n.map((e,n)=>(0,X.jsx)(`div`,{style:{background:`rgba(255,255,255,0.04)`,borderRadius:`18px`,border:`1.5px solid ${i}44`,overflow:`hidden`,animation:`floatIn 0.55s ease ${n*.18}s both`,boxShadow:`0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)`},children:(0,X.jsxs)(`div`,{style:{display:`flex`,alignItems:`stretch`},children:[(0,X.jsxs)(`div`,{style:{width:`140px`,flexShrink:0,position:`relative`,background:`#111`},children:[e.has_photo?(0,X.jsx)(`img`,{src:`/api/photos/bd/vote/${e.id}`,alt:e.nominee_name,style:{width:`100%`,height:`100%`,objectFit:`cover`,minHeight:`170px`,display:`block`},onError:e=>{e.target.style.display=`none`,e.target.nextSibling.style.display=`flex`}}):null,(0,X.jsx)(`div`,{style:{width:`100%`,minHeight:`170px`,background:`${i}18`,display:e.has_photo?`none`:`flex`,alignItems:`center`,justifyContent:`center`,fontSize:`3.5rem`},children:t}),(0,X.jsx)(`div`,{style:{position:`absolute`,top:`8px`,left:`8px`,background:`rgba(0,0,0,0.75)`,backdropFilter:`blur(8px)`,borderRadius:`99px`,padding:`2px 10px`,fontSize:`1.2rem`,border:`1px solid ${i}66`},children:r(n)})]}),(0,X.jsxs)(`div`,{style:{flex:1,padding:`1.25rem 1.25rem 1rem`,display:`flex`,flexDirection:`column`,gap:`0.5rem`},children:[(0,X.jsxs)(`div`,{children:[(0,X.jsx)(`div`,{style:{color:`#FFFFFF`,fontWeight:900,fontSize:`1.3rem`,lineHeight:1.2},children:e.nominee_name}),(0,X.jsx)(`div`,{style:{color:i,fontWeight:700,fontSize:`0.82rem`,marginTop:`3px`,letterSpacing:`0.3px`},children:e.department})]}),e.ai_reasoning&&(0,X.jsxs)(`div`,{style:{background:`rgba(10,130,118,0.08)`,borderRadius:`10px`,padding:`0.55rem 0.75rem`,borderLeft:`3px solid ${i}`},children:[(0,X.jsx)(`div`,{style:{color:`${i}`,fontSize:`0.63rem`,fontWeight:700,textTransform:`uppercase`,letterSpacing:`0.6px`,marginBottom:`3px`},children:`🤖 AI Judge`}),(0,X.jsxs)(`div`,{style:{color:`rgba(255,255,255,0.8)`,fontSize:`0.8rem`,lineHeight:1.5,fontStyle:`italic`},children:[`"`,e.ai_reasoning,`"`]})]}),e.ai_score!=null&&(0,X.jsxs)(`div`,{style:{display:`flex`,alignItems:`center`,gap:`8px`},children:[(0,X.jsx)(`div`,{style:{flex:1,height:`5px`,borderRadius:`99px`,background:`rgba(255,255,255,0.08)`,overflow:`hidden`},children:(0,X.jsx)(`div`,{style:{width:`${e.ai_score}%`,height:`100%`,borderRadius:`99px`,background:`linear-gradient(90deg, ${i}, #0ef5d8)`}})}),(0,X.jsxs)(`div`,{style:{color:i,fontWeight:800,fontSize:`0.78rem`,whiteSpace:`nowrap`},children:[e.ai_score,`/100`]})]}),(0,X.jsxs)(`div`,{style:{display:`flex`,alignItems:`center`,gap:`6px`,marginTop:`auto`},children:[(0,X.jsx)(`span`,{style:{color:`rgba(255,255,255,0.4)`,fontSize:`0.75rem`},children:`Votes`}),(0,X.jsx)(`span`,{style:{color:`#FFFFFF`,fontWeight:900,fontSize:`1.1rem`},children:e.vote_count})]})]})]})},e.id))})]}),ds=[{id:`luckydraw`,icon:`🎁`,label:`Lucky Draw`,desc:`Check if you won a prize tonight`,path:`/luckydraw`,gradient:`linear-gradient(135deg, #0A8276 0%, #0fd9c0 100%)`,light:`rgba(10,130,118,0.08)`,border:`rgba(10,130,118,0.25)`,text:`#0A8276`},{id:`bestdress`,icon:`👗`,label:`Best Dress`,desc:`Submit & vote for the best outfit`,path:`/bestdress`,gradient:`linear-gradient(135deg, #be185d 0%, #f472b6 100%)`,light:`rgba(219,39,119,0.07)`,border:`rgba(219,39,119,0.2)`,text:`#be185d`},{id:`voting`,icon:`🎤`,label:`Performance`,desc:`Rate the performers on stage`,path:`/voting`,gradient:`linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)`,light:`rgba(109,40,217,0.07)`,border:`rgba(109,40,217,0.2)`,text:`#7c3aed`},{id:`feedback`,icon:`💬`,label:`Guest Feedback`,desc:`Share your thoughts with us`,path:`/feedback`,gradient:`linear-gradient(135deg, #b45309 0%, #fbbf24 100%)`,light:`rgba(180,83,9,0.07)`,border:`rgba(180,83,9,0.2)`,text:`#b45309`}],fs=()=>{let e=st();return(0,X.jsxs)(`div`,{style:{minHeight:`100vh`,background:`#FFFFFF`,fontFamily:`'Outfit',sans-serif`,display:`flex`,flexDirection:`column`,alignItems:`center`},children:[(0,X.jsx)(`style`,{children:`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing:border-box; margin:0; padding:0; }
 
         .home-card {
-          cursor: pointer;
-          border-radius: 24px;
-          padding: 2.5rem 1.5rem 2rem;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          border: 1.5px solid rgba(255,255,255,0.07);
-          background: rgba(255,255,255,0.04);
-          backdrop-filter: blur(12px);
-          transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
-          position: relative;
-          overflow: hidden;
+          cursor:pointer;
+          border-radius:20px;
+          padding:2rem 1.25rem 1.75rem;
+          display:flex; flex-direction:column; align-items:center; text-align:center;
+          border:1.5px solid;
+          background:#FFFFFF;
+          box-shadow:0 2px 16px rgba(0,0,0,0.06);
+          transition:transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+          position:relative; overflow:hidden;
         }
-        .home-card::before {
-          content: '';
-          position: absolute; inset: 0;
-          opacity: 0;
-          transition: opacity 0.22s ease;
-          border-radius: 24px;
-        }
-        .home-card:hover {
-          transform: translateY(-6px) scale(1.03);
-        }
-        .home-card:hover::before { opacity: 1; }
-        .home-card:active { transform: scale(0.97); }
+        .home-card:hover { transform:translateY(-5px) scale(1.025); box-shadow:0 12px 40px rgba(0,0,0,0.12); }
+        .home-card:active { transform:scale(0.97); }
 
-        .card-icon {
-          font-size: 3rem;
-          margin-bottom: 1rem;
-          filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
-          transition: transform 0.22s ease;
-        }
-        .home-card:hover .card-icon { transform: scale(1.15); }
+        .card-icon { font-size:2.8rem; margin-bottom:0.9rem; transition:transform 0.22s ease; }
+        .home-card:hover .card-icon { transform:scale(1.15); }
 
-        .card-label {
-          color: white;
-          font-size: 1.25rem;
-          font-weight: 900;
-          letter-spacing: -0.3px;
-          margin-bottom: 0.4rem;
-        }
-        .card-desc {
-          color: rgba(255,255,255,0.6);
-          font-size: 0.82rem;
-          font-weight: 500;
-          line-height: 1.4;
-        }
+        .card-label { font-size:1.1rem; font-weight:900; letter-spacing:-0.2px; margin-bottom:0.35rem; color:#1D1D1D; }
+        .card-desc  { color:#6b7280; font-size:0.78rem; font-weight:500; line-height:1.45; }
+
         .card-arrow {
-          margin-top: 1.5rem;
-          width: 36px; height: 36px;
-          border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 1rem;
-          transition: transform 0.2s ease;
-          flex-shrink: 0;
+          margin-top:1.25rem; width:34px; height:34px; border-radius:50%;
+          display:flex; align-items:center; justify-content:center;
+          color:white; font-size:0.9rem; font-weight:800;
+          transition:transform 0.2s ease;
         }
-        .home-card:hover .card-arrow { transform: translateX(4px); }
+        .home-card:hover .card-arrow { transform:translateX(4px); }
 
-        @media (max-width: 480px) {
-          .home-card { padding: 2rem 1rem 1.5rem; }
-          .card-label { font-size: 1.1rem; }
+        @media (max-width:480px) {
+          .home-card { padding:1.5rem 1rem 1.25rem; }
+          .card-label { font-size:1rem; }
         }
-      `}),(0,X.jsxs)(`div`,{style:{textAlign:`center`,padding:`3.5rem 1.5rem 2rem`,width:`100%`,maxWidth:`560px`},children:[(0,X.jsx)(`div`,{style:{fontSize:`2.5rem`,marginBottom:`0.5rem`},children:`🎊`}),(0,X.jsx)(`h1`,{style:{color:`white`,fontSize:`clamp(1.8rem,6vw,2.6rem)`,fontWeight:900,letterSpacing:`-1px`,lineHeight:1.1},children:`Appreciation Night`}),(0,X.jsx)(`p`,{style:{color:`#0A8276`,fontWeight:800,fontSize:`1.1rem`,marginTop:`0.3rem`,letterSpacing:`2px`,textTransform:`uppercase`},children:`2026`}),(0,X.jsx)(`p`,{style:{color:`rgba(255,255,255,0.5)`,fontSize:`0.9rem`,marginTop:`0.75rem`,fontWeight:500},children:`Choose a module below to get started`})]}),(0,X.jsx)(`div`,{style:{display:`grid`,gridTemplateColumns:`repeat(2, 1fr)`,gap:`1rem`,padding:`0 1.25rem 3rem`,width:`100%`,maxWidth:`480px`},children:ds.map(t=>(0,X.jsxs)(`div`,{className:`home-card`,onClick:()=>e(t.path),style:{"--glow":t.glow},children:[(0,X.jsx)(`style`,{children:`
-              #card-${t.id}::before {
-                background: ${t.gradient};
-                opacity: 0;
-              }
-            `}),(0,X.jsx)(`div`,{style:{position:`absolute`,top:0,left:0,right:0,height:`4px`,background:t.gradient,borderRadius:`24px 24px 0 0`}}),(0,X.jsx)(`div`,{className:`card-icon`,children:t.icon}),(0,X.jsx)(`div`,{className:`card-label`,children:t.label}),(0,X.jsx)(`div`,{className:`card-desc`,children:t.desc}),(0,X.jsx)(`div`,{className:`card-arrow`,style:{background:t.gradient,color:`white`},children:`→`})]},t.id))}),(0,X.jsx)(`p`,{style:{color:`rgba(255,255,255,0.2)`,fontSize:`0.75rem`,paddingBottom:`2rem`},children:`eventjor.com · Powered by Infineon Technologies`})]})},ps=()=>{let e=st(),[t,n]=(0,v.useState)(0),[r,i]=(0,v.useState)(``),[a,o]=(0,v.useState)(!1),[s,c]=(0,v.useState)(!1);return(0,X.jsxs)(`div`,{style:{minHeight:`100vh`,background:`#1D1D1D`,fontFamily:`Outfit,sans-serif`,display:`flex`,flexDirection:`column`,alignItems:`center`},children:[(0,X.jsx)(`style`,{children:`
+      `}),(0,X.jsxs)(`div`,{style:{textAlign:`center`,padding:`3rem 1.5rem 1.75rem`,width:`100%`,maxWidth:`560px`},children:[(0,X.jsx)(`div`,{style:{fontSize:`2.5rem`,marginBottom:`0.5rem`},children:`🎊`}),(0,X.jsx)(`h1`,{style:{color:`#1D1D1D`,fontSize:`clamp(1.8rem,6vw,2.6rem)`,fontWeight:900,letterSpacing:`-1px`,lineHeight:1.1},children:`Appreciation Night`}),(0,X.jsx)(`p`,{style:{color:`#0A8276`,fontWeight:800,fontSize:`1rem`,marginTop:`0.3rem`,letterSpacing:`3px`,textTransform:`uppercase`},children:`2026`}),(0,X.jsx)(`p`,{style:{color:`#9ca3af`,fontSize:`0.85rem`,marginTop:`0.6rem`,fontWeight:500},children:`Choose a module below to get started`})]}),(0,X.jsx)(`div`,{style:{display:`grid`,gridTemplateColumns:`repeat(2,1fr)`,gap:`0.9rem`,padding:`0 1.25rem 3rem`,width:`100%`,maxWidth:`480px`},children:ds.map(t=>(0,X.jsxs)(`div`,{className:`home-card`,onClick:()=>e(t.path),style:{borderColor:t.border,background:t.light},children:[(0,X.jsx)(`div`,{style:{position:`absolute`,top:0,left:0,right:0,height:`4px`,background:t.gradient,borderRadius:`20px 20px 0 0`}}),(0,X.jsx)(`div`,{className:`card-icon`,children:t.icon}),(0,X.jsx)(`div`,{className:`card-label`,children:t.label}),(0,X.jsx)(`div`,{className:`card-desc`,children:t.desc}),(0,X.jsx)(`div`,{className:`card-arrow`,style:{background:t.gradient},children:`→`})]},t.id))}),(0,X.jsx)(`p`,{style:{color:`#d1d5db`,fontSize:`0.72rem`,paddingBottom:`2rem`},children:`eventjor.com · Appreciation Night 2026`})]})},ps=()=>{let e=st(),[t,n]=(0,v.useState)(0),[r,i]=(0,v.useState)(``),[a,o]=(0,v.useState)(!1),[s,c]=(0,v.useState)(!1);return(0,X.jsxs)(`div`,{style:{minHeight:`100vh`,background:`#1D1D1D`,fontFamily:`Outfit,sans-serif`,display:`flex`,flexDirection:`column`,alignItems:`center`},children:[(0,X.jsx)(`style`,{children:`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');
         * { box-sizing:border-box; margin:0; padding:0; }
         .fb-star { font-size:2.5rem; cursor:pointer; transition:transform 0.15s ease; }

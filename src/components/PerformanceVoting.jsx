@@ -35,6 +35,7 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
   }, []);
 
   const fetchData = async (vid) => {
+    const timeout = setTimeout(() => setLoading(false), 5000); // 5s safety fallback
     try {
       const [pRes, cRes, sRes, bdStatRes, bdNomRes, empRes] = await Promise.all([
         axios.get('/api/performance/participants'),
@@ -65,9 +66,11 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
     } catch (err) {
       console.error("Fetch failed", err);
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };
+
 
   const handlePerformanceVote = async (participantId, scores) => {
     if (status !== 'OPEN') return;

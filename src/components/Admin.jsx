@@ -365,43 +365,14 @@ const Admin = () => {
               {/* === UPLOAD SECTION === */}
               <div style={{ display:'flex', gap:'2rem', flexWrap:'wrap' }}>
 
-                {/* Upload Employee List */}
-                <div className="card shadow-card" style={{ flex:1, minWidth:'280px' }}>
-                  <h3 style={{ marginBottom:'0.4rem' }}>👥 Step 1 — Employee List</h3>
-                  <p style={{ color:'#64748b', fontSize:'0.85rem', marginBottom:'1.25rem' }}>
-                    Upload CSV with columns: <strong>name, department</strong>.<br/>
-                    This sets the full staff pool.
-                  </p>
-                  <label style={{ display:'inline-flex', alignItems:'center', gap:'0.5rem', background:'#0A8276', color:'white', padding:'0.65rem 1.2rem', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'0.9rem' }}>
-                    📂 Upload Employees CSV
-                    <input type="file" accept=".csv" style={{ display:'none' }}
-                      onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        const fd = new FormData();
-                        fd.append('file', file);
-                        try {
-                          setLoading(true);
-                          setUploadStatus('Uploading employees…');
-                          const r = await axios.post('/api/upload', fd, { headers:{ 'Content-Type':'multipart/form-data' } });
-                          setUploadStatus(`✅ ${r.data.count} employees loaded`);
-                          fetchAllData();
-                        } catch(err) { setUploadStatus('❌ ' + (err.response?.data || err.message)); }
-                        finally { setLoading(false); e.target.value = ''; }
-                      }}
-                    />
-                  </label>
-                  <p style={{ marginTop:'0.75rem', fontSize:'0.78rem', color:'#94a3b8' }}>Currently {employees.length} employees in system.</p>
-                </div>
-
                 {/* Upload Winners Results */}
                 <div className="card shadow-card" style={{ flex:1, minWidth:'280px' }}>
-                  <h3 style={{ marginBottom:'0.4rem' }}>🏆 Step 2 — Upload Winners Result</h3>
+                  <h3 style={{ marginBottom:'0.4rem' }}>🏆 Upload Winners Result</h3>
                   <p style={{ color:'#64748b', fontSize:'0.85rem', marginBottom:'1.25rem' }}>
                     Upload CSV with columns: <strong>name, prize</strong>.<br/>
                     This publishes the draw results. All previous results will be cleared.
                   </p>
-                  <label style={{ display:'inline-flex', alignItems:'center', gap:'0.5rem', background:'#1D1D1D', color:'white', padding:'0.65rem 1.2rem', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'0.9rem' }}>
+                  <label style={{ display:'inline-flex', alignItems:'center', gap:'0.5rem', background:'#0A8276', color:'white', padding:'0.65rem 1.2rem', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'0.9rem' }}>
                     📤 Upload Winners CSV
                     <input type="file" accept=".csv" style={{ display:'none' }}
                       onChange={async (e) => {

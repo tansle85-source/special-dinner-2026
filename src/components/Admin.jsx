@@ -718,6 +718,25 @@ const Admin = () => {
                         </div>
                         {sub.ai_score != null && <div style={{ marginTop:'4px', fontSize:'0.7rem', color:'#0A8276', fontWeight:700 }}>AI: {sub.ai_score}/100</div>}
                         <div style={{ display:'flex', gap:'4px', marginTop:'6px' }}>
+                          {/* 📷 Upload photo directly to DB */}
+                          <label style={{ flex:1, padding:'4px', borderRadius:'8px', border:'1px solid #bbf7d0', background:'#f0fdf4', color:'#15803d', fontSize:'0.7rem', fontWeight:700, cursor:'pointer', textAlign:'center', lineHeight:'1.6' }}>
+                            📷 Photo
+                            <input type="file" accept="image/*" style={{ display:'none' }}
+                              onChange={async (e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = async (ev) => {
+                                  try {
+                                    await axios.patch(`/api/best-dress/submissions/${sub.id}/photo`, { photo_data: ev.target.result });
+                                    fetchAllData();
+                                  } catch(err) { alert('Photo upload failed: ' + (err.response?.data?.error || err.message)); }
+                                };
+                                reader.readAsDataURL(file);
+                                e.target.value = '';
+                              }}
+                            />
+                          </label>
                           <button
                             onClick={() => setEditingSub({ id: sub.id, name: sub.name, department: sub.department, gender: sub.gender })}
                             style={{ flex:1, padding:'4px', borderRadius:'8px', border:'1px solid #bae6fd', background:'#f0f9ff', color:'#0369a1', fontSize:'0.7rem', fontWeight:700, cursor:'pointer' }}

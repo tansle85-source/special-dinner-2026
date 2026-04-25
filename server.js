@@ -578,6 +578,19 @@ app.put('/api/best-dress/submissions/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Admin: upload / replace photo for a submission — stores base64 in DB (survives redeployment)
+app.patch('/api/best-dress/submissions/:id/photo', async (req, res) => {
+  const { photo_data } = req.body;
+  if (!photo_data) return res.status(400).json({ error: 'No photo_data provided' });
+  try {
+    await pool.query(
+      'UPDATE best_dress_submissions SET photo_data = ?, photo_path = NULL WHERE id = ?',
+      [photo_data, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Admin: AI ranking — pick top 3 male + top 3 female and promote to nominees
 app.post('/api/best-dress/ai-rank', async (req, res) => {
   try {

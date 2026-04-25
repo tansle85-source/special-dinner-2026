@@ -208,6 +208,23 @@ const initDB = async () => {
       }
     } catch (migErr) { console.warn('[MIGRATE] best_dress_voters migration:', migErr.message); }
 
+    // Migration: add missing columns to best_dress_votes
+    try {
+      const [bdvCols] = await connection.query('SHOW COLUMNS FROM best_dress_votes');
+      if (!bdvCols.some(c => c.Field === 'gender')) {
+        await connection.query('ALTER TABLE best_dress_votes ADD COLUMN gender VARCHAR(10) DEFAULT NULL');
+        console.log('[MIGRATE] Added gender to best_dress_votes');
+      }
+      if (!bdvCols.some(c => c.Field === 'department')) {
+        await connection.query('ALTER TABLE best_dress_votes ADD COLUMN department VARCHAR(255) DEFAULT NULL');
+        console.log('[MIGRATE] Added department to best_dress_votes');
+      }
+      if (!bdvCols.some(c => c.Field === 'photo_path')) {
+        await connection.query('ALTER TABLE best_dress_votes ADD COLUMN photo_path VARCHAR(500) DEFAULT NULL');
+        console.log('[MIGRATE] Added photo_path to best_dress_votes');
+      }
+    } catch (migErr) { console.warn('[MIGRATE] best_dress_votes columns migration:', migErr.message); }
+
     // Migration Logic: Add song_name and voter_id if missing from existing tables
     try {
       const [pCols] = await connection.query('SHOW COLUMNS FROM performance_participants');

@@ -4,7 +4,16 @@ import { Link } from 'react-router-dom';
 import LuckyDrawWheel from './LuckyDrawWheel';
 import ClaimScanner from './ClaimScanner';
 
-const SITE_VERSION = "v1.5.0";
+const SITE_VERSION = "v2.1.0";
+
+// Shows the server-side build version so admin can confirm latest code is running
+const VersionBadge = () => {
+  const [ver, setVer] = React.useState('...');
+  React.useEffect(() => {
+    axios.get('/api/version').then(r => setVer(r.data.version)).catch(() => setVer('?'));
+  }, []);
+  return <span style={{ fontWeight:800, color:'#0A8276' }}>{SITE_VERSION} (srv: {ver})</span>;
+};
 
 const Admin = () => {
   // Navigation State
@@ -348,7 +357,7 @@ const Admin = () => {
         <header className="content-header">
           <div className="header-info">
             <h1>{activeModule.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</h1>
-            <p>Appreciation Dinner 2026 Admin Panel</p>
+            <p>Appreciation Dinner 2026 Admin Panel · <VersionBadge /></p>
           </div>
           <div className="header-actions">
             <div className="upload-indicator">{uploadStatus}</div>

@@ -149,16 +149,8 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
   return (
     <div className="voting-page" id="dinner-voting-app">
       <header className="page-header">
-        <div className="brand-logo">{activeTab === 'performance' ? '🎭' : '👗'}</div>
-        <h1>
-          {activeTab === 'performance' ? 'Performance ' : 'Best Dress '}
-          <span className="text-ocean">{activeTab === 'performance' ? 'Voting' : 'Award'}</span>
-        </h1>
-        
-        <div className="tabs-container">
-          <button className={`tab-btn ${activeTab === 'performance' ? 'active' : ''}`} onClick={() => setActiveTab('performance')}>Performance</button>
-          <button className={`tab-btn ${activeTab === 'best-dress' ? 'active' : ''}`} onClick={() => setActiveTab('best-dress')}>Best Dress</button>
-        </div>
+        <div className="brand-logo">🎭</div>
+        <h1>Performance <span className="text-ocean">Voting</span></h1>
       </header>
 
       <main className="content-area">

@@ -21,6 +21,7 @@ const Admin = () => {
   const [performanceStatus, setPerformanceStatus] = useState({ voting_status: 'CLOSED' });
   const [bestDressStatus, setBestDressStatus] = useState('CLOSED');
   const [bestDressNominees, setBestDressNominees] = useState([]);
+  const [nominationsSummary, setNominationsSummary] = useState([]);
   
   // UI State
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,35 @@ const Admin = () => {
   const [batchDrawResults, setBatchDrawResults] = useState([]);
   const [showBatchSummary, setShowBatchSummary] = useState(false);
   const [isProcessingBatch, setIsProcessingBatch] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const sortResults = (list, query) => {
+    if (!query) return list;
+    const q = query.toLowerCase();
+    return [...list].sort((a, b) => {
+      const nameA = (a.name || "").toLowerCase();
+      const nameB = (b.name || "").toLowerCase();
+      const idA = String(a.id || "").toLowerCase();
+      const idB = String(b.id || "").toLowerCase();
+
+      // 1. Exact Name Match
+      if (nameA === q && nameB !== q) return -1;
+      if (nameA !== q && nameB === q) return 1;
+
+      // 2. Starts with Query
+      const startsA = nameA.startsWith(q);
+      const startsB = nameB.startsWith(q);
+      if (startsA && !startsB) return -1;
+      if (!startsA && startsB) return 1;
+
+      // 3. Exact ID Match
+      if (idA === q && idB !== q) return -1;
+      if (idA !== q && idB === q) return 1;
+
+      // 4. Alphabetical fallback
+      return nameA.localeCompare(nameB);
+    });
+  };
 
   // Derived Session Stats
   const sessionPrizes = selectedSession ? prizes.filter(p => p.session === selectedSession) : [];
@@ -58,7 +88,8 @@ const Admin = () => {
         axios.get('/api/performance/participants'),
         axios.get('/api/performance/status'),
         axios.get('/api/best-dress/status'),
-        axios.get('/api/best-dress/nominees')
+        axios.get('/api/best-dress/nominees'),
+        axios.get('/api/best-dress/nominations-summary')
       ]);
       setEmployees(empRes.data);
       setPrizes(prizeRes.data);
@@ -69,6 +100,7 @@ const Admin = () => {
       setPerformanceStatus(pStatRes.data);
       setBestDressStatus(bdStatRes.data.best_dress_status);
       setBestDressNominees(bdNomRes.data);
+      setNominationsSummary(bdNomSumRes.data);
     } catch (err) {
       console.error("Fetch failed", err);
     } finally {
@@ -466,10 +498,28 @@ const Admin = () => {
                        </button>
                      )}
                    </div>
+                   <div style={{ marginBottom: '1.5rem', padding: '0 1rem' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Search winners by name or department..." 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                        style={{ width: '100%', padding: '0.8rem 1.2rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '1rem' }}
+                      />
+                   </div>
                    <table className="modern-table">
                      <thead><tr><th>NAME</th><th>DEPARTMENT</th><th>PRIZE</th><th>CLAIM STATUS</th><th>ACTIONS</th></tr></thead>
                      <tbody>
-                       {employees.filter(e => e.won_prize).filter(e => !selectedSession || prizes.find(p => p.name === e.won_prize)?.session === selectedSession).map(e => (
+                       {sortResults(
+                         employees
+                           .filter(e => e.won_prize)
+                           .filter(e => !selectedSession || prizes.find(p => p.name === e.won_prize)?.session === selectedSession)
+                           .filter(e => 
+                             e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             (e.department && e.department.toLowerCase().includes(searchTerm.toLowerCase()))
+                           ), 
+                         searchTerm
+                       ).map(e => (
                          <tr key={e.id}>
                            <td>{e.name}</td>
                            <td>{e.department}</td>
@@ -546,17 +596,28 @@ const Admin = () => {
 
           {activeModule === 'employees' && (
             <div className="card shadow-card">
-              <div className="card-header-actions">
-                <h3>Employee Database ({employees.length})</h3>
-                <div className="btn-group">
-                  <label className="secondary-btn">Upload CSV <input type="file" accept=".csv" onChange={(e) => handleFileUpload(e, 'employees')} style={{display:'none'}} /></label>
-                  <button className="modern-add-btn" onClick={() => { setEditingItem(null); setIsModalOpen(true); }}>+ Add Employee</button>
                 </div>
+              </div>
+              <div style={{ padding: '0 2rem 1.5rem' }}>
+                 <input 
+                   type="text" 
+                   placeholder="Search employees by name, ID or department..." 
+                   value={searchTerm} 
+                   onChange={(e) => setSearchTerm(e.target.value)} 
+                   style={{ width: '100%', padding: '0.8rem 1.2rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '1rem' }}
+                 />
               </div>
               <table className="modern-table">
                 <thead><tr><th>NAME</th><th>DEPARTMENT</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
                 <tbody>
-                  {employees.map(e => (
+                  {sortResults(
+                    employees.filter(e => 
+                      e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                      (e.id && String(e.id).toLowerCase().includes(searchTerm.toLowerCase())) ||
+                      e.department.toLowerCase().includes(searchTerm.toLowerCase())
+                    ), 
+                    searchTerm
+                  ).map(e => (
                     <tr key={e.id}>
                       <td className="bold">{e.name}</td><td>{e.department}</td>
                       <td>
@@ -721,25 +782,44 @@ const Admin = () => {
             <div className="best-dress-module">
               <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
                 <div className="card shadow-card" style={{ flex: 1 }}>
-                  <h3>Nomination Status</h3>
+                  <h3>Best Dress Status</h3>
                   <div style={{ margin: '1rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div className={`status-pill ${bestDressStatus === 'OPEN' ? 'open' : 'closed'}`}>
-                       {bestDressStatus === 'OPEN' ? '🟢 NOMINATION OPEN' : '🔴 NOMINATION CLOSED'}
+                    <div className={`status-pill ${bestDressStatus === 'CLOSED' ? 'closed' : 'open'}`}>
+                       {bestDressStatus === 'CLOSED' && '🔴 CLOSED'}
+                       {bestDressStatus === 'NOMINATING' && '🟡 NOMINATING'}
+                       {bestDressStatus === 'VOTING' && '🟢 VOTING LIVE'}
                     </div>
-                    <button 
-                      className="modern-add-btn" 
-                      onClick={async () => {
-                        const newStat = bestDressStatus === 'OPEN' ? 'CLOSED' : 'OPEN';
+                    <select 
+                      value={bestDressStatus} 
+                      className="modern-select"
+                      style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontWeight: 700 }}
+                      onChange={async (e) => {
+                        const newStat = e.target.value;
                         await axios.post('/api/best-dress/status', { status: newStat });
                         setBestDressStatus(newStat);
+                        fetchAllData();
                       }}
                     >
-                      Toggle {bestDressStatus === 'OPEN' ? 'Close' : 'Open'}
+                      <option value="CLOSED">CLOSED</option>
+                      <option value="NOMINATING">NOMINATING</option>
+                      <option value="VOTING">VOTING</option>
+                    </select>
+                    <button 
+                      className="table-btn" 
+                      style={{ color: '#f43f5e', border: '1px solid #f43f5e' }}
+                      onClick={async () => {
+                        if (confirm('RESET ALL Best Dress nominations and votes? This cannot be undone.')) {
+                          await axios.post('/api/best-dress/reset');
+                          fetchAllData();
+                        }
+                      }}
+                    >
+                      Reset All
                     </button>
                   </div>
                 </div>
                 <div className="card shadow-card" style={{ flex: 1 }}>
-                  <h3>Quick Add Nominee</h3>
+                  <h3>Quick Add Finalist</h3>
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                     <input id="new-nominee" className="modern-input" placeholder="Enter name..." />
                     <button className="modern-add-btn" onClick={async () => {
@@ -747,29 +827,63 @@ const Admin = () => {
                       if (!name) return;
                       await axios.post('/api/best-dress/nominees', { name });
                       document.getElementById('new-nominee').value = '';
-                      const nRes = await axios.get('/api/best-dress/nominees');
-                      setBestDressNominees(nRes.data);
+                      fetchAllData();
                     }}>Add</button>
                   </div>
                 </div>
               </div>
 
-              <div className="card shadow-card">
-                <h3>Current Standings</h3>
-                <table className="modern-table">
-                  <thead><tr><th>NOMINEE</th><th>VOTES</th><th>ACTIONS</th></tr></thead>
-                  <tbody>
-                    {bestDressNominees.map(n => (
-                      <tr key={n.id}>
-                        <td className="bold">{n.nominee_name}</td>
-                        <td className="text-teal" style={{fontWeight: 900}}>{n.vote_count}</td>
-                        <td>
-                          <button onClick={async () => { if(confirm('Delete?')) { await axios.delete(`/api/best-dress/nominees/${n.id}`); const r = await axios.get('/api/best-dress/nominees'); setBestDressNominees(r.data); } }} className="table-btn">Delete</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div style={{ display: 'flex', gap: '2rem' }}>
+                {/* Nomination Summary */}
+                <div className="card shadow-card" style={{ flex: 1 }}>
+                  <h3>Nomination Summary</h3>
+                  <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Top nominations from guests. Promote them to finalists for the voting phase.</p>
+                  <table className="modern-table">
+                    <thead><tr><th>NAME</th><th>COUNT</th><th>ACTION</th></tr></thead>
+                    <tbody>
+                      {nominationsSummary.map((n, i) => (
+                        <tr key={i}>
+                          <td className="bold">{n.nominee_name}</td>
+                          <td className="text-teal" style={{fontWeight: 800}}>{n.count}</td>
+                          <td>
+                            <button 
+                              className="table-btn" 
+                              onClick={async () => {
+                                await axios.post('/api/best-dress/nominees', { name: n.nominee_name });
+                                fetchAllData();
+                                alert(`${n.nominee_name} added to finalists!`);
+                              }}
+                            >
+                              Promote
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {nominationsSummary.length === 0 && <tr><td colSpan="3" style={{textAlign:'center', color:'#94a3b8'}}>No nominations yet</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Finalists & Voting Standings */}
+                <div className="card shadow-card" style={{ flex: 1 }}>
+                  <h3>Voting Finalists</h3>
+                  <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>These names appear on the guest voting page during the VOTING phase.</p>
+                  <table className="modern-table">
+                    <thead><tr><th>FINALIST</th><th>VOTES</th><th>ACTIONS</th></tr></thead>
+                    <tbody>
+                      {bestDressNominees.map(n => (
+                        <tr key={n.id}>
+                          <td className="bold">{n.nominee_name}</td>
+                          <td className="text-teal" style={{fontWeight: 900}}>{n.vote_count}</td>
+                          <td>
+                            <button onClick={async () => { if(confirm('Remove finalist?')) { await axios.delete(`/api/best-dress/nominees/${n.id}`); fetchAllData(); } }} className="table-btn" style={{color:'#f43f5e'}}>Delete</button>
+                          </td>
+                        </tr>
+                      ))}
+                      {bestDressNominees.length === 0 && <tr><td colSpan="3" style={{textAlign:'center', color:'#94a3b8'}}>No finalists added yet</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

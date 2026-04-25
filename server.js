@@ -158,6 +158,8 @@ const initDB = async () => {
     `);
 
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_votes (id VARCHAR(255) PRIMARY KEY, nominee_name VARCHAR(255) NOT NULL, vote_count INT DEFAULT 0)`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_nominations (id VARCHAR(255) PRIMARY KEY, employee_id VARCHAR(255), nominee_name VARCHAR(255), voter_id VARCHAR(255))`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_voters (voter_id VARCHAR(255) PRIMARY KEY, nominee_id VARCHAR(255))`);
     await connection.query(`CREATE TABLE IF NOT EXISTS feedback (id INT AUTO_INCREMENT PRIMARY KEY, comment TEXT, rating INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 
     // Migration Logic: Add song_name and voter_id if missing from existing tables
@@ -416,13 +418,82 @@ app.delete('/api/best-dress/nominees/:id', async (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/best-dress/vote', async (req, res) => {
-  const { nominee_id } = req.body;
+app.post('/api/best-dress/nominate', async (req, res) => {
+  const { employee_id, nominee_name, voter_id } = req.body;
   const [settings] = await pool.query('SELECT best_dress_status FROM performance_settings WHERE id = "global"');
-  if (settings[0]?.best_dress_status !== 'OPEN') return res.status(403).json({ error: 'Voting is CLOSED' });
+  if (settings[0]?.best_dress_status !== 'NOMINATING') return res.status(403).json({ error: 'Nomination is CLOSED' });
   
-  await pool.query('UPDATE best_dress_votes SET vote_count = vote_count + 1 WHERE id = ?', [nominee_id]);
-  res.json({ success: true });
+  try {
+    // 1. Check if already nominated
+    const [existing] = await pool.query('SELECT id FROM best_dress_nominations WHERE voter_id = ?', [voter_id]);
+    if (existing.length > 0) {
+      await pool.query('UPDATE best_dress_nominations SET employee_id = ?, nominee_name = ? WHERE voter_id = ?', [employee_id, nominee_name, voter_id]);
+    } else {
+      await pool.query('INSERT INTO best_dress_nominations (id, employee_id, nominee_name, voter_id) VALUES (?, ?, ?, ?)', [generateId(), employee_id, nominee_name, voter_id]);
+    }
+    res.json({ success: true });
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+app.get('/api/best-dress/my-nomination/:voterId', async (req, res) => {
+  const [rows] = await pool.query('SELECT nominee_name, employee_id FROM best_dress_nominations WHERE voter_id = ?', [req.params.voterId]);
+  res.json(rows[0] || null);
+});
+
+app.get('/api/best-dress/nominations-summary', async (req, res) => {
+  const [rows] = await pool.query(`
+    SELECT nominee_name, employee_id, COUNT(*) as count 
+    FROM best_dress_nominations 
+    GROUP BY nominee_name, employee_id 
+    ORDER BY count DESC
+  `);
+  res.json(rows);
+});
+
+app.post('/api/best-dress/vote', async (req, res) => {
+  const { nominee_id, voter_id } = req.body;
+  const [settings] = await pool.query('SELECT best_dress_status FROM performance_settings WHERE id = "global"');
+  if (settings[0]?.best_dress_status !== 'VOTING') return res.status(403).json({ error: 'Voting is CLOSED' });
+  
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    
+    // Check if already voted
+    const [existing] = await connection.query('SELECT nominee_id FROM best_dress_voters WHERE voter_id = ?', [voter_id]);
+    if (existing.length > 0) {
+      // Switch vote
+      const prevId = existing[0].nominee_id;
+      await connection.query('UPDATE best_dress_votes SET vote_count = vote_count - 1 WHERE id = ?', [prevId]);
+      await connection.query('UPDATE best_dress_voters SET nominee_id = ? WHERE voter_id = ?', [nominee_id, voter_id]);
+    } else {
+      await connection.query('INSERT INTO best_dress_voters (voter_id, nominee_id) VALUES (?, ?)', [voter_id, nominee_id]);
+    }
+    
+    await connection.query('UPDATE best_dress_votes SET vote_count = vote_count + 1 WHERE id = ?', [nominee_id]);
+    
+    await connection.commit();
+    res.json({ success: true });
+  } catch (err) {
+    await connection.rollback();
+    res.status(500).send(err.message);
+  } finally {
+    connection.release();
+  }
+});
+
+app.get('/api/best-dress/my-vote/:voterId', async (req, res) => {
+  const [rows] = await pool.query('SELECT nominee_id FROM best_dress_voters WHERE voter_id = ?', [req.params.voterId]);
+  res.json(rows[0] || null);
+});
+
+app.post('/api/best-dress/reset', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM best_dress_nominations');
+    await pool.query('DELETE FROM best_dress_voters');
+    await pool.query('DELETE FROM best_dress_votes');
+    res.json({ success: true });
+  } catch (err) { res.status(500).send(err.message); }
 });
 
 // Upload Employees (Name, Department)
@@ -585,10 +656,28 @@ app.get('/api/prizes', async (req, res) => {
 });
 
 app.get('/api/search', async (req, res) => {
-  const { query } = req.query;
-  if (!query) return res.json([]);
-  const [rows] = await pool.query('SELECT name, department, won_prize FROM employees WHERE name LIKE ?', [`%${query}%`]);
-  res.json(rows);
+  const queryStr = (req.query.q || req.query.query || '').trim();
+  if (!queryStr) return res.json([]);
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, name, department, won_prize 
+       FROM employees 
+       WHERE name LIKE ? OR id LIKE ? 
+       ORDER BY 
+         CASE 
+           WHEN name = ? THEN 1 
+           WHEN name LIKE ? THEN 2 
+           WHEN id = ? THEN 3
+           ELSE 4 
+         END, 
+         name ASC 
+       LIMIT 10`,
+      [`%${queryStr}%`, `%${queryStr}%`, queryStr, `${queryStr}%`, queryStr]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 app.post('/api/draw', async (req, res) => {

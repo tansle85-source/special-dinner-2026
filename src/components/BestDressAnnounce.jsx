@@ -146,13 +146,15 @@ const Section = ({ title, emoji, items, rankLabel, accent, accentAlt }) => (
             <div style={{ display:'flex', alignItems:'stretch' }}>
               {/* Photo */}
               <div style={{ width:'140px', flexShrink:0, position:'relative', background:'#111' }}>
-                {item.photo_data
+                {item.has_photo
                   ? <img src={`/api/photos/bd/vote/${item.id}`} alt={item.nominee_name}
-                      style={{ width:'100%', height:'100%', objectFit:'cover', minHeight:'170px', display:'block' }} />
-                  : <div style={{ width:'100%', minHeight:'170px', background:`${accent}18`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'3.5rem' }}>
-                      {emoji}
-                    </div>
-                }
+                      style={{ width:'100%', height:'100%', objectFit:'cover', minHeight:'170px', display:'block' }}
+                      onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+                    />
+                  : null}
+                <div style={{ width:'100%', minHeight:'170px', background:`${accent}18`, display: item.has_photo ? 'none' : 'flex', alignItems:'center', justifyContent:'center', fontSize:'3.5rem' }}>
+                  {emoji}
+                </div>
                 {/* Rank badge */}
                 <div style={{
                   position:'absolute', top:'8px', left:'8px',

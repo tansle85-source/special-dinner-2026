@@ -867,10 +867,12 @@ const Admin = () => {
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:'1rem', maxHeight:'500px', overflowY:'auto' }}>
                     {bdSubmissions.map(sub => (
                       <div key={sub.id} style={{ background:'#f8fafc', borderRadius:'16px', padding:'0.75rem', border:'1px solid #e2e8f0', textAlign:'center' }}>
-                        {sub.photo_data
-                          ? <img src={`/api/photos/bd/sub/${sub.id}`} alt={sub.name} style={{ width:'100%', height:'120px', objectFit:'cover', borderRadius:'12px', marginBottom:'0.5rem' }} />
-                          : <div style={{ width:'100%', height:'120px', background:'#e2e8f0', borderRadius:'12px', marginBottom:'0.5rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem' }}>📷</div>
-                        }
+                        {sub.has_photo
+                          ? <img src={`/api/photos/bd/sub/${sub.id}`} alt={sub.name} style={{ width:'100%', height:'120px', objectFit:'cover', borderRadius:'12px', marginBottom:'0.5rem' }}
+                              onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+                            />
+                          : null}
+                        <div style={{ width:'100%', height:'120px', background:'#e2e8f0', borderRadius:'12px', marginBottom:'0.5rem', display: sub.has_photo ? 'none' : 'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem' }}>📷</div>
                         <div style={{ fontWeight:800, fontSize:'0.85rem', color:'#1e293b', marginBottom:'2px' }}>{sub.name}</div>
                         <div style={{ fontSize:'0.72rem', color:'#64748b' }}>{sub.department}</div>
                         <div style={{ marginTop:'4px' }}>

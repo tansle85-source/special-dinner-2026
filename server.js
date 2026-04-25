@@ -485,46 +485,75 @@ app.get('/api/best-dress/my-submission/:voterId', async (req, res) => {
   res.json({ count: rows.length, submissions: rows });
 });
 
-// Serve photo by submission ID from DB
+// Serve photo by submission ID — checks photo_data first, falls back to photo_path file
 app.get('/api/photos/bd/sub/:id', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT photo_data FROM best_dress_submissions WHERE id = ?', [req.params.id]);
-    if (!rows[0]?.photo_data) return res.status(404).send('No photo');
-    const dataUrl = rows[0].photo_data;
-    // dataUrl format: data:image/jpeg;base64,<data>
-    const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
-    if (!matches) return res.status(400).send('Invalid photo data');
-    const mimeType = matches[1];
-    const buf = Buffer.from(matches[2], 'base64');
-    res.set('Content-Type', mimeType);
-    res.set('Cache-Control', 'public, max-age=86400');
-    res.send(buf);
+    const [rows] = await pool.query('SELECT photo_data, photo_path FROM best_dress_submissions WHERE id = ?', [req.params.id]);
+    if (!rows[0]) return res.status(404).send('Not found');
+
+    const { photo_data, photo_path } = rows[0];
+
+    if (photo_data) {
+      const matches = photo_data.match(/^data:(.+);base64,(.+)$/);
+      if (!matches) return res.status(400).send('Invalid photo data');
+      res.set('Content-Type', matches[1]);
+      res.set('Cache-Control', 'public, max-age=86400');
+      return res.send(Buffer.from(matches[2], 'base64'));
+    }
+
+    if (photo_path) {
+      const filePath = path.join(__dirname, 'uploads', 'bd', photo_path);
+      if (fs.existsSync(filePath)) {
+        res.set('Cache-Control', 'public, max-age=86400');
+        return res.sendFile(filePath);
+      }
+    }
+
+    return res.status(404).send('No photo');
   } catch (err) { res.status(500).send(err.message); }
 });
 
-// Serve photo for finalist by vote record ID
+// Serve photo for finalist by vote record ID — checks photo_data first, falls back to photo_path
 app.get('/api/photos/bd/vote/:id', async (req, res) => {
   try {
-    const [voteRows] = await pool.query('SELECT photo_data FROM best_dress_votes WHERE id = ?', [req.params.id]);
-    if (!voteRows[0]?.photo_data) return res.status(404).send('No photo');
-    const dataUrl = voteRows[0].photo_data;
-    const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
-    if (!matches) return res.status(400).send('Invalid photo data');
-    res.set('Content-Type', matches[1]);
-    res.set('Cache-Control', 'public, max-age=86400');
-    res.send(Buffer.from(matches[2], 'base64'));
+    const [voteRows] = await pool.query('SELECT photo_data, photo_path FROM best_dress_votes WHERE id = ?', [req.params.id]);
+    if (!voteRows[0]) return res.status(404).send('Not found');
+
+    const { photo_data, photo_path } = voteRows[0];
+
+    if (photo_data) {
+      const matches = photo_data.match(/^data:(.+);base64,(.+)$/);
+      if (!matches) return res.status(400).send('Invalid photo data');
+      res.set('Content-Type', matches[1]);
+      res.set('Cache-Control', 'public, max-age=86400');
+      return res.send(Buffer.from(matches[2], 'base64'));
+    }
+
+    if (photo_path) {
+      const filePath = path.join(__dirname, 'uploads', 'bd', photo_path);
+      if (fs.existsSync(filePath)) {
+        res.set('Cache-Control', 'public, max-age=86400');
+        return res.sendFile(filePath);
+      }
+    }
+
+    return res.status(404).send('No photo');
   } catch (err) { res.status(500).send(err.message); }
 });
 
-// Finalists with full data (photo_data, ai_reasoning) for announce page
+// Finalists for announce page — photo served separately via /api/photos/bd/vote/:id
 app.get('/api/best-dress/finalists', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM best_dress_votes ORDER BY gender, vote_count DESC');
+  const [rows] = await pool.query(
+    'SELECT id, nominee_name, gender, department, ai_score, ai_reasoning, vote_count, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM best_dress_votes ORDER BY gender, vote_count DESC'
+  );
   res.json(rows);
 });
 
-// Admin: list all submissions
+// Admin: list all submissions (exclude photo_data blob — loaded separately via /api/photos/bd/sub/:id)
 app.get('/api/best-dress/submissions', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM best_dress_submissions ORDER BY submitted_at DESC');
+  const [rows] = await pool.query(
+    'SELECT id, name, department, gender, photo_path, voter_id, ai_score, ai_reasoning, submitted_at, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM best_dress_submissions ORDER BY submitted_at DESC'
+  );
   res.json(rows);
 });
 

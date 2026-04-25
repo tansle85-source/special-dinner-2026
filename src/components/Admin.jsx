@@ -21,7 +21,8 @@ const Admin = () => {
   const [performanceStatus, setPerformanceStatus] = useState({ voting_status: 'CLOSED' });
   const [bestDressStatus, setBestDressStatus] = useState('CLOSED');
   const [bestDressNominees, setBestDressNominees] = useState([]);
-  const [nominationsSummary, setNominationsSummary] = useState([]);
+  const [bdSubmissions, setBdSubmissions] = useState([]);
+
   
   // UI State
   const [loading, setLoading] = useState(false);
@@ -79,7 +80,7 @@ const Admin = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [empRes, prizeRes, perfRes, feedRes, critRes, partRes, pStatRes, bdStatRes, bdNomRes] = await Promise.all([
+      const [empRes, prizeRes, perfRes, feedRes, critRes, partRes, pStatRes, bdStatRes, bdNomRes, bdSubRes] = await Promise.all([
         axios.get('/api/employees'),
         axios.get('/api/prizes'),
         axios.get('/api/performance/results'),
@@ -89,7 +90,7 @@ const Admin = () => {
         axios.get('/api/performance/status'),
         axios.get('/api/best-dress/status'),
         axios.get('/api/best-dress/nominees'),
-        axios.get('/api/best-dress/nominations-summary')
+        axios.get('/api/best-dress/submissions'),
       ]);
       setEmployees(empRes.data);
       setPrizes(prizeRes.data);
@@ -100,13 +101,14 @@ const Admin = () => {
       setPerformanceStatus(pStatRes.data);
       setBestDressStatus(bdStatRes.data.best_dress_status);
       setBestDressNominees(bdNomRes.data);
-      setNominationsSummary(bdNomSumRes.data);
+      setBdSubmissions(bdSubRes.data || []);
     } catch (err) {
       console.error("Fetch failed", err);
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleFileUpload = async (e, type) => {
     const file = e.target.files[0];
@@ -839,34 +841,47 @@ const Admin = () => {
               </div>
 
               <div style={{ display: 'flex', gap: '2rem' }}>
-                {/* Nomination Summary */}
-                <div className="card shadow-card" style={{ flex: 1 }}>
-                  <h3>Nomination Summary</h3>
-                  <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Top nominations from guests. Promote them to finalists for the voting phase.</p>
-                  <table className="modern-table">
-                    <thead><tr><th>NAME</th><th>COUNT</th><th>ACTION</th></tr></thead>
-                    <tbody>
-                      {nominationsSummary.map((n, i) => (
-                        <tr key={i}>
-                          <td className="bold">{n.nominee_name}</td>
-                          <td className="text-teal" style={{fontWeight: 800}}>{n.count}</td>
-                          <td>
-                            <button 
-                              className="table-btn" 
-                              onClick={async () => {
-                                await axios.post('/api/best-dress/nominees', { name: n.nominee_name });
-                                fetchAllData();
-                                alert(`${n.nominee_name} added to finalists!`);
-                              }}
-                            >
-                              Promote
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {nominationsSummary.length === 0 && <tr><td colSpan="3" style={{textAlign:'center', color:'#94a3b8'}}>No nominations yet</td></tr>}
-                    </tbody>
-                  </table>
+                {/* Photo Submissions */}
+                <div className="card shadow-card" style={{ flex: 2 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem' }}>
+                    <div>
+                      <h3 style={{ margin:0 }}>Photo Submissions ({bdSubmissions.length})</h3>
+                      <p style={{ color:'#64748b', fontSize:'0.8rem', margin:'4px 0 0' }}>All photos submitted by employees. Click AI Rank to auto-select top 3M + 3F.</p>
+                    </div>
+                    <button
+                      className="modern-add-btn"
+                      style={{ background:'linear-gradient(135deg,#7c3aed,#0A8276)', whiteSpace:'nowrap' }}
+                      onClick={async () => {
+                        if (!confirm('Run AI ranking? This will score all photos and replace current finalists with top 3 Male + top 3 Female.')) return;
+                        try {
+                          setLoading(true);
+                          const res = await axios.post('/api/best-dress/ai-rank');
+                          alert(`AI Ranking Done!\n${res.data.selected.map(s => `${s.gender}: ${s.name} (Score: ${s.score})`).join('\n')}`);
+                          fetchAllData();
+                        } catch(e) { alert('AI Rank failed: ' + (e.response?.data?.error || e.message)); }
+                        finally { setLoading(false); }
+                      }}
+                    >AI Rank (Gemini)</button>
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:'1rem', maxHeight:'500px', overflowY:'auto' }}>
+                    {bdSubmissions.map(sub => (
+                      <div key={sub.id} style={{ background:'#f8fafc', borderRadius:'16px', padding:'0.75rem', border:'1px solid #e2e8f0', textAlign:'center' }}>
+                        {sub.photo_path
+                          ? <img src={`/uploads/bd/${sub.photo_path}`} alt={sub.name} style={{ width:'100%', height:'120px', objectFit:'cover', borderRadius:'12px', marginBottom:'0.5rem' }} />
+                          : <div style={{ width:'100%', height:'120px', background:'#e2e8f0', borderRadius:'12px', marginBottom:'0.5rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem' }}>No Photo</div>
+                        }
+                        <div style={{ fontWeight:800, fontSize:'0.85rem', color:'#1e293b', marginBottom:'2px' }}>{sub.name}</div>
+                        <div style={{ fontSize:'0.72rem', color:'#64748b' }}>{sub.department}</div>
+                        <div style={{ marginTop:'4px' }}>
+                          <span style={{ background: sub.gender==='Female' ? 'rgba(236,72,153,0.1)' : 'rgba(99,102,241,0.1)', color: sub.gender==='Female' ? '#db2777' : '#4f46e5', padding:'2px 8px', borderRadius:'99px', fontSize:'0.7rem', fontWeight:700 }}>
+                            {sub.gender}
+                          </span>
+                        </div>
+                        {sub.ai_score != null && <div style={{ marginTop:'4px', fontSize:'0.7rem', color:'#0A8276', fontWeight:700 }}>AI: {sub.ai_score}/100</div>}
+                      </div>
+                    ))}
+                    {bdSubmissions.length === 0 && <div style={{ gridColumn:'1/-1', textAlign:'center', color:'#94a3b8', padding:'2rem' }}>No submissions yet</div>}
+                  </div>
                 </div>
 
                 {/* Finalists & Voting Standings */}
@@ -892,6 +907,9 @@ const Admin = () => {
               </div>
             </div>
           )}
+
+
+
 
           {activeModule === 'guest-feedback' && (
             <div className="card shadow-card">

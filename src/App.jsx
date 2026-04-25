@@ -3,25 +3,17 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Admin from './components/Admin';
 import PerformanceVoting from './components/PerformanceVoting';
 import LuckyDraw from './components/LuckyDraw';
+import BestDress from './components/BestDress';
 
 const App = () => {
   return (
     <BrowserRouter>
       <div className="app-container">
         <Routes>
-          {/* Main Public Guest Dashboard */}
           <Route path="/" element={<LuckyDraw />} />
-          
-          {/* Admin Panel */}
           <Route path="/admin" element={<Admin />} />
-          
-          {/* Guest Voting Page */}
           <Route path="/voting" element={<PerformanceVoting defaultTab="performance" />} />
-          
-          {/* Best Dress standalone route */}
-          <Route path="/bestdress" element={<PerformanceVoting defaultTab="best-dress" />} />
-          
-          {/* Fallback to Dashboard */}
+          <Route path="/bestdress" element={<BestDress />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
@@ -30,3 +22,4 @@ const App = () => {
 };
 
 export default App;
+

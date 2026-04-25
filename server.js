@@ -181,10 +181,22 @@ const initDB = async () => {
     `);
 
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_votes (id VARCHAR(255) PRIMARY KEY, nominee_name VARCHAR(255) NOT NULL, vote_count INT DEFAULT 0, gender VARCHAR(10), department VARCHAR(255), photo_path VARCHAR(500))`);
-    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_submissions (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL, department VARCHAR(255), gender VARCHAR(10), photo_path VARCHAR(500), voter_id VARCHAR(255) UNIQUE, ai_score FLOAT DEFAULT NULL, ai_reasoning TEXT, submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_submissions (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL, department VARCHAR(255), gender VARCHAR(10), photo_path VARCHAR(500), voter_id VARCHAR(255), ai_score FLOAT DEFAULT NULL, ai_reasoning TEXT, submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_nominations (id VARCHAR(255) PRIMARY KEY, employee_id VARCHAR(255), nominee_name VARCHAR(255), voter_id VARCHAR(255))`);
     await connection.query(`CREATE TABLE IF NOT EXISTS best_dress_voters (voter_id VARCHAR(255) PRIMARY KEY, nominee_id VARCHAR(255))`);
     await connection.query(`CREATE TABLE IF NOT EXISTS feedback (id INT AUTO_INCREMENT PRIMARY KEY, comment TEXT, rating INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+
+    // Migration: drop unique constraint on voter_id in best_dress_submissions if it exists
+    try {
+      const [bdCols] = await connection.query('SHOW INDEX FROM best_dress_submissions WHERE Column_name = "voter_id" AND Non_unique = 0');
+      if (bdCols.length > 0) {
+        const keyName = bdCols[0].Key_name;
+        if (keyName !== 'PRIMARY') {
+          await connection.query(`ALTER TABLE best_dress_submissions DROP INDEX \`${keyName}\``);
+          console.log('[MIGRATE] Dropped unique constraint on best_dress_submissions.voter_id');
+        }
+      }
+    } catch (migErr) { console.warn('[MIGRATE] voter_id constraint check:', migErr.message); }
 
     // Migration Logic: Add song_name and voter_id if missing from existing tables
     try {
@@ -415,27 +427,31 @@ app.get('/api/feedback', async (req, res) => {
 
 // Best Dress Endpoints
 
-// Submit nomination with photo
+// Submit nomination with photo (max 2 per device)
 app.post('/api/best-dress/submit', bdUpload.single('photo'), async (req, res) => {
   const { name, department, gender, voter_id } = req.body;
   if (!name || !department || !gender || !voter_id) return res.status(400).json({ error: 'Missing fields' });
   const [settings] = await pool.query('SELECT best_dress_status FROM performance_settings WHERE id = "global"');
   if (settings[0]?.best_dress_status !== 'NOMINATING') return res.status(403).json({ error: 'Submissions are not open' });
   try {
+    // Check how many submissions this device already made
+    const [existing] = await pool.query('SELECT COUNT(*) as cnt FROM best_dress_submissions WHERE voter_id = ?', [voter_id]);
+    if (existing[0].cnt >= 2) return res.status(400).json({ error: 'Maximum 2 submissions per device reached' });
+
     const id = generateId();
     const photoPath = req.file ? req.file.filename : null;
     await pool.query(
-      'INSERT INTO best_dress_submissions (id, name, department, gender, photo_path, voter_id) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name=VALUES(name), department=VALUES(department), gender=VALUES(gender), photo_path=COALESCE(VALUES(photo_path), photo_path)',
+      'INSERT INTO best_dress_submissions (id, name, department, gender, photo_path, voter_id) VALUES (?, ?, ?, ?, ?, ?)',
       [id, name, department, gender, photoPath, voter_id]
     );
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Check if voter already submitted
+// Check how many times voter already submitted
 app.get('/api/best-dress/my-submission/:voterId', async (req, res) => {
-  const [rows] = await pool.query('SELECT id, name, gender FROM best_dress_submissions WHERE voter_id = ?', [req.params.voterId]);
-  res.json(rows[0] || null);
+  const [rows] = await pool.query('SELECT id, name, gender FROM best_dress_submissions WHERE voter_id = ? ORDER BY submitted_at ASC', [req.params.voterId]);
+  res.json({ count: rows.length, submissions: rows });
 });
 
 // Admin: list all submissions

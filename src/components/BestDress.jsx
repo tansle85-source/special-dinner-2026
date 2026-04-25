@@ -8,6 +8,7 @@ const BestDress = () => {
   const [finalists, setFinalists] = useState([]);
   const [myVote, setMyVote] = useState(null);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [submitCount, setSubmitCount] = useState(0);
   const [name, setName] = useState('');
   const [dept, setDept] = useState('');
   const [gender, setGender] = useState('');
@@ -39,7 +40,11 @@ const BestDress = () => {
       setPhase(s.status === 'fulfilled' ? s.value.data.best_dress_status : 'CLOSED');
       if (f.status === 'fulfilled') setFinalists(f.value.data);
       if (v.status === 'fulfilled') setMyVote(v.value.data?.nominee_id);
-      if (sub.status === 'fulfilled' && sub.value.data) setAlreadySubmitted(true);
+      if (sub.status === 'fulfilled' && sub.value.data) {
+        const cnt = sub.value.data.count || 0;
+        setSubmitCount(cnt);
+        if (cnt >= 1) setAlreadySubmitted(true);
+      }
     } catch { setPhase('CLOSED'); }
   };
 
@@ -90,6 +95,7 @@ const BestDress = () => {
       fd.append('photo', photo);
       await axios.post('/api/best-dress/submit', fd, { timeout: 20000 });
       setSubmitted(true);
+      setSubmitCount(c => c + 1);
     } catch (e) {
       showToast(e.response?.data?.error || 'Submission failed', '#ef4444');
     } finally { setSubmitting(false); }
@@ -188,12 +194,28 @@ const BestDress = () => {
           </div>
         )}
 
-        {/* Already submitted */}
+        {/* NOMINATING — already submitted */}
         {phase === 'NOMINATING' && (submitted || alreadySubmitted) && (
           <div style={{ ...s.card, textAlign:'center' }}>
-            <div style={{ fontSize:'4.5rem' }}>🎉</div>
-            <h2 style={{ ...s.h2, marginTop:'0.75rem' }}>You're In!</h2>
-            <p style={s.muted}>Your submission has been received. Our AI judge will shortlist the top finalists. Stay tuned!</p>
+            <div style={{ fontSize:'4.5rem' }}>{submitCount >= 2 ? '🎉' : '✅'}</div>
+            <h2 style={{ ...s.h2, marginTop:'0.75rem' }}>
+              {submitCount >= 2 ? "Both submitted!" : "You're In!"}
+            </h2>
+            <p style={s.muted}>
+              {submitCount >= 2
+                ? 'Max 2 submissions reached. Our AI judge will shortlist the top finalists. Stay tuned!'
+                : 'First submission received! You can submit one more person from this device.'}
+            </p>
+            {submitCount < 2 && (
+              <button
+                style={{ ...s.btn, marginTop:'1.25rem', background:'#0A8276' }}
+                onClick={() => {
+                  setSubmitted(false);
+                  setAlreadySubmitted(false);
+                  setName(''); setDept(''); setGender(''); setPhoto(null); setPreview(null);
+                }}
+              >Submit Another Person ➕</button>
+            )}
           </div>
         )}
 

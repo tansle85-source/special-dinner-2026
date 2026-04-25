@@ -596,6 +596,11 @@ const Admin = () => {
 
           {activeModule === 'employees' && (
             <div className="card shadow-card">
+              <div className="card-header-actions" style={{ padding: '2rem 2rem 1rem' }}>
+                <h3>Employee Database ({employees.length})</h3>
+                <div className="btn-group">
+                  <label className="secondary-btn">CSV Bulk Update <input type="file" accept=".csv" onChange={(e) => handleFileUpload(e, 'employees')} style={{display:'none'}} /></label>
+                  <button className="modern-add-btn" onClick={() => { setEditingItem(null); setIsModalOpen(true); }}>+ Add Employee</button>
                 </div>
               </div>
               <div style={{ padding: '0 2rem 1.5rem' }}>

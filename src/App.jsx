@@ -7,6 +7,8 @@ import BestDress from './components/BestDress';
 import BestDressAnnounce from './components/BestDressAnnounce';
 import Home from './components/Home';
 import GuestFeedback from './components/GuestFeedback';
+import Agenda from './components/Agenda';
+import FoodMenu from './components/FoodMenu';
 
 const App = () => {
   return (
@@ -19,6 +21,8 @@ const App = () => {
           <Route path="/bestdress/announce"  element={<BestDressAnnounce />} />
           <Route path="/voting"              element={<PerformanceVoting defaultTab="performance" />} />
           <Route path="/feedback"            element={<GuestFeedback />} />
+          <Route path="/agenda"              element={<Agenda />} />
+          <Route path="/menu"                element={<FoodMenu />} />
           <Route path="/admin"               element={<Admin />} />
           <Route path="*"                    element={<Navigate to="/" replace />} />
         </Routes>

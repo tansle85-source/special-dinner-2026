@@ -46,6 +46,28 @@ const modules = [
     border: 'rgba(180,83,9,0.2)',
     text: '#b45309',
   },
+  {
+    id: 'agenda',
+    icon: '📅',
+    label: 'Agenda',
+    desc: 'View tonight event schedule',
+    path: '/agenda',
+    gradient: 'linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%)',
+    light: 'rgba(3,105,161,0.07)',
+    border: 'rgba(3,105,161,0.2)',
+    text: '#0369a1',
+  },
+  {
+    id: 'menu',
+    icon: '🍽️',
+    label: 'Food Menu',
+    desc: 'See what is on the menu',
+    path: '/menu',
+    gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+    light: 'rgba(5,150,105,0.07)',
+    border: 'rgba(5,150,105,0.2)',
+    text: '#059669',
+  },
 ];
 
 const Home = () => {

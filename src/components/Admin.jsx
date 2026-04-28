@@ -95,7 +95,7 @@ const Admin = () => {
         axios.get('/api/employees'),
         axios.get('/api/prizes'),
         axios.get('/api/performance/results'),
-        axios.get('/api/feedback'),
+        axios.get('/api/feedback/status'), // Changed from /api/feedback which was returning 404 and breaking Promise.all
         axios.get('/api/performance/criteria'),
         axios.get('/api/performance/participants'),
         axios.get('/api/performance/status'),

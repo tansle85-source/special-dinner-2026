@@ -306,7 +306,7 @@ const initDB = async () => {
 
 
 // --- PRIZE CRUD ---
-app.post('/api/m26_prizes', async (req, res) => {
+app.post('/api/prizes', async (req, res) => {
   const { session, rank, name, quantity } = req.body;
   try {
     const id = generateId();
@@ -316,7 +316,7 @@ app.post('/api/m26_prizes', async (req, res) => {
   } catch (err) { res.status(500).send(err.message); }
 });
 
-app.put('/api/m26_prizes/:id', async (req, res) => {
+app.put('/api/prizes/:id', async (req, res) => {
   const { id } = req.params;
   const { session, rank, name, quantity } = req.body;
   try {
@@ -326,7 +326,7 @@ app.put('/api/m26_prizes/:id', async (req, res) => {
   } catch (err) { res.status(500).send(err.message); }
 });
 
-app.delete('/api/m26_prizes/:id', async (req, res) => {
+app.delete('/api/prizes/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM m26_prizes WHERE id = ?', [req.params.id]);
     res.json({ message: 'Prize deleted' });
@@ -334,7 +334,7 @@ app.delete('/api/m26_prizes/:id', async (req, res) => {
 });
 
 // --- EMPLOYEE CRUD ---
-app.post('/api/m26_employees', async (req, res) => {
+app.post('/api/employees', async (req, res) => {
   const { name, department } = req.body;
   try {
     const id = generateId();
@@ -343,7 +343,7 @@ app.post('/api/m26_employees', async (req, res) => {
   } catch (err) { res.status(500).send(err.message); }
 });
 
-app.put('/api/m26_employees/:id', async (req, res) => {
+app.put('/api/employees/:id', async (req, res) => {
   const { id } = req.params;
   const { name, department, won_prize } = req.body;
   try {
@@ -352,7 +352,7 @@ app.put('/api/m26_employees/:id', async (req, res) => {
   } catch (err) { res.status(500).send(err.message); }
 });
 
-app.delete('/api/m26_employees/:id', async (req, res) => {
+app.delete('/api/employees/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM m26_employees WHERE id = ?', [req.params.id]);
     res.json({ message: 'Employee deleted' });
@@ -990,7 +990,7 @@ app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
 });
 
 // Upload Prizes (Session, Prize Name, Quantity, Rank)
-app.post('/api/upload-m26_prizes', upload.single('file'), async (req, res) => {
+app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded.');
 
   const results = [];
@@ -1042,12 +1042,12 @@ app.post('/api/upload-m26_prizes', upload.single('file'), async (req, res) => {
     });
 });
 
-app.get('/api/m26_employees', async (req, res) => {
+app.get('/api/employees', async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM m26_employees');
   res.json(rows);
 });
 
-app.get('/api/eligible-m26_employees', async (req, res) => {
+app.get('/api/eligible-employees', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT id, name, department FROM m26_employees WHERE won_prize IS NULL');
     res.json(rows);
@@ -1098,7 +1098,7 @@ app.post('/api/draw/unclaim', async (req, res) => {
   }
 });
 
-app.get('/api/m26_prizes', async (req, res) => {
+app.get('/api/prizes', async (req, res) => {
   const [rows] = await pool.query('SELECT id, session, rank_level as rank, name, quantity FROM m26_prizes ORDER BY rank_level ASC');
   res.json(rows);
 });

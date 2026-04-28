@@ -79,9 +79,9 @@ const Admin = () => {
   };
 
   // Derived Session Stats
-  const sessionPrizes = selectedSession ? prizes.filter(p => p.session === selectedSession) : [];
+  const sessionPrizes = selectedSession ? (Array.isArray(prizes) ? prizes : []).filter(p => p.session === selectedSession) : [];
   const totalQuantity = sessionPrizes.reduce((sum, p) => sum + p.quantity, 0);
-  const currentWinners = (employees || []).filter(e => sessionPrizes.some(p => p.name === e.won_prize)).length;
+  const currentWinners = (Array.isArray(employees) ? employees : []).filter(e => sessionPrizes.some(p => p.name === e.won_prize)).length;
   const remainingToDraw = totalQuantity - currentWinners;
 
   useEffect(() => {

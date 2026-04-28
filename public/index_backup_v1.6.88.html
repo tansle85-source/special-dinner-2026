@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appreciation Night 2026</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=1.6.21">
+    <style>
+
+
+        /* Seating Mode Toggle Styles */
+        .mode-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+        }
+
+        .mode-btn.active {
+            background: var(--primary-dark) !important;
+            color: white !important;
+            box-shadow: 0 4px 10px rgba(10, 130, 118, 0.2);
+            font-weight: 600;
+        }
+
+        /* Vegetarian Seat Visual Style */
+        .seat.seat-vegetarian:not(.checked-in) {
+            background: linear-gradient(135deg, #4caf50, #2e7d32) !important;
+            border-color: #1b5e20 !important;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5) !important;
+        }
+        
+        /* If vegetarian AND checked-in, show Yellow background but keep a Green indicator border */
+        .seat.seat-vegetarian.checked-in {
+            border: 3px solid #00c853 !important; /* Vivid Green Border */
+            box-shadow: 0 0 15px rgba(255, 193, 7, 0.6) !important;
+        }
+
+        .seat.seat-vegetarian:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .vegetarian-toggle-container {
+            display: flex;
+align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .vegetarian-toggle-container:hover {
+            background: rgba(76, 175, 80, 0.15);
+        }
+
+        .vegetarian-toggle-container input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #2e7d32;
+        }
+
+        .vegetarian-toggle-container span {
+            font-weight: 600;
+            color: #2e7d32;
+            font-size: 0.95rem;
+        }
+
+        /* Premium White Fullscreen Theme */
+        #admin-tab-luckydraw:fullscreen {
+            background: #ffffff !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            overflow: hidden !important;
+            padding: 2rem !important;
+        }
+
+        #admin-tab-luckydraw:fullscreen .admin-section-header,
+        #admin-tab-luckydraw:fullscreen .admin-tabs,
+        #admin-tab-luckydraw:fullscreen > div:not(.luckydraw-admin-grid),
+        #admin-tab-luckydraw:fullscreen .luckydraw-admin-grid > div:not(.glass-panel:first-child),
+        #admin-tab-luckydraw:fullscreen .luckydraw-admin-grid > div:nth-child(2) {
+            display: none !important;
+        }
+
+        #admin-tab-luckydraw:fullscreen .luckydraw-admin-grid {
+            width: 100% !important;
+            height: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            gap: 0 !important;
+        }
+
+        #admin-tab-luckydraw:fullscreen .glass-panel:first-child {
+            margin: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            width: 100% !important;
+            max-width: 1200px !important;
+        }
+
+        #admin-tab-luckydraw:fullscreen #active-prize-banner {
+            background: rgba(8, 107, 97, 0.05) !important;
+            border: 2px solid var(--accent-gold) !important;
+            transform: scale(1.2);
+            margin-bottom: 4rem !important;
+        }
+
+        #admin-tab-luckydraw:fullscreen #winner-display h2 {
+            font-size: 5rem !important;
+            color: var(--primary-dark) !important;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.05);
+        }
+
+        #admin-tab-luckydraw:fullscreen #winner-display div {
+            font-size: 2.2rem !important;
+        }
+
+        /* NAVIGATION CLEANUP (v1.6.87) - Admin Restored */
+    body { border-top: 10px solid #0a8276 !important; }
+
+        .locked-pulse {
+            background: linear-gradient(135deg, #e2b45b, #c19541) !important;
+            box-shadow: 0 0 20px rgba(226, 180, 91, 0.6) !important;
+            animation: pulse-gold 2s infinite ease-in-out;
+        }
+        @keyframes pulse-gold {
+            0% { transform: scale(1); box-shadow: 0 0 10px rgba(226, 180, 91, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 25px rgba(226, 180, 91, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 10px rgba(226, 180, 91, 0.4); }
+        }
+        .booking-badge {
+            font-size: 0.7rem;
+            color: #e2b45b;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    
+
+    #main-event-content:not(.hidden) { display: block !important; }
+    #countdown-display.hidden { display: none !important; }
+    
+
+    #main-event-content { display: block !important; }
+    #countdown-display { display: none !important; }
+
+</style>
+</head>
+
+<body>
+    <div id="app">
+        <header id="main-header" class="glass-header">
+            <div class="logo">
+                <h1>Appreciation Night <span>2026</span></h1>
+            </div>
+            <div id="pull-to-refresh">
+                <div class="pull-content">
+                    <div class="pull-spinner"></div>
+                    <span class="pull-label">Pull to refresh</span>
+                </div>
+            </div>
+            <nav class="desktop-nav">
+                <button id="nav-home" class="nav-btn active" data-view="home">Home</button>
+                <button id="nav-seating" class="nav-btn" data-view="seating">Table Selection</button>
+                <button id="nav-checkin" class="nav-btn" data-view="checkin">Check-In & Gift</button>
+                <button id="nav-admin" class="nav-btn" data-view="admin">Admin</button>
+            </nav>
+        </header>
+
+        <!-- Mobile Bottom Tab Bar -->
+        <nav class="mobile-tab-bar">
+            <button class="mobile-tab-btn active" data-view="home">
+                <span class="icon">🏠</span>
+                <span class="label">Home</span>
+            </button>
+            <button class="mobile-tab-btn" data-view="seating">
+                <span class="icon">🪑</span>
+                <span class="label">Seating</span>
+            </button>
+            <button class="mobile-tab-btn" data-view="checkin">
+                <span class="icon">✅</span>
+                <span class="label">Check-In+Gift</span>
+            </button>
+            <button class="mobile-tab-btn" data-view="admin">
+                <span class="icon">⚙️</span>
+                <span class="label">Admin</span>
+            </button>
+        </nav>
+
+        <main>
+            <!-- HOME VIEW -->
+            <section id="view-home" class="view active">
+                <div class="checkin-container" style="max-width: 900px;">
+                    <h2 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Event Countdown</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 3rem;">Something big is happening soon. Stay tuned!</p>
+                    
+                    <div id="countdown-timer" class="countdown-grid">
+                        <div class="countdown-item glass-panel">
+                            <span class="count-value" id="days">00</span>
+                            <span class="count-label">Days</span>
+                        </div>
+                        <div class="countdown-item glass-panel">
+                            <span class="count-value" id="hours">00</span>
+                            <span class="count-label">Hours</span>
+                        </div>
+                        <div class="countdown-item glass-panel">
+                            <span class="count-value" id="minutes">00</span>
+                            <span class="count-label">Minutes</span>
+                        </div>
+                        <div class="countdown-item glass-panel">
+                            <span class="count-value" id="seconds">00</span>
+                            <span class="count-label">Seconds</span>
+                        </div>
+                    </div>
+
+                    <div id="event-ended-message" class="hidden" style="margin-top: 2rem;">
+                        <h2 style="color: var(--accent-gold);">🎉 The Event has Started! 🎉</h2>
+                        <p>Welcome to Appreciation Night 2026. We hope you have a wonderful evening.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- IDENTIFY VIEW -->
+            <section id="view-identify" class="view hidden">
+                <div class="checkin-container">
+                    <h2>Table Selection</h2>
+                    <p>Please find your employee profile to select your table.</p>
+                    <div class="search-box">
+                        <input type="text" id="identify-search" placeholder="Search by name, ID, or email..."
+                            autocomplete="off">
+                        <button id="btn-identify-search">Search</button>
+                    </div>
+                    <div id="identify-results">
+                        <!-- Search results injected here -->
+                    </div>
+                </div>
+
+                <!-- Reference Photo -->
+                <div class="ballroom-reference-static glass-panel" style="margin-top: 2rem; text-align: center; padding: 2rem;">
+                    <h3 style="margin-bottom: 1rem; color: var(--accent-gold);">Ballroom Table Layout</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Please use this map as a reference to find your table location.</p>
+                    <img src="assets/ballroom_layout_2026.png" class="ballroom-layout-img" alt="Ballroom Layout" loading="lazy" style="width: 100%; max-width: 700px; border-radius: 15px; border: 1px solid var(--glass-border); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                </div>
+            </section>
+
+
+
+            <section id="view-seating" class="view hidden">
+                <div class="info-bar glass-panel">
+                    <div class="info-bar-content">
+                        <p>Booking for: <strong id="current-booking-name">None</strong></p>
+                        <div style="display: flex; gap: 0.8rem; align-items: center;">
+                            <button id="btn-cancel-booking" class="btn-danger hidden" style="width: auto; padding: 0.6rem 1.2rem; font-size: 0.85rem; display: none;">Cancel My Booking</button>
+                            <button id="btn-change-profile" class="btn-primary" style="width: auto; padding: 0.6rem 1.2rem; font-size: 0.85rem;">Change Profile</button>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- Ballroom Reference for Seating View (v1.6.87) -->
+                <div id="seating-floorplan-ref" class="glass-panel" style="margin-bottom: 1.5rem; padding: 1rem; text-align: center;">
+                    <details>
+                        <summary style="cursor: pointer; font-weight: 600; color: var(--primary-dark);">🗺️ View Hall Floor Plan</summary>
+                        <div style="margin-top: 1rem;">
+                            <img src="assets/ballroom_layout_2026.png" alt="Floor Plan" style="width: 100%; max-width: 800px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                        </div>
+                    </details>
+                </div>
+
+                <div class="layout-controls">
+                    <!-- Removed Toggle Button -->
+                    
+                    <!-- Seating Mode Toggle -->
+                    <!-- Removed Seating Mode Toggle -->
+                    </div>
+
+                    
+                </div>
+
+                
+                <div class="floor-layout" id="floor-layout">
+                    <!-- Tables dynamically injected here -->
+                </div>
+                <div id="list-layout" class="list-layout hidden">
+                    <!-- Table cards injected here -->
+                </div>
+            </section>
+
+            <section id="view-checkin" class="view hidden">
+                <div class="qr-checkin-wrapper">
+                    <div class="qr-scanner-pane">
+                        <div id="qr-reader" style="width: 100%; border-radius: 20px; overflow: hidden; border: 2px solid var(--glass-border);"></div>
+                        <div class="scanner-tip">
+                            <span>📷 Camera Active - Align QR Code in center</span>
+                        </div>
+                        <p style="text-align: center; color: var(--accent-gold); font-size: 0.8rem; margin-top: 5px; opacity: 0.9; font-weight: 600;">
+                            💡 Hold badge FURTHER AWAY until it fits in the small frame (Better Focus).
+                        </p>
+                        <div style="text-align: center; margin-top: 10px;">
+                            <button onclick="window.forceRestartCamera()" class="btn-compact-outline" style="font-size: 0.75rem; padding: 0.4rem 1rem; opacity: 0.8; border: 1px dashed var(--accent-gold); color: var(--accent-gold);">
+                                🔄 Fix Camera / Restart
+                            </button>
+                        </div>
+                        <button id="btn-toggle-manual-search" class="btn-compact-outline" style="margin-top: 1rem; width: 100%;">
+                            ⌨️ Use Manual Search
+                        </button>
+                    </div>
+
+                    <div class="qr-details-pane">
+                        <div id="checkin-id-preview" class="qr-placeholder-content">
+                            <div class="qr-loading-bar"></div>
+                            <h3>Scanning Active</h3>
+                            <p>Align the badge QR code with the frame</p>
+                        </div>
+
+                        <div id="checkin-active-user" class="qr-active-user hidden">
+                            <div class="user-pill-id" id="checkin-display-id">ID: 000000</div>
+                            <h2 id="checkin-display-name">Guest Name</h2>
+                            <div class="user-info-row">
+                                <span id="checkin-display-dept" class="meta-text">DEPARTMENT</span>
+                                <span class="meta-separator">|</span>
+                                <span id="checkin-display-diet" class="meta-text">Normal</span>
+                            </div>
+                            
+                            <div class="seating-card hidden">
+                                <span class="seating-title">TABLE & SEAT</span>
+                                <div id="checkin-display-table" class="seating-value">Table --, Seat --</div>
+                            </div>
+                            
+                            <button id="btn-confirm-checkin" class="btn-primary btn-premium-checkin">
+                                CONFIRM CHECK-IN
+                                <small>Press Enter to confirm</small>
+                            </button>
+                        </div>
+
+                        <!-- Success Confirmation Pane (v1.6.87 Combined) -->
+                        <div id="checkin-success-pane" class="qr-active-user hidden" style="text-align: center;">
+                            <div style="font-size: 3.5rem; margin-bottom: 2rem;">🎊🎒✨</div>
+                            <h2 style="font-size: 2rem; color: var(--accent-gold); line-height: 1.4; margin-bottom: 1.5rem;">
+                                Entry & Gift Success!<br>
+                                <span style="font-size: 1.2rem; color: var(--text-main);">Marked for Lucky Draw.</span><br>
+                                Enjoy your evening!
+                            </h2>
+                            <p style="color: var(--primary-dark); font-weight: 600; font-size: 0.9rem;">Please proceed to collect your door gift.</p>
+                            <div class="qr-loading-bar" style="margin: 2rem auto 0 auto;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden canvas for QR Generation (v1.6.87 High Res) -->
+                <canvas id="qr-gen-canvas" width="600" height="800" style="display: none;"></canvas>
+                <div id="qr-gen-temp-div" style="position: absolute; left: -9999px; opacity: 0; pointer-events: none;"></div>
+
+                <!-- Manual Search Modal (Fallback) -->
+                <div id="manual-search-overlay" class="manual-overlay hidden">
+                    <div class="manual-content glass-panel">
+                        <span class="close-manual" id="btn-close-manual">&times;</span>
+                        <h3>Manual Check-In</h3>
+                        <div class="search-box" style="margin-bottom: 2rem;">
+                            <input type="text" id="checkin-search" placeholder="Search by name, ID, or email..." autocomplete="off">
+                            <button id="btn-search">Search</button>
+                        </div>
+                        <div id="checkin-results"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DOOR GIFT VIEW (v1.6.87) -->
+            <section id="view-doorgift" class="view hidden">
+                <div class="qr-checkin-wrapper">
+                    <div class="qr-scanner-pane">
+                        <div id="qr-gift-reader" style="width: 100%; border-radius: 20px; overflow: hidden; border: 2px solid var(--glass-border);"></div>
+                        <div class="scanner-tip">
+                            <span>🎁 Door Gift Mode - Align QR Code</span>
+                        </div>
+                        <p style="text-align: center; color: var(--accent-gold); font-size: 0.8rem; margin-top: 5px; opacity: 0.9; font-weight: 600;">
+                            💡 Scan QR to confirm door gift collection.
+                        </p>
+                    </div>
+
+                    <div class="qr-details-pane">
+                        <div id="gift-id-preview" class="qr-placeholder-content">
+                            <div class="qr-loading-bar" style="background: var(--accent-gold);"></div>
+                            <h3>Waiting for Gift QR</h3>
+                            <p>Ready to process door gift claims</p>
+                        </div>
+
+                        <div id="gift-active-user" class="qr-active-user hidden">
+                            <div class="user-pill-id" id="gift-display-id" style="background: var(--accent-gold);">ID: 000000</div>
+                            <h2 id="gift-display-name">Guest Name</h2>
+                            <div class="user-info-row">
+                                <span id="gift-display-dept" class="meta-text">DEPARTMENT</span>
+                            </div>
+                            
+                            <!-- Gift Status Box -->
+                            <div id="gift-claim-status" style="margin: 1.5rem 0; padding: 1rem; border-radius: 12px; font-weight: 700;">
+                                <!-- Status injected here -->
+                            </div>
+                            
+                            <button id="btn-confirm-gift" class="btn-primary" style="background: var(--accent-gold);">
+                                CONFIRM REDEMPTION
+                            </button>
+                            <button id="btn-cancel-gift" class="btn-compact-outline" style="margin-top: 1rem; width: 100%;">
+                                CANCEL
+                            </button>
+                        </div>
+
+                        <!-- Success Confirmation Pane -->
+                        <div id="gift-success-pane" class="qr-active-user hidden" style="text-align: center;">
+                            <div style="font-size: 4rem; margin-bottom: 2rem;">🎁✨</div>
+                            <h2 style="font-size: 2.2rem; color: var(--accent-gold); line-height: 1.4; margin-bottom: 1.5rem;">
+                                Your gift is collected.<br>
+                                Enjoy your gift and<br>
+                                have a great evening.
+                            </h2>
+                            <div class="qr-loading-bar" style="margin: 2rem auto 0 auto; background: var(--accent-gold);"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+
+
+
+
+            <!-- ADMIN VIEW -->
+            <section id="view-admin" class="view hidden" style="padding: 0;">
+                <div class="admin-layout">
+                    <!-- Sidebar -->
+                    <aside class="admin-sidebar">
+                        <div class="sidebar-branding" style="padding: 1.5rem 1rem; border-bottom: 1px solid rgba(0,0,0,0.05); margin-bottom: 0.5rem;">
+                            <h1 style="font-size: 1.25rem; font-weight: 700; color: var(--accent-gold);">
+                                Appreciation <span style="color: var(--primary-dark);">Night</span>
+                                <div style="font-size: 0.9rem; color: var(--text-muted); font-weight: 400; margin-top: 0.2rem;">Control Center 2026</div>
+                            </h1>
+                        </div>
+                        <div class="sidebar-nav">
+                            <button id="admin-tab-btn-dashboard" class="sidebar-btn active" data-section="overview">
+                                <span class="icon">📊</span> Dashboard
+                            </button>
+                            <button id="sidebar-btn-directory" class="sidebar-btn hidden" data-section="directory">
+                                <span class="icon">👥</span> Employee Directory
+                            </button>
+                            <button id="sidebar-btn-visual" class="sidebar-btn hidden" data-section="visual-map">
+                                <span class="icon">🗺️</span> Visual Floor Plan
+                            </button>
+
+
+
+
+                            <button id="admin-tab-btn-doorgifts" class="sidebar-btn hidden desktop-only" data-section="doorgifts">
+                                <span class="icon">🎁</span> Door Gifts
+                            </button>
+
+                            <button id="admin-tab-btn-prizes" class="sidebar-btn" data-section="prizes">
+                                <span class="icon">🏆</span> Prize Inventory
+                            </button>
+                            <button id="admin-tab-btn-luckydraw" class="sidebar-btn" data-section="luckydraw">
+                                <span class="icon">🎡</span> Lucky Draw
+                            </button>
+                            <button id="admin-tab-btn-claims" class="sidebar-btn" data-section="claims">
+                                <span class="icon">📋</span> Winner Claims
+                            </button>
+
+                            <button id="admin-tab-btn-settings" class="sidebar-btn" data-section="settings">
+                                <span class="icon">⚙️</span> System Controls
+                            </button>
+                            <button id="admin-logout-btn" class="sidebar-btn"
+                                style="color: var(--danger); margin-top: 1rem;">
+                                <span class="icon">🚪</span> Log Out
+                            </button>
+                        </div>
+                    </aside>
+
+                    <!-- Main Content Panel -->
+                    <div class="admin-main-content">
+                        <!-- Dashboard Section -->
+                        <div id="admin-tab-dashboard" class="admin-container">
+                            <div class="admin-section-header">
+                                <div>
+                                    <h2>Event Overview</h2>
+                                    <p style="color: var(--text-muted);">Real-time registration & metrics | <strong style="color:var(--primary-dark)">v1.6.87 (STABLE)</strong></p>
+                                </div>
+                                <div class="quick-actions" style="display: flex; gap: 0.5rem;">
+                                    <button id="admin-refresh-data-btn" class="btn-primary"
+                                        style="width: auto; padding: 0.6rem 1rem; background: var(--sidebar-bg); color: var(--text-main); border: 1px solid var(--glass-border);">Refresh
+                                        Data</button>
+                                </div>
+                            </div>
+
+
+                            <!-- Metrics -->
+                            <div class="metrics-grid"
+                                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                                <div class="metric-card glass-panel">
+                                    <h3>Total Capacity</h3>
+                                    <div class="value" id="stat-total">0</div>
+                                </div>
+                                <div class="metric-card glass-panel">
+                                    <h3>Reserved Seats</h3>
+                                    <div class="value" id="stat-reserved">0</div>
+                                </div>
+                                <div class="metric-card glass-panel">
+                                    <h3>Checked In</h3>
+                                    <div class="value" id="stat-checkedin">0</div>
+                                </div>
+                                <div class="metric-card glass-panel" style="border-bottom: 4px solid var(--accent-gold);">
+                                    <h3>Live Update Latency</h3>
+                                    <div class="value"><span id="admin-sse-latency">0</span><small style="font-size: 1rem; opacity: 0.6; margin-left: 4px;">ms</small></div>
+                                </div>
+                                <div class="metric-card glass-panel">
+                                    <h3>Remaining</h3>
+                                    <div class="value" id="stat-available">0</div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- Directory Section (Consolidated Frame) -->
+                        <div id="admin-tab-directory" class="admin-container hidden">
+                            <div class="admin-section-header">
+                                <div>
+                                    <h2>Management Control Center</h2>
+                                    <p style="color: var(--text-muted); opacity:0.8; font-size:0.85rem;">System Version: 1.6.15 (STABLE)</p>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel"
+                                style="overflow: hidden; display: flex; flex-direction: column; min-height: 75vh;">
+                                <!-- Top Tools Strip -->
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; border-bottom: 1px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.3);">
+                                    <div style="display: flex; gap: 1rem;">
+                                        <button id="btn-create-emp" class="btn-primary"
+                                            style="width: auto; padding: 0.6rem 1.2rem;"><span>👤</span> Add
+                                            New</button>
+                                        <button id="btn-import-csv" class="btn-compact-outline"
+                                            style="padding: 0.6rem 1.2rem;"><span>📥</span> Import</button>
+                                        <button id="btn-export-csv" class="btn-compact-outline"
+                                            style="padding: 0.6rem 1.2rem;"><span>📊</span> Export</button>
+                                        <button id="btn-admin-batch-qr" class="btn-compact-outline" 
+                                            style="padding: 0.6rem 1.2rem; border-color: var(--accent-gold); color: var(--accent-gold); font-weight: 600;"><span>📇</span> Bulk QR Badges</button>
+                                        <input type="file" id="csv-upload" accept=".csv" style="display: none;">
+                                    </div>
+                                    <div
+                                        style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">
+                                        <span id="directory-count">0</span> Employees Found
+                                    </div>
+                                </div>
+
+                                <!-- Filter Panel -->
+                                <div class="filter-bar">
+                                    <div class="filter-group" style="flex: 2;">
+                                        <label>Quick Search</label>
+                                        <input type="text" id="admin-search-emp"
+                                            placeholder="Search name, ID, Table...">
+                                    </div>
+                                    <div class="filter-group">
+                                        <label>Dept</label>
+                                        <select id="filter-dept">
+                                            <option value="">All</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label>Seat Status</label>
+                                        <select id="filter-status">
+                                            <option value="">All</option>
+                                            <option value="seated">Seated</option>
+                                            <option value="unassigned">Unassigned</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label>Attendance</label>
+                                        <select id="filter-checkin">
+                                            <option value="">All</option>
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                        </select>
+                                    </div>
+                                    <button id="btn-clear-filters" class="public-session-btn"
+                                        style="padding: 0 1.2rem; height: 44px; display: flex; align-items: center; justify-content: center;"
+                                        title="Reset Filters">🔄</button>
+                                </div>
+
+                                <!-- Table Area -->
+                                <div class="table-responsive" style="flex: 1; overflow-x: auto; overflow-y: auto;">
+                                    <table class="admin-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="padding-left: 2rem;">Location</th>
+                                                <th>Employee Name</th>
+                                                <th>ID</th>
+                                                <th>Email</th>
+                                                <th>Dept</th>
+                                                <th>Diet</th>
+                                                <th style="text-align: center;">Gift</th>
+                                                <th>Status</th>
+                                                <th style="text-align: center;">Check-in</th>
+                                                <th style="width: 180px; text-align: center; padding-right: 2rem;">
+                                                    Manage</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-table-body"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Visual Map Section -->
+                        <div id="admin-tab-visual" class="admin-container hidden">
+                            <div class="admin-section-header">
+                                <div>
+                                    <h2>Table & Floor Layout</h2>
+                                    <p style="color: var(--text-muted);">Manage table availability and seating</p>
+                                </div>
+                                
+                                <div style="display: flex; gap: 1rem; align-items: center; background: rgba(10, 130, 118, 0.05); padding: 0.8rem 1.5rem; border-radius: 50px; border: 1px solid var(--accent-gold);">
+                                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--accent-gold);">Seating Config:</span>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted);">Manage global availability in <strong>System Controls</strong></span>
+                                </div>
+                            </div>
+                                <!-- Admin Interactive Mode Switcher -->
+                                <div class="admin-interaction-toggle" style="margin-bottom: 2rem; display: flex; justify-content: center; gap: 1rem;">
+                                    <div class="glass-panel" style="display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1.5rem; border-radius: 50px; background: rgba(0,0,0,0.05); border: 1px solid var(--glass-border);">
+                                        <span style="font-size: 0.85rem; font-weight: 600;">Admin Mode:</span>
+                                        <div style="display: flex; gap: 0.3rem; background: rgba(0,0,0,0.05); padding: 0.3rem; border-radius: 30px;">
+                                            <button id="admin-mode-seat-btn" class="sidebar-btn active" onclick="setAdminInteractionMode('seat')" 
+                                                    style="padding: 0.5rem 1.2rem; border-radius: 20px; font-size: 0.8rem; border: none; cursor: pointer; transition: all 0.3s;">🖱️ Individual Seat Edits</button>
+                                            <button id="admin-mode-table-btn" class="sidebar-btn" onclick="setAdminInteractionMode('table')"
+                                                    style="padding: 0.5rem 1.2rem; border-radius: 20px; font-size: 0.8rem; border: none; cursor: pointer; transition: all 0.3s;">🏢 Bulk Table Booking</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="glass-panel"
+                                    style="background: rgba(255, 255, 255, 0.55); padding: 2rem; position: relative; overflow: hidden; min-height: 600px;">
+                                    <div id="admin-visual-floor-layout" class="floor-layout"
+                                        style="transform-origin: top center; margin: 0; max-width: none;">
+                                        <!-- Visual map injected here -->
+                                    </div>
+                                </div>
+                        </div>
+
+
+
+
+
+
+
+
+
+
+
+                        <!-- Door Gift Management Section -->
+                        <div id="admin-tab-doorgifts" class="admin-container hidden">
+                            <div class="admin-section-header">
+                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <div>
+                                        <h2>Door Gift Collection Dashboard</h2>
+                                        <p style="color: var(--text-muted);">Track and manage gift distribution for all checked-in guests</p>
+                                    </div>
+                                    <div style="display: flex; gap: 1rem;">
+                                        <div class="metric-mini glass-panel" style="padding: 0.8rem 1.5rem; text-align: center; min-width: 140px;">
+                                            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Claimed</div>
+                                            <div id="stat-doorgift-claimed" style="font-size: 1.5rem; font-weight: 800; color: var(--primary-dark);">0</div>
+                                        </div>
+                                        <div class="metric-mini glass-panel" style="padding: 0.8rem 1.5rem; text-align: center; min-width: 140px;">
+                                            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Pending</div>
+                                            <div id="stat-doorgift-pending" style="font-size: 1.5rem; font-weight: 800; color: #f57f17;">0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel" style="padding: 2rem;">
+                                <div class="filter-bar" style="margin-bottom: 2rem;">
+                                    <div class="filter-group" style="flex: 2;">
+                                        <label>Search Guest</label>
+                                        <input type="text" id="doorgift-search" placeholder="Search name or ID...">
+                                    </div>
+                                    <div class="filter-group">
+                                        <label>Claim Status</label>
+                                        <select id="doorgift-filter-status">
+                                            <option value="">All Status</option>
+                                            <option value="claimed">Claimed</option>
+                                            <option value="pending">Pending</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label>Dietary</label>
+                                        <select id="doorgift-filter-diet">
+                                            <option value="">All Dietary</option>
+                                            <option value="Standard">Standard</option>
+                                            <option value="Vegetarian">Vegetarian</option>
+                                            <option value="No Beef">No Beef</option>
+                                            <option value="Halal">Halal</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                                    <table class="admin-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Guest Information</th>
+                                                <th>Dietary</th>
+                                                <th>Check-in Status</th>
+                                                <th>Gift Status</th>
+                                                <th style="text-align: right;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-doorgifts-table-body">
+                                            <!-- Populated by app.js -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prizes Section -->
+                        <div id="admin-tab-prizes" class="admin-container hidden">
+                            <div class="admin-section-header">
+                                <div>
+                                    <h2>Prize Inventory</h2>
+                                    <p style="color: var(--text-muted);">Manage lucky draw prizes across sessions</p>
+                                </div>
+                                <div class="quick-actions" style="display: flex; gap: 0.5rem;">
+                                    <button id="btn-import-prize-csv" class="btn-secondary"
+                                        style="width:auto; padding: 0.6rem 1.2rem; background: var(--sidebar-bg); color: var(--text-main); border: 1px solid var(--glass-border);">📥 Import CSV</button>
+                                    <input type="file" id="prize-csv-upload" accept=".csv" style="display:none;">
+                                    
+                                    <button id="btn-create-prize" class="btn-primary"
+                                        style="width:auto; padding: 0.6rem 1.5rem;">+ Add Prize</button>
+                                    <button id="btn-reset-luckydraw" class="btn-danger"
+                                        style="width:auto; padding: 0.6rem 1.5rem;">Reset All Winners</button>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel"
+                                style="background: rgba(255, 255, 255, 0.55); padding: 0; overflow: hidden;">
+                                <div class="table-responsive">
+                                    <table class="admin-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Session</th>
+                                                <th>Rank</th>
+                                                <th>Prize Name</th>
+                                                <th>Quantity</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-prizes-table-body"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lucky Draw Draw Section -->
+                        <div id="admin-tab-luckydraw" class="admin-container hidden">
+                            <div class="admin-section-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <h2>Live Lucky Draw</h2>
+                                    <p style="color: var(--text-muted);">Roll for winners in real-time | <span
+                                            id="eligible-count-info"
+                                            style="color: var(--accent-gold); font-weight: bold;">0</span> potential
+                                        candidates</p>
+                                </div>
+                                <button id="btn-toggle-fullscreen" class="btn-outline" 
+                                        style="padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.85rem;"
+                                        onclick="toggleFullScreen()">
+                                    ?Fullscreen
+                                </button>
+                            </div>
+
+                            <div class="admin-tabs" style="margin-bottom: 2rem;">
+                                <button class="session-btn active" data-session="1">Session 1</button>
+                                <button class="session-btn" data-session="2">Session 2</button>
+                                <button class="session-btn" data-session="3">Session 3</button>
+                                <button class="session-btn" data-session="4">Session 4</button>
+                            </div>
+
+                            <div class="luckydraw-admin-grid"
+                                style="display: flex; flex-direction: column; gap: 2.5rem;">
+
+                                <!-- Main Draw Section -->
+                                <div class="glass-panel"
+                                    style="padding: 4rem 2rem; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.5);">
+
+                                    <!-- Active Prize Banner -->
+                                    <div id="active-prize-banner" class="glass-panel" 
+                                         style="margin-bottom: 2rem; padding: 1rem 2rem; border-radius: 15px; background: rgba(8, 107, 97, 0.1); border: 1px solid var(--accent-gold); display: none;">
+                                        <span style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Drawing:</span>
+                                        <div id="active-prize-name" style="font-size: 1.4rem; font-weight: 800; color: var(--accent-gold);">Select Session</div>
+                                    </div>
+
+                                    <!-- Drawing Wheel Container -->
+                                    <div id="wheel-container"
+                                        style="position: relative; width: 320px; height: 320px; margin: 0 auto 3rem; display: none;">
+                                        <canvas id="drawing-wheel" width="320" height="320"></canvas>
+                                        <div id="wheel-pointer"
+                                            style="position: absolute; top: -15px; left: 50%; translate: -50% 0; width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid var(--accent-gold); z-index: 10; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2));">
+                                        </div>
+                                    </div>
+
+                                    <div id="winner-display">
+                                        <h2 style="color: var(--text-muted); font-weight: 300; font-size: 1.8rem;">Ready
+                                            for the next draw?</h2>
+                                        <p style="color: var(--text-muted); opacity: 0.7;">Select a session and click
+                                            Spin Wheel</p>
+                                    </div>
+
+                                    <div
+                                        style="margin-top: 3rem; display: flex; flex-direction: column; gap: 1.5rem; align-items: center; width: 100%;">
+                                        <button id="btn-next-prize" class="btn-primary"
+                                            style="width: fit-content; padding: 1.2rem 5rem; border-radius: 50px; font-size: 1.4rem; background: linear-gradient(135deg, var(--accent-gold), #086b61); border: none; box-shadow: 0 10px 25px rgba(10, 130, 118, 0.3);"
+                                            onclick="showNextPrize()">
+                                            🎁 Next Prize
+                                        </button>
+                                        <button id="btn-draw-winner" class="btn-primary"
+                                            style="display: none; width: fit-content; padding: 1.2rem 5rem; border-radius: 50px; font-size: 1.4rem; background: linear-gradient(135deg, #0A8276, #086b61); border: none; box-shadow: 0 10px 25px rgba(10, 130, 118, 0.3);"
+                                            onclick="performLuckyDraw(1)">
+                                            🎡 Spin Wheel
+                                        </button>
+                                        <div id="bulk-draw-controls"
+                                            style="display: flex; gap: 1rem; justify-content: center;">
+                                            <!-- Session specific bulk buttons -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Lists Grid -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem;">
+                                    <div class="glass-panel" style="padding: 2rem;">
+                                        <h3 style="margin-bottom: 1.5rem; color: var(--accent-gold);">🏆 Recent Winners
+                                        </h3>
+                                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                            <table class="admin-table" style="font-size: 0.9rem;">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Prize</th>
+                                                        <th>Winner</th>
+                                                        <th>Time</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="luckydraw-winners-body"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <div class="glass-panel" style="padding: 2rem;">
+                                        <h3 style="margin-bottom: 1.5rem; color: var(--accent-gold);">👥 Eligible
+                                            Candidates</h3>
+                                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                            <table class="admin-table" style="font-size: 0.9rem;">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Name</th>
+                                                        <th>Department</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="luckydraw-eligible-body"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Winner Claims Section -->
+                        <div id="admin-tab-claims" class="admin-container hidden">
+                            <div class="admin-section-header">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <h2>Winner Claim Management</h2>
+                                        <p style="color: var(--text-muted);">Manage and track prize collection across all sessions</p>
+                                    </div>
+                                    <div class="quick-actions">
+                                        <button id="btn-export-claims" class="btn-primary" style="width: auto; padding: 0.6rem 1.2rem; background: #2e7d32; border: none; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);" onclick="exportWinnerClaimsToCSV()">📊 Export to Excel</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel" style="padding: 2rem;">
+                                <div class="filter-bar" style="margin-bottom: 2rem;">
+                                    <div class="filter-group" style="flex: 2;">
+                                        <label>Search Winner</label>
+                                        <input type="text" id="claims-search"
+                                            placeholder="Search name, ID, or prize...">
+                                    </div>
+                                    <div class="filter-group">
+                                        <label>Session</label>
+                                        <select id="claims-filter-session">
+                                            <option value="">All Sessions</option>
+                                            <option value="1">Session 1</option>
+                                            <option value="2">Session 2</option>
+                                            <option value="3">Session 3</option>
+                                            <option value="4">Session 4</option>
+                                        </select>
+                                    </div>
+                                    <div class="filter-group">
+                                        <label>Status</label>
+                                        <select id="claims-filter-status">
+                                            <option value="">All Status</option>
+                                            <option value="unclaimed">Unclaimed 🎁</option>
+                                            <option value="claimed">Claimed ✅</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="admin-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Prize</th>
+                                                <th>Rank</th>
+                                                <th>Winner Name</th>
+                                                <th>Emp ID</th>
+                                                <th>Dept</th>
+                                                <th style="text-align: center;">Status</th>
+                                                <th style="text-align: right; padding-right: 2rem;">Claim Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="claims-table-body"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                            <!-- System Settings Section -->
+                            <div id="admin-tab-settings" class="admin-container hidden">
+                                <div class="admin-section-header">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                        <div>
+                                            <h2>Global System Controls</h2>
+                                            <p style="color: var(--text-muted);">Manage application availability and guest permissions</p>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                <div class="metric-card glass-panel" style="max-width: 600px; margin-bottom: 2rem;">
+                                    <label>Feature Toggles</label>
+                                    <p style="margin-bottom: 1.5rem; color: var(--text-muted);">Enable or disable
+                                        sections
+                                        of the application for guests.</p>
+
+                                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                                        <!-- Event Timer Setup -->
+                                        <div style="padding: 1.2rem; background: rgba(10, 130, 118, 0.05); border-radius: 12px; border: 1px solid var(--accent-gold);">
+                                            <div style="margin-bottom: 1rem;">
+                                                <h4 style="margin:0; color: var(--accent-gold);">Event Countdown Timer</h4>
+                                                <small style="color: var(--text-muted);">Set the date and time when the countdown ends.</small>
+                                            </div>
+                                            <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                                                <div style="flex: 1;">
+                                                    <label style="font-size: 0.8rem; margin-bottom: 0.3rem; display: block;">Target Date & Time</label>
+                                                    <input type="datetime-local" id="event-timer-input" 
+                                                        style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1);">
+                                                </div>
+                                                <button id="btn-save-event-timer" class="btn-primary" style="width: auto; padding: 0.8rem 1.5rem;">Save Timer</button>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: center; padding: 1.2rem; background: rgba(0,0,0,0.02); border-radius: 12px; border: 1px solid var(--glass-border);">
+                                            <div>
+                                                <h4 style="margin:0;">Table Selection (Global)</h4>
+                                                <small style="color: var(--text-muted);">Allow guests to browse and pick
+                                                    seats.</small>
+                                            </div>
+                                            <button class="btn-primary toggle-feature" data-feature="feature_seating"
+                                                style="width: auto; padding: 0.5rem 1.5rem;">ON</button>
+                                        </div>
+
+                                        <!-- Granular Seating Mode Toggles -->
+                                        <div style="margin-left: 2rem; border-left: 2px solid var(--accent-gold); padding-left: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; background: rgba(0,0,0,0.01); border-radius: 10px;">
+                                                <div>
+                                                    <h5 style="margin:0;">Enable Seat-by-Seat Booking</h5>
+                                                    <small style="color: var(--text-muted);">Allow picking individual seats.</small>
+                                                </div>
+                                                <button class="btn-primary toggle-feature" data-feature="feature_seat_mode"
+                                                    style="width: auto; padding: 0.4rem 1.2rem; font-size: 0.8rem;">ON</button>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; background: rgba(0,0,0,0.01); border-radius: 10px;">
+                                                <div>
+                                                    <h5 style="margin:0;">Enable Full-Table Booking</h5>
+                                                    <small style="color: var(--text-muted);">Allow reserving all 11 seats at once.</small>
+                                                </div>
+                                                <button class="btn-primary toggle-feature" data-feature="feature_table_mode"
+                                                    style="width: auto; padding: 0.4rem 1.2rem; font-size: 0.8rem;">ON</button>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: center; padding: 1.2rem; background: rgba(0,0,0,0.02); border-radius: 12px; border: 1px solid var(--glass-border);">
+                                            <div>
+                                                <h4 style="margin:0;">Attendance Check-In</h4>
+                                                <small style="color: var(--text-muted);">Allow guests to check
+                                                    themselves
+                                                    in.</small>
+                                            </div>
+                                            <button class="btn-primary toggle-feature" data-feature="feature_checkin"
+                                                style="width: auto; padding: 0.5rem 1.5rem;">ON</button>
+                                        </div>
+
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: center; padding: 1.2rem; background: rgba(0,0,0,0.02); border-radius: 12px; border: 1px solid var(--glass-border);">
+                                            <div>
+                                                <h4 style="margin:0;">Maintenance Mode</h4>
+                                                <small style="color: var(--text-muted);">Redirect all guests to maintenance screen.</small>
+                                            </div>
+                                            <button class="btn-primary toggle-feature" data-feature="maintenance_mode"
+                                                style="width: auto; padding: 0.5rem 1.5rem;">OFF</button>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+
+                        <!-- Admin Profiles (Relocated) -->
+                        <div id="admin-profiles-section" class="glass-panel" style="padding: 2rem; margin-top: 2rem;">
+                            <div class="admin-section-header" style="margin-bottom: 1.5rem;">
+                                <h3 style="color: var(--accent-gold);">System Administrators</h3>
+                                <button id="btn-create-admin" class="btn-primary"
+                                    style="width:auto; padding: 0.6rem 1.2rem;">+ Add Admin</button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Username</th>
+                                            <th>Role</th>
+                                            <th>Permissions</th>
+                                            <th style="text-align: right; padding-right: 2rem;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-profiles-table-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+            </section>
+        </main>
+
+        <!-- MODAL FOR RESERVATION -->
+        <div id="modal-seat-reservation" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 600px; padding: 2.5rem;">
+                <button class="close-btn" id="close-modal">&times;</button>
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🍽️✨</div>
+                    <h3 id="modal-title" style="font-size: 1.8rem; font-weight: 700;">Reserve Entire Table</h3>
+                    <p id="modal-seat-info" style="color: var(--text-muted); margin-bottom: 0.5rem;"></p>
+                    <div id="reservation-timer" style="font-weight: 700; color: var(--danger); margin-bottom: 1rem; font-size: 1.1rem; display: none;">
+                        ⏳ Loading timer...
+                    </div>
+                    <p>Booking as: <strong id="modal-emp-name" style="color:var(--accent-gold);"></strong></p>
+                </div>
+
+                <form id="reservation-form">
+                    <div id="pax-inputs-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; max-height: 400px; overflow-y: auto; padding: 1rem; background: rgba(0,0,0,0.02); border-radius: 12px;">
+                        <div class="form-group pax-search-container" style="grid-column: span 2;">
+                            <label>Pax 1 (Primary)</label>
+                            <input type="text" id="pax-input-0" placeholder="Pax 1 Name" required readonly style="background: rgba(0,0,0,0.05);">
+                        </div>
+                        <div class="form-group pax-search-container">
+                            <label>Pax 2</label>
+                            <input type="text" id="pax-input-1" class="pax-autocomplete" placeholder="Type to search..." autocomplete="off">
+                            <div class="pax-search-results hidden"></div>
+                        </div>
+                        <div class="form-group pax-search-container">
+                            <label>Pax 3</label>
+                            <input type="text" id="pax-input-2" class="pax-autocomplete" placeholder="Type to search..." autocomplete="off">
+                            <div class="pax-search-results hidden"></div>
+                        </div>
+                        <div class="form-group pax-search-container">
+                            <label>Pax 4</label>
+                            <input type="text" id="pax-input-3" class="pax-autocomplete" placeholder="Type to search..." autocomplete="off">
+                            <div class="pax-search-results hidden"></div>
+                        </div>
+                        <div class="form-group pax-search-container">
+                            <label>Pax 5</label>
+                            <input type="text" id="pax-input-4" class="pax-autocomplete" placeholder="Type to search..." autocomplete="off">
+                            <div class="pax-search-results hidden"></div>
+                        </div>
+                        <div class="form-group pax-search-container">
+                            <label>Pax 6</label>
+                            <input type="text" id="pax-input-5" class="pax-autocomplete" placeholder="Type to search..." autocomplete="off">
+                            <div class="pax-search-results hidden"></div>
+                        </div>
+                        <div class="form-group pax-search-container">
+                            <label>Pax 7</label>
+                            <input type="text" id="pax-input-6" class="pax-autocomplete" placeholder="Type to search..." autocomplete="off">
+                            <div class="pax-search-results hidden"></div>
+                        </div>
+                        <div class="form-group pax-search-container">
+                            <label>Pax 8</label>
+                            <input type="text" id="pax-input-7" class="pax-autocomplete" placeholder="Type to search..." autocomplete="off">
+                            <div class="pax-search-results hidden"></div>
+                        </div>
+                        <div class="form-group pax-search-container">
+                            <label>Pax 9</label>
+                            <input type="text" id="pax-input-8" class="pax-autocomplete" placeholder="Type to search..." autocomplete="off">
+                            <div class="pax-search-results hidden"></div>
+                        </div>
+                        <div class="form-group pax-search-container">
+                            <label>Pax 10</label>
+                            <input type="text" id="pax-input-9" class="pax-autocomplete" placeholder="Type to search..." autocomplete="off">
+                            <div class="pax-search-results hidden"></div>
+                        </div>
+                        <div class="form-group pax-search-container">
+                            <label>Pax 11</label>
+                            <input type="text" id="pax-input-10" class="pax-autocomplete" placeholder="Type to search..." autocomplete="off">
+                            <div class="pax-search-results hidden"></div>
+                        </div>
+                    </div>
+                    
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <button type="submit" class="btn-primary" style="flex: 2; padding: 1.2rem; border-radius: 15px; font-weight: 700; font-size: 1.1rem; box-shadow: 0 10px 25px rgba(10, 130, 118, 0.2);">CONFIRM TABLE BOOKING</button>
+                        <button type="button" id="btn-cancel-modal" class="btn-secondary" style="flex: 1; padding: 1.2rem; border-radius: 15px; font-weight: 700; font-size: 1.1rem; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); color: var(--text-muted);">CANCEL</button>
+                    </div>
+                    <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">Note: This will book all 11 seats for your group.</p>
+                </form>
+
+
+            </div>
+        </div>
+
+        <!-- MODAL FOR ADMIN TO EDIT SEAT -->
+        <div id="admin-edit-seat-modal" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 500px; padding: 3rem;">
+                <span class="close-modal" id="close-edit-seat-modal">&times;</span>
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">💺✨</div>
+                    <h2 style="font-weight: 700; color: var(--text-main);">Assign/Edit Seat</h2>
+                    <div class="form-group" style="text-align: left; margin-bottom: 1.5rem;">
+                        <label>Assigned Employee (Search to change)</label>
+                        <input type="text" id="edit-seat-emp-search" list="admin-employee-datalist" placeholder="Search employee name or ID..." autocomplete="off" style="width:100%; padding: 0.8rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1);">
+                        <datalist id="admin-employee-datalist"></datalist>
+                        
+                        <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem; margin-bottom: 0;">
+                            Selected: <strong id="edit-seat-emp-name" style="color:var(--accent-gold);">Available</strong>
+                            <span id="edit-seat-emp-id" style="font-family: monospace; opacity: 0.8; margin-left: 0.5rem;"></span>
+                        </p>
+                        <div id="edit-seat-emp-meta" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-muted); display: flex; gap: 1rem; justify-content: flex-start;">
+                            <span id="edit-seat-emp-dept"></span>
+                            <span id="edit-seat-emp-diet" class="diet-badge" style="display: none;"></span>
+                        </div>
+                    </div>
+                </div>
+                <form id="admin-edit-seat-form">
+                    <input type="hidden" id="edit-seat-hidden-emp-id">
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="form-group" style="flex:1;">
+                            <label>New Table</label>
+                            <select id="edit-table-select" required
+                                style="width:100%; padding:0.8rem; border-radius:12px; border:1px solid rgba(0,0,0,0.1);"></select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>New Seat</label>
+                            <select id="edit-seat-select" required
+                                style="width:100%; padding:0.8rem; border-radius:12px; border:1px solid rgba(0,0,0,0.1);"></select>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <button type="button" id="admin-unassign-seat-btn" class="btn-compact-outline"
+                            style="flex: 1; border-color: var(--danger); color: var(--danger); border-radius: 12px; padding: 1rem;">Unassign
+                            Seat</button>
+                        <button type="submit" class="btn-primary"
+                            style="flex: 1; border-radius: 12px; padding: 1rem;">Update Seat</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL FOR ADMIN BATCH TABLE ASSIGNMENT -->
+        <div id="admin-batch-table-modal" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 900px; padding: 3rem;">
+                <span class="close-modal" id="close-admin-batch-modal">&times;</span>
+                <div style="text-align: center; margin-bottom: 2.5rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🏢📋</div>
+                    <h2 id="admin-batch-modal-title" style="font-weight: 700; color: var(--text-main);">Table Batch Assignment</h2>
+                    <p style="color: var(--text-muted); margin-top: 0.5rem;">Quickly assign employees to all 11 seats at this table.</p>
+                </div>
+                <form id="admin-batch-table-form">
+                    <input type="hidden" id="admin-batch-table-idx">
+                    <div id="admin-batch-pax-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; max-height: 450px; overflow-y: auto; padding: 1rem; background: rgba(0,0,0,0.02); border-radius: 12px;">
+                        <!-- 11 Inputs will be injected here -->
+                    </div>
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                        <button type="button" class="btn-compact-outline" id="btn-batch-clear-all" style="border-radius: 12px; padding: 1rem 2rem;">Clear All Seats</button>
+                        <button type="submit" class="btn-primary" style="border-radius: 12px; padding: 1rem 3rem;">Confirm Batch Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL FOR CREATING EMPLOYEE VIA ADMIN -->
+        <div id="modal-employee-create" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 550px; padding: 3rem;">
+                <span class="close-modal" id="close-admin-emp-modal">&times;</span>
+                <div style="text-align: center; margin-bottom: 2.5rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">👥✨</div>
+                    <h2 style="font-weight: 700; color: var(--text-main);">Add Employee</h2>
+                </div>
+                <form id="admin-emp-form">
+                    <div class="form-grid"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label>Employee Name</label>
+                            <input type="text" id="new-emp-name" placeholder="Full Name" required
+                                style="border-radius: 12px; padding: 0.8rem 1rem;">
+                        </div>
+                        <div class="form-group">
+                            <label>Employee ID</label>
+                            <input type="text" id="new-emp-id" placeholder="ID Number" required
+                                style="border-radius: 12px; padding: 0.8rem 1rem;">
+                        </div>
+                    </div>
+                    <div class="form-grid"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="new-emp-email" placeholder="email@company.com" required
+                                style="border-radius: 12px; padding: 0.8rem 1rem;">
+                        </div>
+                        <div class="form-group">
+                            <label>Department</label>
+                            <input type="text" id="new-emp-dept" placeholder="Dept Name" required
+                                style="border-radius: 12px; padding: 0.8rem 1rem;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 2rem;">
+                        <label>Dietary Preference</label>
+                        <div class="radio-group"
+                            style="display: flex; gap: 1.5rem; justify-content: center; padding: 1rem; background: rgba(0,0,0,0.02); border-radius: 12px; border: 1px solid rgba(0,0,0,0.05);">
+                            <label
+                                style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500;"><input
+                                    type="radio" name="new-diet" value="non-vegetarian" checked> Non-Vegetarian</label>
+                            <label
+                                style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; color: #4caf50;"><input
+                                    type="radio" name="new-diet" value="vegetarian"> Vegetarian</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary"
+                        style="width: 100%; border-radius: 12px; padding: 1rem;">Save Employee Profile</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL FOR EDITING EMPLOYEE PROFILE VIA ADMIN -->
+        <div id="modal-employee-edit" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 550px; padding: 3rem;">
+                <span class="close-modal" id="close-admin-edit-emp-modal">&times;</span>
+                <div style="text-align: center; margin-bottom: 2.5rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">✍️✨</div>
+                    <h2 style="font-weight: 700; color: var(--text-main);">Edit Employee</h2>
+                </div>
+                <form id="admin-edit-emp-form">
+                    <input type="hidden" id="edit-emp-original-id">
+                    <div class="form-grid"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label>Employee Name</label>
+                            <input type="text" id="edit-emp-name" required
+                                style="border-radius: 12px; padding: 0.8rem 1rem;">
+                        </div>
+                        <div class="form-group">
+                            <label>Employee ID</label>
+                            <input type="text" id="edit-emp-id" required
+                                style="border-radius: 12px; padding: 0.8rem 1rem;">
+                        </div>
+                    </div>
+                    <div class="form-grid"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="edit-emp-email" required
+                                style="border-radius: 12px; padding: 0.8rem 1rem;">
+                        </div>
+                        <div class="form-group">
+                            <label>Department</label>
+                            <input type="text" id="edit-emp-dept" required
+                                style="border-radius: 12px; padding: 0.8rem 1rem;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 2rem;">
+                        <label>Dietary Preference</label>
+                        <div class="radio-group"
+                            style="display: flex; gap: 1.5rem; justify-content: center; padding: 1rem; background: rgba(0,0,0,0.02); border-radius: 12px; border: 1px solid rgba(0,0,0,0.05);">
+                            <label
+                                style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500;"><input
+                                    type="radio" name="edit-diet" value="non-vegetarian"> Non-Vegetarian</label>
+                            <label
+                                style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; color: #4caf50;"><input
+                                    type="radio" name="edit-diet" value="vegetarian"> Vegetarian</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary"
+                        style="width: 100%; border-radius: 12px; padding: 1rem;">Update Profile</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="modal-prize-create" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 450px; padding: 3rem;">
+                <span class="close-modal" id="close-prize-modal">&times;</span>
+                <div style="text-align: center; margin-bottom: 2.5rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🎁✨</div>
+                    <h2 style="font-weight: 700; color: var(--text-main);">Add New Prize</h2>
+                </div>
+                <form id="new-prize-form">
+                    <div class="form-group">
+                        <label>Session</label>
+                        <select id="new-prize-session" required
+                            style="width:100%; padding:0.8rem; border-radius:12px; border:1px solid rgba(0,0,0,0.1);">
+                            <option value="1">Session 1 (General)</option>
+                            <option value="2">Session 2 (General)</option>
+                            <option value="3">Session 3 (Top 7)</option>
+                            <option value="4">Session 4 (Top 3)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Prize Rank</label>
+                        <input type="text" id="new-prize-rank" list="rank-options" placeholder="e.g. 1st Prize or Rank 1-10" 
+                               style="width:100%; padding:0.8rem; border-radius:12px; border:1px solid rgba(0,0,0,0.1); background: #fff;">
+                    </div>
+                    <div class="form-group">
+                        <label>Prize Name</label>
+                        <input type="text" id="new-prize-name" placeholder="e.g. iPhone 15 Pro Max" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" id="new-prize-qty" min="1" value="1" required>
+                    </div>
+                    <button type="submit" class="btn-primary"
+                        style="width: 100%; margin-top: 1.5rem; padding: 1rem; border-radius: 12px;">Add to
+                        Inventory</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="edit-prize-modal" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 450px; padding: 3rem;">
+                <span class="close-modal" id="close-edit-prize-modal">&times;</span>
+                <div style="text-align: center; margin-bottom: 2.5rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">✍️🎁</div>
+                    <h2 style="font-weight: 700; color: var(--text-main);">Edit Prize</h2>
+                </div>
+                <form id="edit-prize-form">
+                    <input type="hidden" id="edit-prize-id">
+                    <div class="form-group">
+                        <label>Session</label>
+                        <select id="edit-prize-session" required
+                            style="width:100%; padding:0.8rem; border-radius:12px; border:1px solid rgba(0,0,0,0.1);">
+                            <option value="1">Session 1 (General)</option>
+                            <option value="2">Session 2 (General)</option>
+                            <option value="3">Session 3 (Top 7)</option>
+                            <option value="4">Session 4 (Top 3)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Prize Rank</label>
+                        <input type="text" id="edit-prize-rank" list="rank-options" placeholder="e.g. 1st Prize or Rank 1-10" 
+                               style="width:100%; padding:0.8rem; border-radius:12px; border:1px solid rgba(0,0,0,0.1); background: #fff;">
+                    </div>
+                    <div class="form-group">
+                        <label>Prize Name</label>
+                        <input type="text" id="edit-prize-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" id="edit-prize-qty" min="1" required>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">Note: Reducing quantity below already drawn winners may cause display issues.</p>
+                    </div>
+                    <button type="submit" class="btn-primary"
+                        style="width: 100%; margin-top: 1.5rem; padding: 1rem; border-radius: 12px;">Save Changes</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- DATA LISTS -->
+        <datalist id="rank-options">
+            <option value="1st Prize">
+            <option value="2nd Prize">
+            <option value="3rd Prize">
+            <option value="Grand Prize">
+            <option value="Consolation">
+            <option value="Rank 1-10">
+            <option value="Rank 11-50">
+            <option value="Rank 51-100">
+            <option value="Rank 101-160">
+        </datalist>
+
+        <!-- FEEDBACK MODAL -->
+        <div id="feedback-modal" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 600px; padding: 2.5rem;">
+                <span class="close-modal" id="close-feedback-modal">&times;</span>
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📝✨</div>
+                    <h2 id="feedback-modal-title" style="font-weight: 700; color: var(--text-main);">Event Feedback</h2>
+                    <p style="color: var(--text-muted);">Your thoughts help us make future events even better!</p>
+                </div>
+                
+                <form id="feedback-form" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div id="dynamic-feedback-questions" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <!-- Questions will be injected here -->
+                    </div>
+                    <button type="submit" class="btn-primary" style="padding: 1.2rem; border-radius: 15px; font-weight: 700;">SUBMIT FEEDBACK</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- GUEST VOTING MODAL -->
+        <div id="voting-modal" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 500px; padding: 2.5rem;">
+                <span class="close-modal" id="close-voting-modal">&times;</span>
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <div id="voting-modal-icon" style="font-size: 3rem; margin-bottom: 1rem;">🗳️</div>
+                    <h2 id="voting-modal-title" style="font-weight: 700; color: var(--text-main);">Cast Your Vote</h2>
+                    <p id="voting-modal-desc" style="color: var(--text-muted);">Select your favorite from the options below.</p>
+                </div>
+                
+                <div id="voting-candidates-list" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+                    <!-- Candidates injected here -->
+                </div>
+                
+                <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center;">Note: You can only vote once per category.</p>
+            </div>
+        </div>
+
+        
+<div id="admin-login-modal" class="modal hidden">
+            <div class="modal-content glass-panel"
+                style="max-width: 400px; padding: 3rem; border: 1px solid rgba(255,255,255,0.6);">
+                <span class="close-modal" id="close-admin-login-modal">&times;</span>
+                <div style="text-align: center; margin-bottom: 2.5rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
+                    <h2 style="font-weight: 700; color: var(--text-main);">Admin Login</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Please enter your credentials to proceed</p>
+                </div>
+                <form id="admin-login-form">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="admin-login-username" placeholder="Enter username" required
+                            style="border-radius: 12px; padding: 0.8rem 1rem;">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="admin-login-password" placeholder="Enter password" required
+                            style="border-radius: 12px; padding: 0.8rem 1rem;">
+                    </div>
+                    <div id="admin-login-error"
+                        style="color: var(--danger); font-size: 0.85rem; margin-bottom: 1.5rem; display: none; text-align: center;">
+                    </div>
+                    <button type="submit" class="btn-primary"
+                        style="width: 100%; padding: 1rem; border-radius: 12px; font-weight: 600; box-shadow: 0 8px 20px rgba(10, 130, 118, 0.2);">Log
+                        In</button>
+                    <button type="button" id="btn-test-connection" class="btn-secondary"
+                        style="width: 100%; margin-top: 1rem; padding: 0.8rem; border-radius: 12px; font-size: 0.85rem; border: 1px solid rgba(0,0,0,0.1); background: rgba(0,0,0,0.02);">
+                        🔍 Test Server Connection
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="modal-admin-user-create" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 450px; padding: 3rem;">
+                <span class="close-modal" id="close-create-admin-modal">&times;</span>
+                <div style="text-align: center; margin-bottom: 2.5rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">👤✨</div>
+                    <h2 style="font-weight: 700; color: var(--text-main);">Add Admin</h2>
+                </div>
+                <form id="create-admin-form">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="new-admin-fullname" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="new-admin-username" placeholder="jdoe" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="new-admin-role" required
+                            style="width:100%; padding:0.8rem; border-radius:12px; border:1px solid rgba(0,0,0,0.1); background:rgba(255,255,255,0.9);">
+                            <option value="Super Admin">Super Admin (All Access)</option>
+                            <option value="Restricted Admin">Restricted Admin (Custom)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="new-admin-permissions-section" style="margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label style="font-weight: 600; margin: 0;">Permissions</label>
+                            <label style="font-size: 0.75rem; color: var(--accent-gold); cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
+                                <input type="checkbox" id="new-admin-perms-all" checked> Select All
+                            </label>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; background: rgba(0,0,0,0.02); padding: 1rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05);">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="permissions" value="overview" checked> 📊 Dashboard</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="permissions" value="directory" checked> 👥 Employee Directory</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="permissions" value="visual-map" checked> 🗺️ Visual Floor Plan</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="permissions" value="doorgifts" checked> 🎁 Door Gifts</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="permissions" value="settings"> ⚙️ System Controls</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="permissions" value="admins"> 👤 Admin Management</label>
+                        </div>
+                    </div>
+                    <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="new-admin-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm</label>
+                            <input type="password" id="new-admin-password-confirm" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary"
+                        style="width: 100%; margin-top: 1.5rem; padding: 1rem; border-radius: 12px;">Create
+                        Profile</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="modal-admin-user-edit-v135" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 450px; padding: 3rem;">
+                <span class="close-modal" id="close-edit-admin-modal" onclick="if(window.openEditAdminModal) editAdminModal.classList.add('hidden')">&times;</span>
+                <div style="text-align: center; margin-bottom: 2.5rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 1rem;">✍️</div>
+                    <h2 style="font-weight: 700; color: var(--text-main);">Edit Admin</h2>
+                </div>
+                <form id="edit-admin-form">
+                    <input type="hidden" id="edit-admin-original-username">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="edit-admin-fullname" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="edit-admin-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="edit-admin-role" required
+                            style="width:100%; padding:0.8rem; border-radius:12px; border:1px solid rgba(0,0,0,0.1); background:rgba(255,255,255,0.9);">
+                            <option value="Super Admin">Super Admin (All Access)</option>
+                            <option value="Restricted Admin">Restricted Admin (Custom)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="edit-admin-permissions-section" style="margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label style="font-weight: 600; margin: 0;">Permissions</label>
+                            <label style="font-size: 0.75rem; color: var(--accent-gold); cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
+                                <input type="checkbox" id="edit-admin-perms-all"> Select All
+                            </label>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; background: rgba(0,0,0,0.02); padding: 1rem; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05);">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="edit-permissions" value="overview"> 📊 Dashboard</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="edit-permissions" value="directory"> 👥 Employee Directory</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="edit-permissions" value="visual-map"> 🗺️ Visual Floor Plan</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="edit-permissions" value="doorgifts"> 🎁 Door Gifts</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="edit-permissions" value="settings"> ⚙️ System Controls</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;"><input type="checkbox" name="edit-permissions" value="admins"> 👤 Admin Management</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>New Password (Optional)</label>
+                        <input type="password" id="edit-admin-password" placeholder="Leave blank to keep current">
+                    </div>
+                    <button type="submit" class="btn-primary"
+                        style="width: 100%; margin-top: 1.5rem; padding: 1rem; border-radius: 12px;">Update
+                        Profile</button>
+                </form>
+            </div>
+        </div>
+
+
+
+        <!-- FEEDBACK MODAL -->
+        
+
+        <!-- Best Dress Nomination Modal -->
+        <div id="nomination-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📷 Nominate Colleague</h2>
+                    <button id="close-nomination-modal" class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem;">
+                    <form id="form-nominate-bestdress">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display:block; margin-bottom:0.5rem; font-weight:600; color:var(--text-light);">Category</label>
+                            <select id="nominate-category" required style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid var(--glass-border); background:rgba(0,0,0,0.2); color:white;">
+                                <option value="male">Male 🕺</option>
+                                <option value="female">Female 💃</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display:block; margin-bottom:0.5rem; font-weight:600; color:var(--text-light);">Search Nominee</label>
+                            <input type="text" id="nominate-search" placeholder="Type a name..." autocomplete="off" required style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid var(--glass-border); background:rgba(0,0,0,0.2); color:white; margin-bottom: 0.5rem;">
+                            <div id="nominate-search-results" style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.5); border-radius: 8px;"></div>
+                            <input type="hidden" id="nominate-emp-id" required>
+                            <input type="hidden" id="nominate-emp-name" required>
+                        </div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display:block; margin-bottom:0.5rem; font-weight:600; color:var(--text-light);">Take Photo / Upload</label>
+                            <input type="file" id="nominate-photo" accept="image/*" required style="width:100%; padding:0.5rem; background:rgba(255,255,255,0.1); border-radius:8px;">
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem;">Make sure they are ready to impress the AI judge!</p>
+                        </div>
+                        
+                        <div id="nominate-submit-container">
+                            <button type="submit" id="btn-submit-nomination" class="btn-primary" style="width: 100%; background: var(--accent-gold); color: black;">Submit Nomination</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        
+
+        <!-- DOOR GIFT MODAL -->
+        <div id="modal-door-gift-claim" class="modal hidden">
+            <div class="modal-content glass-panel" style="max-width: 450px; padding: 3rem;">
+                <span class="close-modal" id="close-door-gift-modal" onclick="window.closeDoorGiftModal()" style="z-index: 9999 !important; cursor: pointer !important; pointer-events: auto !important;">&times;</span>
+                <div id="door-gift-header" style="text-align: center; margin-bottom: 2.5rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🎁</div>
+                    <h2 style="font-weight: 700; color: var(--text-main);">Door Gift Collection</h2>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem;">Please collect your gift at the counter. A committee member must enter the PIN to confirm.</p>
+                </div>
+
+                <!-- Employee Info Section -->
+                <div id="door-gift-emp-info" style="background: rgba(8, 107, 97, 0.05); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid rgba(8, 107, 97, 0.1);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.5rem;">
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Name</span>
+                        <span id="dg-modal-name" style="font-weight: 700; color: var(--primary-dark);"></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.5rem;">
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Employee ID</span>
+                        <span id="dg-modal-id" style="font-weight: 600;"></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.5rem;">
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Table Number</span>
+                        <span id="dg-modal-table" style="font-weight: 600; color: var(--accent-gold);"></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 0.5rem;">
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Dietary Preference</span>
+                        <span id="dg-modal-diet" style="font-weight: 600;"></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Check-in Status</span>
+                        <span id="dg-modal-status" style="font-weight: 600;"></span>
+                    </div>
+                </div>
+
+                <div id="door-gift-success-msg" class="hidden" style="text-align: center; padding: 2rem 0;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">🎊</div>
+                    <h3 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 0.5rem;">Thank You!</h3>
+                    <p style="color: var(--text-main); font-size: 1.1rem; line-height: 1.5;">Hope you enjoy the night!</p>
+                </div>
+
+                <form id="door-gift-form">
+                    <input type="hidden" id="door-gift-emp-id">
+
+                    <p id="door-gift-error" style="color: var(--danger); font-size: 0.85rem; text-align: center; margin-bottom: 1.5rem; display: none;"></p>
+                    <button type="submit" class="btn-primary" style="width: 100%; border-radius: 12px; padding: 1.2rem; font-weight: 700;">CONFIRM CLAIM</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- SUCCESS TOAST -->
+        <div id="toast" class="toast hidden">
+            <span id="toast-message">Success!</span>
+        </div>
+
+        <!-- GLOBAL MAINTENANCE OVERLAY -->
+        <div id="maintenance-overlay" class="maintenance-overlay hidden">
+            <div class="maintenance-content glass-panel">
+                <span style="font-size: 5rem; margin-bottom: 2rem; display: block;">🛠️</span>
+                <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Maintenance in Progress</h1>
+                <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 500px; margin: 0 auto;">
+                    We are currently performing some scheduled updates to improve your experience. 
+                    Please check back shortly. Thank you for your patience!
+                </p>
+                <div style="margin-top: 3rem; color: var(--accent-gold); font-weight: 600;">
+                    &copy; Appreciation Night 2026
+                </div>
+            </div>
+        </div>
+
+
+        <footer class="site-footer" style="position: relative;">
+            <p>Penang Appreciation Dinner 2026 Committees</p>
+            <p style="font-size: 0.8rem; opacity: 0.7;">Developed by: Steven Tan (BE DEV APT APD PNG)</p>
+            <div id="debug-version-badge" style="position: absolute; bottom: 5px; right: 10px; font-size: 0.6rem; opacity: 0.4; pointer-events: none;">
+                v1.6.121 (STABLE) <span id="guest-sse-speed" style="margin-left:8px; opacity:0.8; display:none;">• Live: 0ms</span>
+            </div>
+        </footer>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="app.js?release=1.6.121"></script>
+
+
+    <!-- EXPRESS UNLOCK v1.6.121 -->
+    <script>
+        (function() {
+            console.log("🔥 EXPRESS UNLOCK v1.6.121 Running...");
+            var cd = document.getElementById('countdown-display');
+            var mc = document.getElementById('main-event-content');
+            if (cd) cd.style.display = 'none';
+            if (mc) mc.style.display = 'block';
+            window.countdownFinished = true;
+        })();
+    </script>
+</body>
+
+</html>

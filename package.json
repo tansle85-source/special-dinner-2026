@@ -1,0 +1,21 @@
+{
+  "name": "company-dinner-app",
+  "version": "1.7.17",
+
+  "description": "Appreciation Night 2026 - Company Dinner Seating & Lucky Draw App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "adm-zip": "^0.5.16",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^2.1.1",
+    "mysql2": "^3.9.7"
+  }
+}

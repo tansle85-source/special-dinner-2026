@@ -936,10 +936,13 @@ app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
 
       const nameKey = cleanKeys.find(k => k.toLowerCase().includes('name'))?.toLowerCase();
       const prizeKey = cleanKeys.find(k => k.toLowerCase().includes('prize') || k.toLowerCase().includes('award') || k.toLowerCase().includes('won'))?.toLowerCase();
+      const deptKey = cleanKeys.find(k => k.toLowerCase().includes('dept') || k.toLowerCase().includes('unit'))?.toLowerCase();
 
       const name = data[nameKey] || data['name'];
       const prize = data[prizeKey] || data['prize'];
-      if (name && prize) rows.push({ name, prize });
+      const department = deptKey ? (data[deptKey] || data['department']) : '';
+      
+      if (name && prize) rows.push({ name, prize, department });
     })
     .on('end', async () => {
       try {
@@ -950,7 +953,7 @@ app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
         await pool.query('UPDATE m26_employees SET won_prize = NULL');
 
         let matched = 0, skipped = 0;
-        for (const { name, prize } of rows) {
+        for (const { name, prize, department } of rows) {
           // Case-insensitive name match
           const [found] = await pool.query(
             'SELECT id FROM m26_employees WHERE LOWER(name) = LOWER(?)', [name.trim()]
@@ -967,7 +970,13 @@ app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
               await pool.query('UPDATE m26_employees SET won_prize = ? WHERE id = ?', [prize, partial[0].id]);
               matched++;
             } else {
-              skipped++;
+              // Employee not found, so we insert them!
+              const newId = generateId();
+              await pool.query(
+                'INSERT INTO m26_employees (id, name, department, won_prize) VALUES (?, ?, ?, ?)', 
+                [newId, name.trim(), department || '', prize]
+              );
+              matched++;
             }
           }
         }

@@ -279,6 +279,15 @@ const initDB = async () => {
       }
     } catch (migErr) { console.warn('[MIGRATE] m26_best_dress_votes photo migration:', migErr.message); }
 
+    // Migration: add ai_score to m26_best_dress_votes (needed for AI Rank to display scores on finalists)
+    try {
+      const [voteScoreCols] = await connection.query('SHOW COLUMNS FROM m26_best_dress_votes');
+      if (!voteScoreCols.some(c => c.Field === 'ai_score')) {
+        await connection.query('ALTER TABLE m26_best_dress_votes ADD COLUMN ai_score FLOAT DEFAULT NULL');
+        console.log('[MIGRATE] Added ai_score to m26_best_dress_votes');
+      }
+    } catch (migErr) { console.warn('[MIGRATE] m26_best_dress_votes ai_score migration:', migErr.message); }
+
     // Migration Logic: Add song_name and voter_id if missing from existing tables
     try {
       const [pCols] = await connection.query('SHOW COLUMNS FROM m26_performance_participants');
@@ -755,8 +764,9 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
         const match = text.match(/\{[\s\S]*\}/);
         const parsed = match ? JSON.parse(match[0]) : { score: 50 };
         await pool.query('UPDATE m26_best_dress_submissions SET ai_score=?, ai_reasoning=? WHERE id=?', [parsed.score, parsed.reasoning || '', sub.id]);
-        return { ...sub, ai_score: parsed.score };
-      } catch { return { ...sub, ai_score: 50 }; }
+        // BUG FIX: include ai_reasoning in returned object so it reaches the INSERT below
+        return { ...sub, ai_score: parsed.score, ai_reasoning: parsed.reasoning || '' };
+      } catch { return { ...sub, ai_score: 50, ai_reasoning: '' }; }
     }));
 
     // Pick top 3 per gender
@@ -768,8 +778,8 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
     await pool.query('DELETE FROM m26_best_dress_voters');
     for (const f of finalists) {
       await pool.query(
-        'INSERT INTO m26_best_dress_votes (id, nominee_name, vote_count, gender, department, photo_data, ai_reasoning) VALUES (?, ?, 0, ?, ?, ?, ?)',
-        [generateId(), f.name, f.gender, f.department, f.photo_data || null, f.ai_reasoning || '']
+        'INSERT INTO m26_best_dress_votes (id, nominee_name, vote_count, gender, department, photo_data, ai_score, ai_reasoning) VALUES (?, ?, 0, ?, ?, ?, ?, ?)',
+        [generateId(), f.name, f.gender, f.department, f.photo_data || null, f.ai_score || null, f.ai_reasoning || '']
       );
     }
     res.json({ success: true, selected: finalists.map(f => ({ name: f.name, gender: f.gender, score: f.ai_score })) });

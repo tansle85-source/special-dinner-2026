@@ -35,13 +35,13 @@ const BestDressAnnounce = () => {
   const rankLabel = i => ['🥇','🥈','🥉'][i] || `#${i+1}`;
 
   if (loading) return (
-    <div style={{ minHeight:'100vh', background:C.dark, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Outfit,sans-serif' }}>
+    <div style={{ minHeight:'100vh', background:'#FFFFFF', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Outfit,sans-serif' }}>
       <div style={{ color:C.teal, fontSize:'1.5rem', fontWeight:700 }}>Loading finalists…</div>
     </div>
   );
 
   return (
-    <div style={{ minHeight:'100vh', background:C.dark, fontFamily:'Outfit,sans-serif', position:'relative', overflow:'hidden' }}>
+    <div style={{ minHeight:'100vh', background:'#FFFFFF', fontFamily:'Outfit,sans-serif', position:'relative', overflow:'hidden' }}>
 
       {/* Subtle teal glow spots */}
       <div style={{ position:'fixed', top:'-10%', left:'-5%', width:'40vw', height:'40vw', borderRadius:'50%', background:`radial-gradient(circle, ${C.teal}22 0%, transparent 70%)`, pointerEvents:'none', zIndex:0 }} />
@@ -75,22 +75,21 @@ const BestDressAnnounce = () => {
         <div style={{ textAlign:'center', marginBottom:'3rem' }}>
           <div style={{ fontSize:'3rem', marginBottom:'0.75rem' }}>👗✨👔</div>
           <h1 style={{
-            color: C.white,
+            color: C.dark,
             fontSize:'clamp(2rem,5vw,4rem)',
             fontWeight:900, margin:0,
             letterSpacing:'-1.5px',
-            textShadow:`0 0 60px ${C.teal}88`,
           }}>
             Best Dress Finalists
           </h1>
           <div style={{ width:'80px', height:'3px', background:C.teal, margin:'1rem auto 0.5rem', borderRadius:'99px' }} />
-          <p style={{ color:`${C.white}88`, fontSize:'1rem', margin:0, fontWeight:500 }}>
+          <p style={{ color:'#64748b', fontSize:'1rem', margin:0, fontWeight:500 }}>
             Appreciation Night 2026 · Selected by AI
           </p>
         </div>
 
         {finalists.length === 0 ? (
-          <div style={{ textAlign:'center', color:`${C.white}55`, fontSize:'1.2rem', marginTop:'4rem' }}>
+          <div style={{ textAlign:'center', color:'#94a3b8', fontSize:'1.2rem', marginTop:'4rem' }}>
             No finalists yet. Run AI Rank from the admin panel first.
           </div>
         ) : (
@@ -122,12 +121,12 @@ const Section = ({ title, emoji, items, rankLabel, accent, accentAlt }) => (
     {/* Section header */}
     <div style={{
       textAlign:'center', marginBottom:'1.5rem',
-      background:`linear-gradient(135deg, ${accent}22, ${accentAlt}33)`,
+      background:`linear-gradient(135deg, ${accent}12, ${accentAlt}18)`,
       borderRadius:'20px', padding:'1.25rem',
-      border:`1.5px solid ${accent}55`,
+      border:`1.5px solid ${accent}44`,
     }}>
       <div style={{ fontSize:'2.8rem', lineHeight:1 }}>{emoji}</div>
-      <h2 style={{ color:'#FFFFFF', margin:'0.5rem 0 0', fontSize:'1.6rem', fontWeight:900, letterSpacing:'-0.5px' }}>{title}</h2>
+      <h2 style={{ color: C.dark, margin:'0.5rem 0 0', fontSize:'1.6rem', fontWeight:900, letterSpacing:'-0.5px' }}>{title}</h2>
     </div>
 
     {/* Cards */}
@@ -136,16 +135,16 @@ const Section = ({ title, emoji, items, rankLabel, accent, accentAlt }) => (
         ? <div style={{ color:'rgba(255,255,255,0.3)', textAlign:'center', padding:'2rem' }}>No finalists yet</div>
         : items.map((item, i) => (
           <div key={item.id} style={{
-            background:'rgba(255,255,255,0.04)',
+            background:'#FFFFFF',
             borderRadius:'18px',
-            border:`1.5px solid ${accent}44`,
+            border:`1.5px solid ${accent}33`,
             overflow:'hidden',
             animation:`floatIn 0.55s ease ${i*0.18}s both`,
-            boxShadow:`0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)`,
+            boxShadow:`0 4px 20px rgba(0,0,0,0.08)`,
           }}>
             <div style={{ display:'flex', alignItems:'stretch' }}>
               {/* Photo */}
-              <div style={{ width:'140px', flexShrink:0, position:'relative', background:'#111' }}>
+              <div style={{ width:'140px', flexShrink:0, position:'relative', background:'#f1f5f9' }}>
                 {item.has_photo
                   ? <img src={`/api/photos/bd/vote/${item.id}`} alt={item.nominee_name}
                       style={{ width:'100%', height:'100%', objectFit:'cover', minHeight:'170px', display:'block' }}
@@ -155,15 +154,6 @@ const Section = ({ title, emoji, items, rankLabel, accent, accentAlt }) => (
                 <div style={{ width:'100%', minHeight:'170px', background:`${accent}18`, display: item.has_photo ? 'none' : 'flex', alignItems:'center', justifyContent:'center', fontSize:'3.5rem' }}>
                   {emoji}
                 </div>
-                {/* Rank badge */}
-                <div style={{
-                  position:'absolute', top:'8px', left:'8px',
-                  background:'rgba(0,0,0,0.75)',
-                  backdropFilter:'blur(8px)',
-                  borderRadius:'99px',
-                  padding:'2px 10px', fontSize:'1.2rem',
-                  border:`1px solid ${accent}66`,
-                }}>{rankLabel(i)}</div>
               </div>
 
               {/* Info */}
@@ -171,42 +161,29 @@ const Section = ({ title, emoji, items, rankLabel, accent, accentAlt }) => (
 
                 {/* Name & dept */}
                 <div>
-                  <div style={{ color:'#FFFFFF', fontWeight:900, fontSize:'1.3rem', lineHeight:1.2 }}>{item.nominee_name}</div>
+                  <div style={{ color: C.dark, fontWeight:900, fontSize:'1.3rem', lineHeight:1.2 }}>{item.nominee_name}</div>
                   <div style={{ color:accent, fontWeight:700, fontSize:'0.82rem', marginTop:'3px', letterSpacing:'0.3px' }}>{item.department}</div>
                 </div>
 
-                {/* AI comment */}
                 {item.ai_reasoning && (
                   <div style={{
-                    background:'rgba(10,130,118,0.08)',
+                    background:`${accent}0f`,
                     borderRadius:'10px',
                     padding:'0.55rem 0.75rem',
                     borderLeft:`3px solid ${accent}`,
                   }}>
-                    <div style={{ color:`${accent}`, fontSize:'0.63rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:'3px' }}>🤖 AI Judge</div>
-                    <div style={{ color:'rgba(255,255,255,0.8)', fontSize:'0.8rem', lineHeight:1.5, fontStyle:'italic' }}>
+                    <div style={{ color:accent, fontSize:'0.63rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:'3px' }}>🤖 AI Judge</div>
+                    <div style={{ color:'#475569', fontSize:'0.8rem', lineHeight:1.5, fontStyle:'italic' }}>
                       "{item.ai_reasoning}"
                     </div>
                   </div>
                 )}
 
-                {/* Score bar */}
-                {item.ai_score != null && (
-                  <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                    <div style={{ flex:1, height:'5px', borderRadius:'99px', background:'rgba(255,255,255,0.08)', overflow:'hidden' }}>
-                      <div style={{
-                        width:`${item.ai_score}%`, height:'100%', borderRadius:'99px',
-                        background:`linear-gradient(90deg, ${accent}, #0ef5d8)`,
-                      }} />
-                    </div>
-                    <div style={{ color:accent, fontWeight:800, fontSize:'0.78rem', whiteSpace:'nowrap' }}>{item.ai_score}/100</div>
-                  </div>
-                )}
 
                 {/* Votes */}
                 <div style={{ display:'flex', alignItems:'center', gap:'6px', marginTop:'auto' }}>
-                  <span style={{ color:'rgba(255,255,255,0.4)', fontSize:'0.75rem' }}>Votes</span>
-                  <span style={{ color:'#FFFFFF', fontWeight:900, fontSize:'1.1rem' }}>{item.vote_count}</span>
+                  <span style={{ color:'#94a3b8', fontSize:'0.75rem' }}>Votes</span>
+                  <span style={{ color: C.dark, fontWeight:900, fontSize:'1.1rem' }}>{item.vote_count}</span>
                 </div>
               </div>
             </div>

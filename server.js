@@ -266,6 +266,19 @@ const initDB = async () => {
       }
     } catch (migErr) { console.warn('[MIGRATE] photo_data migration:', migErr.message); }
 
+    // Migration: add photo_data + photo_path to m26_best_dress_votes (needed by AI Rank)
+    try {
+      const [voteCols] = await connection.query('SHOW COLUMNS FROM m26_best_dress_votes');
+      if (!voteCols.some(c => c.Field === 'photo_data')) {
+        await connection.query('ALTER TABLE m26_best_dress_votes ADD COLUMN photo_data LONGTEXT DEFAULT NULL');
+        console.log('[MIGRATE] Added photo_data to m26_best_dress_votes');
+      }
+      if (!voteCols.some(c => c.Field === 'photo_path')) {
+        await connection.query('ALTER TABLE m26_best_dress_votes ADD COLUMN photo_path VARCHAR(500) DEFAULT NULL');
+        console.log('[MIGRATE] Added photo_path to m26_best_dress_votes');
+      }
+    } catch (migErr) { console.warn('[MIGRATE] m26_best_dress_votes photo migration:', migErr.message); }
+
     // Migration Logic: Add song_name and voter_id if missing from existing tables
     try {
       const [pCols] = await connection.query('SHOW COLUMNS FROM m26_performance_participants');

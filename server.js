@@ -743,37 +743,52 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
     const [subs] = await pool.query('SELECT * FROM m26_best_dress_submissions WHERE photo_data IS NOT NULL');
     if (subs.length === 0) return res.status(400).json({ error: 'No submissions with photos' });
 
+    if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set on server' });
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    const errors = [];
 
     // Score each submission
     const scored = await Promise.all(subs.map(async (sub) => {
       try {
         if (!sub.photo_data) return { ...sub, ai_score: 50, ai_reasoning: 'No photo provided' };
-        // photo_data is a data URL: data:image/jpeg;base64,...
         const matches = sub.photo_data.match(/^data:(.+);base64,(.+)$/);
-        if (!matches) return { ...sub, ai_score: 50 };
+        if (!matches) return { ...sub, ai_score: 50, ai_reasoning: 'Invalid photo format' };
         const mime = matches[1];
-        const b64 = matches[2];
-        const prompt = `You are a fashion judge for a company dinner Best Dress competition. Rate this outfit from 0-100 based on elegance, style, colour coordination, and appropriateness for a formal gala dinner. Return ONLY valid JSON: {"score": 85, "reasoning": "brief reason"}`;
+        const b64  = matches[2];
+        const prompt = `You are a fashion judge for a company dinner Best Dress competition. Rate this outfit from 0-100 based on elegance, style, colour coordination, and appropriateness for a formal gala dinner. Return ONLY valid JSON with no markdown: {"score": 85, "reasoning": "brief reason under 20 words"}`;
         const result = await model.generateContent([
           { inlineData: { data: b64, mimeType: mime } },
           prompt
         ]);
         const text = result.response.text().trim();
-        const match = text.match(/\{[\s\S]*\}/);
-        const parsed = match ? JSON.parse(match[0]) : { score: 50 };
-        await pool.query('UPDATE m26_best_dress_submissions SET ai_score=?, ai_reasoning=? WHERE id=?', [parsed.score, parsed.reasoning || '', sub.id]);
-        // BUG FIX: include ai_reasoning in returned object so it reaches the INSERT below
-        return { ...sub, ai_score: parsed.score, ai_reasoning: parsed.reasoning || '' };
-      } catch { return { ...sub, ai_score: 50, ai_reasoning: '' }; }
+        console.log(`[AI-RANK] ${sub.name} raw response: ${text.substring(0, 120)}`);
+        // Strip markdown code fences if present
+        const clean = text.replace(/```json|```/gi, '').trim();
+        const matchJson = clean.match(/\{[\s\S]*\}/);
+        if (!matchJson) {
+          errors.push({ name: sub.name, error: 'Gemini did not return valid JSON: ' + text.substring(0, 80) });
+          return { ...sub, ai_score: 50, ai_reasoning: '' };
+        }
+        const parsed = JSON.parse(matchJson[0]);
+        const score    = Number(parsed.score) || 50;
+        const reasoning = String(parsed.reasoning || '').trim();
+        await pool.query('UPDATE m26_best_dress_submissions SET ai_score=?, ai_reasoning=? WHERE id=?', [score, reasoning, sub.id]);
+        return { ...sub, ai_score: score, ai_reasoning: reasoning };
+      } catch (subErr) {
+        console.error(`[AI-RANK] Failed for ${sub.name}:`, subErr.message);
+        errors.push({ name: sub.name, error: subErr.message });
+        return { ...sub, ai_score: 50, ai_reasoning: '' };
+      }
     }));
 
     // Pick top 3 per gender
     const byGender = (g) => scored.filter(s => s.gender === g).sort((a, b) => b.ai_score - a.ai_score).slice(0, 3);
     const finalists = [...byGender('Female'), ...byGender('Male')];
 
-    // Clear existing nominees and insert finalists (with photo_data + ai_reasoning)
+    // Clear existing nominees and insert finalists
     await pool.query('DELETE FROM m26_best_dress_votes');
     await pool.query('DELETE FROM m26_best_dress_voters');
     for (const f of finalists) {
@@ -782,7 +797,7 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
         [generateId(), f.name, f.gender, f.department, f.photo_data || null, f.ai_score || null, f.ai_reasoning || '']
       );
     }
-    res.json({ success: true, selected: finalists.map(f => ({ name: f.name, gender: f.gender, score: f.ai_score })) });
+    res.json({ success: true, selected: finalists.map(f => ({ name: f.name, gender: f.gender, score: f.ai_score, reasoning: f.ai_reasoning })), errors });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

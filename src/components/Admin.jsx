@@ -674,7 +674,9 @@ const Admin = () => {
                         try {
                           setLoading(true);
                           const res = await axios.post('/api/best-dress/ai-rank');
-                          alert(`AI Ranking Done!\n${res.data.selected.map(s => `${s.gender}: ${s.name} (Score: ${s.score})`).join('\n')}`);
+                          const lines = res.data.selected.map(s => `${s.gender}: ${s.name} — "${s.reasoning || 'no comment'}"`);
+                          const errLines = (res.data.errors || []).map(e => `⚠️ ${e.name}: ${e.error}`);
+                          alert(`✅ AI Ranking Done!\n\n${lines.join('\n')}${errLines.length ? '\n\nErrors:\n' + errLines.join('\n') : ''}`);
                           fetchAllData();
                         } catch(e) { alert('AI Rank failed: ' + (e.response?.data?.error || e.message)); }
                         finally { setLoading(false); }

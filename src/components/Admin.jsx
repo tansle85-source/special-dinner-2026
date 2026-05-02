@@ -698,6 +698,7 @@ const Admin = () => {
                           </span>
                         </div>
                         {sub.ai_score != null && <div style={{ marginTop:'4px', fontSize:'0.7rem', color:'#0A8276', fontWeight:700 }}>AI: {sub.ai_score}/100</div>}
+                        {sub.ai_reasoning && <div style={{ marginTop:'2px', fontSize:'0.65rem', color:'#64748b', fontStyle:'italic', lineHeight:1.3, maxHeight:'48px', overflow:'hidden' }} title={sub.ai_reasoning}>{sub.ai_reasoning}</div>}
                         <div style={{ display:'flex', gap:'4px', marginTop:'6px' }}>
                           {/* 📷 Upload photo directly to DB */}
                           <label style={{ flex:1, padding:'4px', borderRadius:'8px', border:'1px solid #bbf7d0', background:'#f0fdf4', color:'#15803d', fontSize:'0.7rem', fontWeight:700, cursor:'pointer', textAlign:'center', lineHeight:'1.6' }}>

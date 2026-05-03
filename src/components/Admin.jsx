@@ -658,6 +658,23 @@ const Admin = () => {
                 </div>
               </div>
 
+              {/* AI Criteria Config */}
+              <div className="card shadow-card" style={{ marginBottom:'1.5rem', background:'linear-gradient(135deg,#f5f3ff,#ede9fe)', border:'1px solid #c4b5fd' }}>
+                <div style={{ display:'flex', alignItems:'flex-start', gap:'1rem' }}>
+                  <div style={{ fontSize:'2rem' }}>🤖</div>
+                  <div style={{ flex:1 }}>
+                    <h4 style={{ margin:'0 0 4px', color:'#6d28d9', fontWeight:800 }}>AI Judging Criteria</h4>
+                    <p style={{ margin:'0 0 8px', fontSize:'0.78rem', color:'#7c3aed' }}>Gemini will score each photo based on these criteria. Edit to customise what the AI looks for.</p>
+                    <textarea
+                      value={aiCriteria}
+                      onChange={e => setAiCriteria(e.target.value)}
+                      rows={3}
+                      style={{ width:'100%', borderRadius:'10px', border:'1px solid #c4b5fd', padding:'0.6rem 0.75rem', fontFamily:'Outfit,sans-serif', fontSize:'0.82rem', color:'#1D1D1D', resize:'vertical', boxSizing:'border-box', background:'#fff' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '2rem' }}>
                 {/* Photo Submissions */}
                 <div className="card shadow-card" style={{ flex: 2 }}>
@@ -673,7 +690,7 @@ const Admin = () => {
                         if (!confirm('Run AI ranking? This will score all photos and replace current finalists with top 3 Male + top 3 Female.')) return;
                         try {
                           setLoading(true);
-                          const res = await axios.post('/api/best-dress/ai-rank');
+                          const res = await axios.post('/api/best-dress/ai-rank', { criteria: aiCriteria });
                           const lines = res.data.selected.map(s => `${s.gender}: ${s.name} — "${s.reasoning || 'no comment'}"`);
                           const errLines = (res.data.errors || []).map(e => `⚠️ ${e.name}: ${e.error}`);
                           alert(`✅ AI Ranking Done!\n\n${lines.join('\n')}${errLines.length ? '\n\nErrors:\n' + errLines.join('\n') : ''}`);

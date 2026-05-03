@@ -44,7 +44,7 @@ app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Build version endpoint — admin can check this matches the latest deploy
+// Build version endpoint �?admin can check this matches the latest deploy
 const BUILD_VERSION = '2.0.' + Date.now().toString().slice(-5);
 app.get('/api/version', (req, res) => res.json({ version: BUILD_VERSION, built: new Date().toISOString() }));
 
@@ -537,7 +537,7 @@ app.delete('/api/feedback/questions/:id', async (req, res) => {
   res.json({ success: true });
 });
 
-// Submit answers (one session per device — session_id from frontend)
+// Submit answers (one session per device �?session_id from frontend)
 app.post('/api/feedback/submit', async (req, res) => {
   const { session_id, answers } = req.body; // answers: [{ question_id, answer_text, rating }]
   if (!answers || !answers.length) return res.status(400).json({ error: 'No answers provided' });
@@ -609,7 +609,7 @@ app.delete('/api/feedback/responses', async (req, res) => {
 
 // Best Dress Endpoints
 
-// Submit nomination with photo (unlimited per device) — base64 stored in DB
+// Submit nomination with photo (unlimited per device) �?base64 stored in DB
 app.post('/api/best-dress/submit', async (req, res) => {
   const { name, department, gender, voter_id, photo_data } = req.body;
   if (!name || !department || !gender || !voter_id) return res.status(400).json({ error: 'Missing fields' });
@@ -631,7 +631,7 @@ app.get('/api/best-dress/my-submission/:voterId', async (req, res) => {
   res.json({ count: rows.length, submissions: rows });
 });
 
-// Serve photo by submission ID — checks photo_data first, falls back to photo_path file
+// Serve photo by submission ID �?checks photo_data first, falls back to photo_path file
 app.get('/api/photos/bd/sub/:id', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT photo_data, photo_path FROM m26_best_dress_submissions WHERE id = ?', [req.params.id]);
@@ -659,7 +659,7 @@ app.get('/api/photos/bd/sub/:id', async (req, res) => {
   } catch (err) { res.status(500).send(err.message); }
 });
 
-// Serve photo for finalist by vote record ID — checks photo_data first, falls back to photo_path
+// Serve photo for finalist by vote record ID �?checks photo_data first, falls back to photo_path
 app.get('/api/photos/bd/vote/:id', async (req, res) => {
   try {
     const [voteRows] = await pool.query('SELECT photo_data, photo_path FROM m26_best_dress_votes WHERE id = ?', [req.params.id]);
@@ -687,7 +687,7 @@ app.get('/api/photos/bd/vote/:id', async (req, res) => {
   } catch (err) { res.status(500).send(err.message); }
 });
 
-// Finalists for announce page — photo served separately via /api/photos/bd/vote/:id
+// Finalists for announce page �?photo served separately via /api/photos/bd/vote/:id
 app.get('/api/best-dress/finalists', async (req, res) => {
   const [rows] = await pool.query(
     'SELECT id, nominee_name, gender, department, ai_score, ai_reasoning, vote_count, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_votes ORDER BY gender, vote_count DESC'
@@ -695,7 +695,7 @@ app.get('/api/best-dress/finalists', async (req, res) => {
   res.json(rows);
 });
 
-// Admin: list all submissions (exclude photo_data blob — loaded separately via /api/photos/bd/sub/:id)
+// Admin: list all submissions (exclude photo_data blob �?loaded separately via /api/photos/bd/sub/:id)
 app.get('/api/best-dress/submissions', async (req, res) => {
   const [rows] = await pool.query(
     'SELECT id, name, department, gender, photo_path, voter_id, ai_score, ai_reasoning, submitted_at, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_submissions ORDER BY submitted_at DESC'
@@ -724,7 +724,7 @@ app.put('/api/best-dress/submissions/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin: upload / replace photo for a submission — stores base64 in DB (survives redeployment)
+// Admin: upload / replace photo for a submission �?stores base64 in DB (survives redeployment)
 app.patch('/api/best-dress/submissions/:id/photo', async (req, res) => {
   const { photo_data } = req.body;
   if (!photo_data) return res.status(400).json({ error: 'No photo_data provided' });
@@ -737,7 +737,7 @@ app.patch('/api/best-dress/submissions/:id/photo', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin: AI ranking — pick top 3 male + top 3 female and promote to nominees
+// Admin: AI ranking �?pick top 3 male + top 3 female and promote to nominees
 app.post('/api/best-dress/ai-rank', async (req, res) => {
   try {
     const [subs] = await pool.query('SELECT * FROM m26_best_dress_submissions WHERE photo_data IS NOT NULL');
@@ -758,7 +758,8 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
         if (!matches) return { ...sub, ai_score: 50, ai_reasoning: 'Invalid photo format' };
         const mime = matches[1];
         const b64  = matches[2];
-        const prompt = `You are a fashion judge for a company dinner Best Dress competition. Rate this outfit from 0-100 based on elegance, style, colour coordination, and appropriateness for a formal gala dinner. Return ONLY valid JSON with no markdown: {"score": 85, "reasoning": "brief reason under 20 words"}`;
+        const criteria = req.body.criteria || 'Elegance and sophistication. Style and colour coordination. Appropriateness for a formal gala dinner. Overall presentation.';
+        const prompt = `You are a fashion judge for a company dinner Best Dress competition. Rate this outfit from 0-100 based on these criteria:\n\n${criteria}\n\nReturn ONLY valid JSON with no markdown: {"score": 85, "reasoning": "brief reason under 20 words"}`;
         const result = await model.generateContent([
           { inlineData: { data: b64, mimeType: mime } },
           prompt
@@ -896,7 +897,7 @@ app.post('/api/best-dress/vote', async (req, res) => {
   }
 });
 
-// Returns { Female: nominee_id, Male: nominee_id } — 1 vote per gender per device
+// Returns { Female: nominee_id, Male: nominee_id } �?1 vote per gender per device
 app.get('/api/best-dress/my-vote/:voterId', async (req, res) => {
   const [rows] = await pool.query('SELECT gender, nominee_id FROM m26_best_dress_voters WHERE voter_id = ?', [req.params.voterId]);
   const result = {};
@@ -958,7 +959,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     });
 });
 
-// Upload Winners CSV (name, prize) — matches by name, sets won_prize
+// Upload Winners CSV (name, prize) �?matches by name, sets won_prize
 // CSV columns: name, prize  (case-insensitive, partial match allowed)
 app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded.');
@@ -1320,3 +1321,4 @@ app.listen(PORT, () => {
   initDB();
   console.log(`Server running on port ${PORT}`);
 });
+

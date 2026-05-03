@@ -32,6 +32,7 @@ const Admin = () => {
   const [bestDressStatus, setBestDressStatus] = useState('CLOSED');
   const [bestDressNominees, setBestDressNominees] = useState([]);
   const [bdSubmissions, setBdSubmissions] = useState([]);
+  const [aiCriteria, setAiCriteria] = useState('Elegance and sophistication of the outfit. Style and colour coordination. Appropriateness for a formal gala dinner. Overall presentation and confidence shown in the photo.');
 
   
   // UI State

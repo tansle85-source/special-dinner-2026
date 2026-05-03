@@ -825,36 +825,50 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
 
     const errors = [];
 
-    // Score each submission
-    const scored = await Promise.all(subs.map(async (sub) => {
+    // Score each submission — sequentially with delay to avoid 429 rate limits
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    const scored = [];
+    for (const sub of subs) {
       try {
-        if (!sub.photo_data) return { ...sub, ai_score: 50, ai_reasoning: 'No photo provided' };
+        if (!sub.photo_data) { scored.push({ ...sub, ai_score: 50, ai_reasoning: 'No photo provided' }); continue; }
         const matches = sub.photo_data.match(/^data:(.+);base64,(.+)$/);
-        if (!matches) return { ...sub, ai_score: 50, ai_reasoning: 'Invalid photo format' };
+        if (!matches) { scored.push({ ...sub, ai_score: 50, ai_reasoning: 'Invalid photo format' }); continue; }
         const mime = matches[1];
         const b64  = matches[2];
         const criteria = req.body.criteria || 'Elegance and sophistication. Style and colour coordination. Appropriateness for a formal gala dinner. Overall presentation.';
         const prompt = `You are a fashion judge for a company dinner Best Dress competition. Rate this outfit from 0-100 based on these criteria:\n\n${criteria}\n\nReturn ONLY valid JSON with no markdown: {"score": 85, "reasoning": "brief reason under 20 words"}`;
-        const text = await geminiVision(b64, mime, prompt);
+
+        let text;
+        try {
+          text = await geminiVision(b64, mime, prompt);
+        } catch (e1) {
+          if (e1.response?.status === 429 || (e1.message||'').includes('429')) {
+            console.log(`[AI-RANK] 429 for ${sub.name}, retrying after 8s...`);
+            await sleep(8000);
+            text = await geminiVision(b64, mime, prompt); // retry once
+          } else { throw e1; }
+        }
+
         console.log(`[AI-RANK] ${sub.name} raw response: ${text.substring(0, 120)}`);
-        // Strip markdown code fences if present
         const clean = text.replace(/```json|```/gi, '').trim();
         const matchJson = clean.match(/\{[\s\S]*\}/);
         if (!matchJson) {
           errors.push({ name: sub.name, error: 'Gemini did not return valid JSON: ' + text.substring(0, 80) });
-          return { ...sub, ai_score: 50, ai_reasoning: '' };
+          scored.push({ ...sub, ai_score: 50, ai_reasoning: '' });
+        } else {
+          const parsed = JSON.parse(matchJson[0]);
+          const score     = Number(parsed.score) || 50;
+          const reasoning = String(parsed.reasoning || '').trim();
+          await pool.query('UPDATE m26_best_dress_submissions SET ai_score=?, ai_reasoning=? WHERE id=?', [score, reasoning, sub.id]);
+          scored.push({ ...sub, ai_score: score, ai_reasoning: reasoning });
         }
-        const parsed = JSON.parse(matchJson[0]);
-        const score    = Number(parsed.score) || 50;
-        const reasoning = String(parsed.reasoning || '').trim();
-        await pool.query('UPDATE m26_best_dress_submissions SET ai_score=?, ai_reasoning=? WHERE id=?', [score, reasoning, sub.id]);
-        return { ...sub, ai_score: score, ai_reasoning: reasoning };
       } catch (subErr) {
         console.error(`[AI-RANK] Failed for ${sub.name}:`, subErr.message);
         errors.push({ name: sub.name, error: subErr.message });
-        return { ...sub, ai_score: 50, ai_reasoning: '' };
+        scored.push({ ...sub, ai_score: 50, ai_reasoning: '' });
       }
-    }));
+      await sleep(1500); // 1.5s between each call — well within free tier 15 RPM
+    }
 
     // Pick top 3 per gender
     const byGender = (g) => scored.filter(s => s.gender === g).sort((a, b) => b.ai_score - a.ai_score).slice(0, 3);

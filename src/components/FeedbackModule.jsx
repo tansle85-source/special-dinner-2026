@@ -8,6 +8,9 @@ const FeedbackModule = () => {
   const [fbTab, setFbTab] = useState('questions');
   const [newQ, setNewQ] = useState({ text: '', type: 'text' });
   const [editingQ, setEditingQ] = useState(null);
+  const [aiSummary, setAiSummary] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState(null);
 
   useEffect(() => {
     axios.get('/api/feedback/status').then(r => setFbStatus(r.data.status)).catch(() => {});
@@ -44,6 +47,33 @@ const FeedbackModule = () => {
     if (!confirm('Clear ALL responses? This cannot be undone.')) return;
     await axios.delete('/api/feedback/responses');
     setFbResponses(prev => ({ questions: prev.questions.map(q => ({...q, answers:[]})), total: 0 }));
+    setAiSummary(null);
+  };
+
+  // Test if AI is working
+  const testAI = async () => {
+    setAiTestResult('Testing...');
+    try {
+      const res = await axios.post('/api/test-ai');
+      setAiTestResult({ ok: true, msg: res.data.response });
+    } catch (e) {
+      setAiTestResult({ ok: false, msg: e.response?.data?.error || e.message });
+    }
+  };
+
+  // AI analyze all feedback
+  const analyzeWithAI = async () => {
+    if (fbResponses.total === 0) return alert('No responses to analyze yet.');
+    setAiLoading(true);
+    setAiSummary(null);
+    try {
+      const res = await axios.post('/api/feedback/ai-analyze');
+      setAiSummary(res.data.summary);
+    } catch (e) {
+      setAiSummary('Error: ' + (e.response?.data?.error || e.message));
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const pill = (type) => type === 'rating'
@@ -61,7 +91,7 @@ const FeedbackModule = () => {
             {fbResponses.total} response{fbResponses.total !== 1 ? 's' : ''} received
           </p>
         </div>
-        <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
+        <div style={{ display:'flex', gap:'0.75rem', alignItems:'center', flexWrap:'wrap' }}>
           {/* Tab switcher */}
           <div style={{ display:'flex', borderRadius:'10px', overflow:'hidden', border:'1.5px solid #e2e8f0' }}>
             {['questions','responses'].map(t => (
@@ -73,6 +103,14 @@ const FeedbackModule = () => {
               </button>
             ))}
           </div>
+
+          {/* 🤖 Test AI button */}
+          <button onClick={testAI}
+            style={{ padding:'0.5rem 1rem', borderRadius:'10px', border:'1.5px solid #7c3aed', fontWeight:700, fontSize:'0.82rem',
+              cursor:'pointer', fontFamily:'Outfit,sans-serif', background:'rgba(124,58,237,0.08)', color:'#7c3aed' }}>
+            🤖 Test AI
+          </button>
+
           {/* Open/Close toggle */}
           <button onClick={toggleStatus}
             style={{ padding:'0.5rem 1.1rem', borderRadius:'10px', border:'none', fontWeight:800, fontSize:'0.82rem',
@@ -82,6 +120,29 @@ const FeedbackModule = () => {
           </button>
         </div>
       </div>
+
+      {/* AI Test Result Banner */}
+      {aiTestResult && (
+        <div style={{
+          padding:'0.85rem 1.25rem', borderRadius:'14px',
+          background: aiTestResult === 'Testing...' ? '#f8fafc' : (aiTestResult.ok ? 'linear-gradient(135deg,#f0fdf4,#dcfce7)' : 'linear-gradient(135deg,#fef2f2,#fee2e2)'),
+          border: aiTestResult === 'Testing...' ? '1.5px solid #e2e8f0' : (aiTestResult.ok ? '1.5px solid #86efac' : '1.5px solid #fca5a5'),
+          display:'flex', alignItems:'flex-start', gap:'0.75rem'
+        }}>
+          <span style={{ fontSize:'1.4rem' }}>{aiTestResult === 'Testing...' ? '⏳' : (aiTestResult.ok ? '✅' : '❌')}</span>
+          <div>
+            <div style={{ fontWeight:800, fontSize:'0.85rem', color: aiTestResult === 'Testing...' ? '#64748b' : (aiTestResult.ok ? '#15803d' : '#dc2626') }}>
+              {aiTestResult === 'Testing...' ? 'Testing Gemini connection...' : (aiTestResult.ok ? 'AI is working!' : 'AI connection failed')}
+            </div>
+            {aiTestResult.msg && (
+              <div style={{ fontSize:'0.8rem', color:'#475569', marginTop:'3px', fontStyle:'italic' }}>
+                {aiTestResult.ok ? `Gemini says: "${aiTestResult.msg}"` : aiTestResult.msg}
+              </div>
+            )}
+          </div>
+          <button onClick={() => setAiTestResult(null)} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:'1.1rem' }}>✕</button>
+        </div>
+      )}
 
       {/* ── QUESTIONS TAB ─────────────────────────────────── */}
       {fbTab === 'questions' && (
@@ -173,66 +234,99 @@ const FeedbackModule = () => {
 
       {/* ── RESPONSES TAB ─────────────────────────────────── */}
       {fbTab === 'responses' && (
-        <div className="card shadow-card">
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
-            <h4 style={{ margin:0, fontWeight:800 }}>Responses ({fbResponses.total})</h4>
-            <div style={{ display:'flex', gap:'0.75rem' }}>
-              <button onClick={() => window.open('/api/feedback/export', '_blank')}
-                style={{ padding:'0.4rem 0.9rem', background:'rgba(10,130,118,0.08)', border:'1px solid #0A8276',
-                  borderRadius:'8px', color:'#0A8276', fontWeight:700, cursor:'pointer', fontSize:'0.8rem', fontFamily:'Outfit,sans-serif' }}>
-                Download CSV
-              </button>
-              <button onClick={clearResponses}
-                style={{ padding:'0.4rem 0.9rem', background:'rgba(239,68,68,0.08)', border:'1px solid #ef4444',
-                  borderRadius:'8px', color:'#ef4444', fontWeight:700, cursor:'pointer', fontSize:'0.8rem', fontFamily:'Outfit,sans-serif' }}>
-                Clear All
+        <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
+
+          {/* AI Summary Card */}
+          <div className="card shadow-card" style={{ background:'linear-gradient(135deg,#f5f3ff,#ede9fe)', border:'1.5px solid #c4b5fd' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem', flexWrap:'wrap' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
+                <span style={{ fontSize:'2rem' }}>🤖</span>
+                <div>
+                  <div style={{ fontWeight:800, color:'#6d28d9' }}>AI Feedback Analyzer</div>
+                  <div style={{ fontSize:'0.78rem', color:'#7c3aed' }}>Let Gemini read all responses and give you a smart summary</div>
+                </div>
+              </div>
+              <button onClick={analyzeWithAI} disabled={aiLoading}
+                style={{ padding:'0.6rem 1.3rem', background: aiLoading ? '#a78bfa' : '#7c3aed', color:'white', border:'none',
+                  borderRadius:'10px', fontWeight:800, cursor: aiLoading ? 'not-allowed' : 'pointer', fontSize:'0.85rem', fontFamily:'Outfit,sans-serif' }}>
+                {aiLoading ? '⏳ Analyzing...' : '🤖 Analyze with AI'}
               </button>
             </div>
+
+            {aiSummary && (
+              <div style={{ marginTop:'1rem', background:'white', borderRadius:'12px', padding:'1rem 1.25rem', border:'1px solid #c4b5fd' }}>
+                <div style={{ fontSize:'0.7rem', fontWeight:800, color:'#7c3aed', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:'0.5rem' }}>
+                  Gemini Analysis
+                </div>
+                <div style={{ fontSize:'0.88rem', color:'#1e293b', lineHeight:1.7, whiteSpace:'pre-wrap' }}>
+                  {aiSummary}
+                </div>
+              </div>
+            )}
           </div>
 
-          {!fbResponses.questions?.length
-            ? <p style={{ color:'#94a3b8', textAlign:'center', padding:'2rem' }}>No responses yet.</p>
-            : fbResponses.questions.map((q, i) => (
-              <div key={q.id} style={{ marginBottom:'1.5rem', background:'#f8fafc', borderRadius:'14px',
-                padding:'1rem', border:'1px solid #e2e8f0' }}>
-                <div style={{ fontWeight:800, marginBottom:'0.75rem', color:'#1D1D1D', fontSize:'0.9rem' }}>
-                  Q{i+1}: {q.question_text}
-                  <span style={{ marginLeft:'0.5rem', fontSize:'0.72rem', padding:'2px 8px', borderRadius:'99px',
-                    background:'rgba(10,130,118,0.1)', color:'#0A8276', fontWeight:700 }}>
-                    {q.answers?.length || 0} answers
-                  </span>
-                </div>
-
-                {q.type === 'rating' ? (
-                  <div style={{ display:'flex', gap:'1.25rem', flexWrap:'wrap' }}>
-                    {[1,2,3,4,5].map(star => {
-                      const count = q.answers?.filter(a => a.rating === star).length || 0;
-                      const pct = q.answers?.length ? Math.round(count / q.answers.length * 100) : 0;
-                      return (
-                        <div key={star} style={{ textAlign:'center' }}>
-                          <div style={{ fontWeight:800, fontSize:'0.95rem' }}>{'*'.repeat(star)} ({star})</div>
-                          <div style={{ fontWeight:900, fontSize:'1.4rem', color:'#1D1D1D' }}>{count}</div>
-                          <div style={{ color:'#64748b', fontSize:'0.75rem' }}>{pct}%</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div style={{ maxHeight:'180px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'0.4rem' }}>
-                    {!q.answers?.length
-                      ? <span style={{ color:'#94a3b8', fontSize:'0.85rem' }}>No answers yet</span>
-                      : q.answers.map((a, j) => (
-                        <div key={j} style={{ background:'white', padding:'0.5rem 0.75rem', borderRadius:'8px',
-                          border:'1px solid #e2e8f0', fontSize:'0.85rem', color:'#1e293b' }}>
-                          "{a.answer_text}"
-                        </div>
-                      ))
-                    }
-                  </div>
-                )}
+          {/* Responses list */}
+          <div className="card shadow-card">
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' }}>
+              <h4 style={{ margin:0, fontWeight:800 }}>Responses ({fbResponses.total})</h4>
+              <div style={{ display:'flex', gap:'0.75rem' }}>
+                <button onClick={() => window.open('/api/feedback/export', '_blank')}
+                  style={{ padding:'0.4rem 0.9rem', background:'rgba(10,130,118,0.08)', border:'1px solid #0A8276',
+                    borderRadius:'8px', color:'#0A8276', fontWeight:700, cursor:'pointer', fontSize:'0.8rem', fontFamily:'Outfit,sans-serif' }}>
+                  Download CSV
+                </button>
+                <button onClick={clearResponses}
+                  style={{ padding:'0.4rem 0.9rem', background:'rgba(239,68,68,0.08)', border:'1px solid #ef4444',
+                    borderRadius:'8px', color:'#ef4444', fontWeight:700, cursor:'pointer', fontSize:'0.8rem', fontFamily:'Outfit,sans-serif' }}>
+                  Clear All
+                </button>
               </div>
-            ))
-          }
+            </div>
+
+            {!fbResponses.questions?.length
+              ? <p style={{ color:'#94a3b8', textAlign:'center', padding:'2rem' }}>No responses yet.</p>
+              : fbResponses.questions.map((q, i) => (
+                <div key={q.id} style={{ marginBottom:'1.5rem', background:'#f8fafc', borderRadius:'14px',
+                  padding:'1rem', border:'1px solid #e2e8f0' }}>
+                  <div style={{ fontWeight:800, marginBottom:'0.75rem', color:'#1D1D1D', fontSize:'0.9rem' }}>
+                    Q{i+1}: {q.question_text}
+                    <span style={{ marginLeft:'0.5rem', fontSize:'0.72rem', padding:'2px 8px', borderRadius:'99px',
+                      background:'rgba(10,130,118,0.1)', color:'#0A8276', fontWeight:700 }}>
+                      {q.answers?.length || 0} answers
+                    </span>
+                  </div>
+
+                  {q.type === 'rating' ? (
+                    <div style={{ display:'flex', gap:'1.25rem', flexWrap:'wrap' }}>
+                      {[1,2,3,4,5].map(star => {
+                        const count = q.answers?.filter(a => a.rating === star).length || 0;
+                        const pct = q.answers?.length ? Math.round(count / q.answers.length * 100) : 0;
+                        return (
+                          <div key={star} style={{ textAlign:'center' }}>
+                            <div style={{ fontWeight:800, fontSize:'0.95rem' }}>{'★'.repeat(star)} ({star})</div>
+                            <div style={{ fontWeight:900, fontSize:'1.4rem', color:'#1D1D1D' }}>{count}</div>
+                            <div style={{ color:'#64748b', fontSize:'0.75rem' }}>{pct}%</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ maxHeight:'180px', overflowY:'auto', display:'flex', flexDirection:'column', gap:'0.4rem' }}>
+                      {!q.answers?.length
+                        ? <span style={{ color:'#94a3b8', fontSize:'0.85rem' }}>No answers yet</span>
+                        : q.answers.map((a, j) => (
+                          <div key={j} style={{ background:'white', padding:'0.5rem 0.75rem', borderRadius:'8px',
+                            border:'1px solid #e2e8f0', fontSize:'0.85rem', color:'#1e293b' }}>
+                            "{a.answer_text}"
+                          </div>
+                        ))
+                      }
+                    </div>
+                  )}
+                </div>
+              ))
+            }
+          </div>
         </div>
       )}
     </div>

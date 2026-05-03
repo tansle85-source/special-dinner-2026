@@ -607,6 +607,70 @@ app.delete('/api/feedback/responses', async (req, res) => {
   res.json({ success: true });
 });
 
+// ── AI TEST ENDPOINT ─────────────────────────────────────────────────────────
+app.post('/api/test-ai', async (req, res) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set on server' });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent('Say exactly: "Gemini is connected and ready!"');
+    res.json({ ok: true, response: result.response.text().trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── AI FEEDBACK ANALYZER ─────────────────────────────────────────────────────
+app.post('/api/feedback/ai-analyze', async (req, res) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set on server' });
+
+    // Gather all responses
+    const [questions] = await pool.query('SELECT * FROM m26_feedback_questions ORDER BY order_num, id');
+    const [answers]   = await pool.query(`
+      SELECT fa.*, fr.created_at, fq.question_text, fq.type
+      FROM m26_feedback_answers fa
+      JOIN m26_feedback_responses fr ON fa.response_id = fr.id
+      JOIN m26_feedback_questions fq ON fa.question_id = fq.id
+    `);
+
+    if (answers.length === 0) return res.status(400).json({ error: 'No feedback responses to analyze' });
+
+    // Build a readable summary of all responses
+    const feedbackText = questions.map(q => {
+      const qAnswers = answers.filter(a => a.question_id === q.id);
+      if (q.type === 'rating') {
+        const avg = qAnswers.reduce((s, a) => s + (a.rating || 0), 0) / (qAnswers.length || 1);
+        const dist = [1,2,3,4,5].map(s => `${s}★: ${qAnswers.filter(a => a.rating === s).length}`).join(', ');
+        return `Q: "${q.question_text}"\nAverage rating: ${avg.toFixed(1)}/5. Distribution: ${dist}`;
+      } else {
+        const texts = qAnswers.map(a => `"${a.answer_text}"`).filter(Boolean).join('; ');
+        return `Q: "${q.question_text}"\nAnswers: ${texts || 'none'}`;
+      }
+    }).join('\n\n');
+
+    const prompt = `You are an event analyst reviewing guest feedback from a company dinner event called "Appreciation Night 2026".
+
+Here is the feedback data:
+${feedbackText}
+
+Please provide a concise analysis in this format:
+1. Overall Sentiment (1-2 sentences)
+2. Key Highlights (what guests loved)
+3. Areas for Improvement (any concerns raised)
+4. Recommendations for next event (2-3 actionable points)
+
+Keep it professional, friendly, and under 200 words total.`;
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+    res.json({ success: true, summary: result.response.text().trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Best Dress Endpoints
 
 // Submit nomination with photo (unlimited per device) �?base64 stored in DB

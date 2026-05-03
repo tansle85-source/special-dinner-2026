@@ -8,7 +8,25 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// ── Gemini REST API helper (uses v1 endpoint — stable, not v1beta) ────────────
+const GEMINI_MODEL = 'gemini-1.5-flash';
+async function geminiText(prompt) {
+  const axios = (await import('axios')).default;
+  const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const r = await axios.post(url, { contents: [{ parts: [{ text: prompt }] }] });
+  return r.data.candidates[0].content.parts[0].text.trim();
+}
+async function geminiVision(b64, mimeType, prompt) {
+  const axios = (await import('axios')).default;
+  const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const r = await axios.post(url, { contents: [{ parts: [
+    { inlineData: { mimeType, data: b64 } },
+    { text: prompt }
+  ]}]});
+  return r.data.candidates[0].content.parts[0].text.trim();
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Shared ID Generator for maximum compatibility
 const generateId = () => {
@@ -611,10 +629,8 @@ app.delete('/api/feedback/responses', async (req, res) => {
 app.post('/api/test-ai', async (req, res) => {
   try {
     if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set on server' });
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
-    const result = await model.generateContent('Say exactly: "Gemini is connected and ready!"');
-    res.json({ ok: true, response: result.response.text().trim() });
+    const text = await geminiText('Say exactly: "Gemini is connected and ready!"');
+    res.json({ ok: true, response: text });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -662,10 +678,8 @@ Please provide a concise analysis in this format:
 
 Keep it professional, friendly, and under 200 words total.`;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
-    const result = await model.generateContent(prompt);
-    res.json({ success: true, summary: result.response.text().trim() });
+    const summary = await geminiText(prompt);
+    res.json({ success: true, summary });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -809,9 +823,6 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
 
     if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set on server' });
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
-
     const errors = [];
 
     // Score each submission
@@ -824,11 +835,7 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
         const b64  = matches[2];
         const criteria = req.body.criteria || 'Elegance and sophistication. Style and colour coordination. Appropriateness for a formal gala dinner. Overall presentation.';
         const prompt = `You are a fashion judge for a company dinner Best Dress competition. Rate this outfit from 0-100 based on these criteria:\n\n${criteria}\n\nReturn ONLY valid JSON with no markdown: {"score": 85, "reasoning": "brief reason under 20 words"}`;
-        const result = await model.generateContent([
-          { inlineData: { data: b64, mimeType: mime } },
-          prompt
-        ]);
-        const text = result.response.text().trim();
+        const text = await geminiVision(b64, mime, prompt);
         console.log(`[AI-RANK] ${sub.name} raw response: ${text.substring(0, 120)}`);
         // Strip markdown code fences if present
         const clean = text.replace(/```json|```/gi, '').trim();

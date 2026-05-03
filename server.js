@@ -612,7 +612,7 @@ app.post('/api/test-ai', async (req, res) => {
   try {
     if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set on server' });
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
     const result = await model.generateContent('Say exactly: "Gemini is connected and ready!"');
     res.json({ ok: true, response: result.response.text().trim() });
   } catch (err) {
@@ -663,7 +663,7 @@ Please provide a concise analysis in this format:
 Keep it professional, friendly, and under 200 words total.`;
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
     const result = await model.generateContent(prompt);
     res.json({ success: true, summary: result.response.text().trim() });
   } catch (err) {
@@ -810,7 +810,7 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
     if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set on server' });
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
 
     const errors = [];
 

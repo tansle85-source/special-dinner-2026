@@ -10,16 +10,16 @@ import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
 // ── Gemini REST API helper (uses v1 endpoint — stable, not v1beta) ────────────
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 async function geminiText(prompt) {
   const axios = (await import('axios')).default;
-  const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
   const r = await axios.post(url, { contents: [{ parts: [{ text: prompt }] }] });
   return r.data.candidates[0].content.parts[0].text.trim();
 }
 async function geminiVision(b64, mimeType, prompt) {
   const axios = (await import('axios')).default;
-  const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
   const r = await axios.post(url, { contents: [{ parts: [
     { inlineData: { mimeType, data: b64 } },
     { text: prompt }

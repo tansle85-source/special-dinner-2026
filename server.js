@@ -1016,11 +1016,11 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       const data = {};
       cleanKeys.forEach((key, i) => data[key.toLowerCase()] = row[rowKeys[i]].trim());
       
-      const nameKey = cleanKeys.find(k => k.toLowerCase().includes('name'))?.toLowerCase();
-      const deptKey = cleanKeys.find(k => k.toLowerCase().includes('dept') || k.toLowerCase().includes('unit'))?.toLowerCase();
+      const nameKey = cleanKeys.find(k => k.toLowerCase().includes('name') || k.toLowerCase().includes('employee'))?.toLowerCase();
+      const deptKey = cleanKeys.find(k => k.toLowerCase().includes('dept') || k.toLowerCase().includes('unit') || k.toLowerCase().includes('department'))?.toLowerCase();
 
       const name = data[nameKey] || data['name'];
-      const department = data[deptKey] || data['department'] || '';
+      const department = data[deptKey] || data['dept'] || data['department'] || '';
       
       if (name) results.push([generateId(), name, department, null]);
     })
@@ -1063,13 +1063,13 @@ app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
       const data = {};
       cleanKeys.forEach((key, i) => data[key.toLowerCase()] = (row[rowKeys[i]] || '').trim());
 
-      const nameKey = cleanKeys.find(k => k.toLowerCase().includes('name'))?.toLowerCase();
+      const nameKey = cleanKeys.find(k => k.toLowerCase().includes('name') || k.toLowerCase().includes('employee'))?.toLowerCase();
       const prizeKey = cleanKeys.find(k => k.toLowerCase().includes('prize') || k.toLowerCase().includes('award') || k.toLowerCase().includes('won'))?.toLowerCase();
-      const deptKey = cleanKeys.find(k => k.toLowerCase().includes('dept') || k.toLowerCase().includes('unit'))?.toLowerCase();
+      const deptKey = cleanKeys.find(k => k.toLowerCase().includes('dept') || k.toLowerCase().includes('unit') || k.toLowerCase().includes('department'))?.toLowerCase();
 
       const name = data[nameKey] || data['name'];
       const prize = data[prizeKey] || data['prize'];
-      const department = deptKey ? (data[deptKey] || data['department']) : '';
+      const department = data[deptKey] || data['dept'] || data['department'] || '';
       
       if (name && prize) rows.push({ name, prize, department });
     })

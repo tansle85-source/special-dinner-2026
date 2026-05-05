@@ -147,7 +147,7 @@ const LuckyDraw = () => {
                       </div>
                       <div>
                         <div style={{ fontWeight:800, fontSize:'0.95rem' }}>{e.name}</div>
-                        <div style={{ color:'#6b7280', fontSize:'0.78rem', marginTop:'1px' }}>{e.department}</div>
+                        <div style={{ color:'#6b7280', fontSize:'0.78rem', marginTop:'1px' }}>{e.department || 'N/A'}</div>
                       </div>
                     </div>
                     {e.won_prize
@@ -197,7 +197,7 @@ const LuckyDraw = () => {
                     <div key={e.id} className="ld-winner-row" style={{ ...s.wRow, transition:'all 0.15s' }}>
                       <div>
                         <div style={{ fontWeight:800, fontSize:'0.95rem' }}>{e.name}</div>
-                        {e.department && <div style={{ color:'#6b7280', fontSize:'0.78rem', marginTop:'2px' }}>{e.department}</div>}
+                        <div style={{ color:'#6b7280', fontSize:'0.78rem', marginTop:'2px' }}>{e.department || 'N/A'}</div>
                       </div>
                       <span className="ld-prize-badge" style={s.prize}>{e.won_prize}</span>
                     </div>

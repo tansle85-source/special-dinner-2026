@@ -25,6 +25,7 @@ const LuckyDraw = () => {
   const [results, setResults]       = useState([]);
   const [searched, setSearched]     = useState(false);
   const [loading, setLoading]       = useState(true);
+  const [activeTab, setActiveTab]   = useState('Session 1');
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -44,6 +45,13 @@ const LuckyDraw = () => {
   
   // Sort sessions alphabetically
   const sessions = Object.keys(winnersBySession).sort();
+
+  // If activeTab is not in sessions and sessions exist, switch to first session
+  useEffect(() => {
+    if (sessions.length > 0 && !sessions.includes(activeTab)) {
+      setActiveTab(sessions[0]);
+    }
+  }, [sessions, activeTab]);
 
   const handleSearch = () => {
     const q = query.trim().toLowerCase();
@@ -88,6 +96,11 @@ const LuckyDraw = () => {
           .ld-winner-row { flex-direction: column !important; align-items: flex-start !important; padding: 1rem !important; gap: 0.25rem !important; }
           .ld-prize-badge { align-self: flex-start !important; margin-top: 0.4rem !important; white-space: normal !important; text-align: left !important; line-height: 1.3 !important; }
         }
+        .ld-tab-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 4px; }
+        .ld-tab { padding: 0.7rem 1.1rem; border-radius: 12px; cursor: pointer; font-weight: 800; font-size: 0.85rem; transition: all 0.2s; white-space: nowrap; border: 2px solid transparent; }
+        .ld-tab-active { background: #0A8276; color: white; box-shadow: 0 4px 12px rgba(10,130,118,0.2); }
+        .ld-tab-inactive { background: #f1f5f9; color: #64748b; }
+        .ld-tab-inactive:hover { background: #e2e8f0; color: #475569; }
       `}</style>
 
       {/* Header — identical to BestDress */}
@@ -163,22 +176,35 @@ const LuckyDraw = () => {
               <p style={{ color:'#9ca3af', fontSize:'0.85rem', marginTop:'0.3rem' }}>Results will appear here once published.</p>
             </div>
           ) : (
-            sessions.map(session => (
-              <div key={session} style={{ marginBottom: '1.5rem' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0A8276', borderBottom: '2px solid rgba(10,130,118,0.1)', paddingBottom: '0.5rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {session}
-                </h3>
-                {winnersBySession[session].map(e => (
-                  <div key={e.id} className="ld-winner-row" style={{ ...s.wRow, transition:'all 0.15s' }}>
-                    <div>
-                      <div style={{ fontWeight:800, fontSize:'0.95rem' }}>{e.name}</div>
-                      {e.department && <div style={{ color:'#6b7280', fontSize:'0.78rem', marginTop:'2px' }}>{e.department}</div>}
-                    </div>
-                    <span className="ld-prize-badge" style={s.prize}>{e.won_prize}</span>
+            <>
+              {/* Tabs Section */}
+              <div className="ld-tab-bar">
+                {sessions.map(sName => (
+                  <div
+                    key={sName}
+                    className={`ld-tab ${activeTab === sName ? 'ld-tab-active' : 'ld-tab-inactive'}`}
+                    onClick={() => setActiveTab(sName)}
+                  >
+                    {sName}
                   </div>
                 ))}
               </div>
-            ))
+
+              {/* Active Session Content */}
+              {winnersBySession[activeTab] && (
+                <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                  {winnersBySession[activeTab].map(e => (
+                    <div key={e.id} className="ld-winner-row" style={{ ...s.wRow, transition:'all 0.15s' }}>
+                      <div>
+                        <div style={{ fontWeight:800, fontSize:'0.95rem' }}>{e.name}</div>
+                        {e.department && <div style={{ color:'#6b7280', fontSize:'0.78rem', marginTop:'2px' }}>{e.department}</div>}
+                      </div>
+                      <span className="ld-prize-badge" style={s.prize}>{e.won_prize}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 

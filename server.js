@@ -500,22 +500,26 @@ app.get('/api/performance/results', async (req, res) => {
 
   // Calculate Weighted Totals
   const processed = rows.map(r => {
-    // Guest Average (on 1-5 scale)
-    const guestAvg = ((Number(r.s1||0) + Number(r.s2||0) + Number(r.s3||0)) / 3);
-    // Convert guest avg to points (max 70)
-    const guestPortion = (guestAvg / 5) * 70;
-    // Manual Score portion (max 30)
+    // General Guest Average (s1: Vocal, s2: Stage Presence) - Weight 70%
+    const generalGuestAvg = ((Number(r.s1||0) + Number(r.s2||0)) / 2);
+    const guestPortion = (generalGuestAvg / 5) * 70;
+    
+    // Manual Admin Score (max 100) - Weight 30%
     const adminPortion = (Number(r.manual_score || 0) / 100) * 30;
+    
+    // Costume Score (s3 only) - For separate ranking
+    const costumeScore = Number(r.s3||0).toFixed(2);
     
     return {
       ...r,
       guest_portion: guestPortion.toFixed(2),
       admin_portion: adminPortion.toFixed(2),
-      total: (guestPortion + adminPortion).toFixed(2)
+      total: (guestPortion + adminPortion).toFixed(2),
+      costume_score: costumeScore
     };
   });
 
-  // Sort by total DESC
+  // Default sort by total DESC for the general leaderboard
   processed.sort((a, b) => b.total - a.total);
   res.json(processed);
 });

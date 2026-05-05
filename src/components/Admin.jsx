@@ -20,6 +20,7 @@ const Admin = () => {
   // Navigation State
   const [activeModule, setActiveModule] = useState('lucky-draw'); 
   const [activeSubTab, setActiveSubTab] = useState('conduct');
+  const [performanceRankType, setPerformanceRankType] = useState('general');
 
   // Data State
   const [employees, setEmployees] = useState([]);
@@ -584,46 +585,91 @@ const Admin = () => {
 
               {activeSubTab === 'p-results' && (
                 <div className="card shadow-card">
-                  <h3>Real-time Leaderboard (70% Guest / 30% Admin)</h3>
+                  <div style={{ display:'flex', gap:'1rem', marginBottom:'1.5rem', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap' }}>
+                    <div>
+                      <h3 style={{ margin:0 }}>Performance Rankings</h3>
+                      <p style={{ margin:'4px 0 0', color:'#94a3b8', fontSize:'0.82rem', fontWeight:600 }}>
+                        {performanceRankType === 'general' ? '70% Guest (Vocal/Stage) + 30% Admin' : 'Ranked by Average Costume Score only'}
+                      </p>
+                    </div>
+                    <div style={{ display:'flex', gap:'4px', background:'#f1f5f9', padding:'4px', borderRadius:'10px' }}>
+                      <button 
+                        onClick={() => setPerformanceRankType('general')}
+                        style={{ padding:'0.5rem 1rem', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:700, fontSize:'0.85rem', transition:'0.2s', background: performanceRankType === 'general' ? '#0A8276' : 'transparent', color: performanceRankType === 'general' ? 'white' : '#64748b' }}
+                      >
+                        General (70/30)
+                      </button>
+                      <button 
+                        onClick={() => setPerformanceRankType('costume')}
+                        style={{ padding:'0.5rem 1rem', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:700, fontSize:'0.85rem', transition:'0.2s', background: performanceRankType === 'costume' ? '#0A8276' : 'transparent', color: performanceRankType === 'costume' ? 'white' : '#64748b' }}
+                      >
+                        Costume Ranking
+                      </button>
+                    </div>
+                  </div>
+
                   <table className="modern-table">
-                    <thead>
-                      <tr>
-                        <th>RANK</th>
-                        <th>PERFORMER</th>
-                        <th>GUEST (70%)</th>
-                        <th>ADMIN LK1 (30%)</th>
-                        <th>OVERALL</th>
-                        <th>VOTES</th>
-                      </tr>
-                    </thead>
+                    {performanceRankType === 'general' ? (
+                      <thead>
+                        <tr>
+                          <th>RANK</th>
+                          <th>PERFORMER</th>
+                          <th style={{color:'#0A8276'}}>GUEST (70%)</th>
+                          <th>ADMIN LK1 (30%)</th>
+                          <th>OVERALL</th>
+                          <th>VOTES</th>
+                        </tr>
+                      </thead>
+                    ) : (
+                      <thead>
+                        <tr>
+                          <th>RANK</th>
+                          <th>PERFORMER</th>
+                          <th style={{color:'#0A8276'}}>COSTUME SCORE (Avg)</th>
+                          <th>VOTES</th>
+                        </tr>
+                      </thead>
+                    )}
                     <tbody>
-                      {performanceResults.map((r, i) => (
+                      {[...performanceResults]
+                        .sort((a, b) => performanceRankType === 'general' ? (b.total - a.total) : (b.costume_score - a.costume_score))
+                        .map((r, i) => (
                         <tr key={r.id || i}>
                           <td style={{fontWeight: 900, color: '#94a3b8'}}>#{i+1}</td>
                           <td>
                             <div className="bold">{r.name}</div>
                             <div style={{fontSize: '0.8rem', color: '#64748b'}}>{r.song_name}</div>
                           </td>
-                          <td className="bold text-teal">{r.guest_portion}</td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <input 
-                                type="number" 
-                                min="0" 
-                                max="100"
-                                className="inline-edit-input" 
-                                style={{ width: '80px', border: '1px solid #e2e8f0', textAlign: 'center' }}
-                                defaultValue={r.manual_score}
-                                onBlur={async (e) => {
-                                  await axios.put(`/api/performance/participants/${r.id}/manual-score`, { score: e.target.value });
-                                  fetchAllData();
-                                }}
-                              />
-                              <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>/ 100</span>
-                            </div>
-                          </td>
-                          <td className="bold" style={{fontSize: '1.2rem', color: '#0a8276'}}>{r.total}</td>
-                          <td>{r.vote_count}</td>
+                          
+                          {performanceRankType === 'general' ? (
+                            <>
+                              <td className="bold text-teal">{r.guest_portion}</td>
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    max="100"
+                                    className="inline-edit-input" 
+                                    style={{ width: '80px', border: '1px solid #e2e8f0', textAlign: 'center' }}
+                                    defaultValue={r.manual_score}
+                                    onBlur={async (e) => {
+                                      await axios.put(`/api/performance/participants/${r.id}/manual-score`, { score: e.target.value });
+                                      fetchAllData();
+                                    }}
+                                  />
+                                  <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>/ 100</span>
+                                </div>
+                              </td>
+                              <td className="bold" style={{fontSize: '1.2rem', color: '#0a8276'}}>{r.total}</td>
+                              <td>{r.vote_count}</td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="bold text-teal" style={{fontSize:'1.2rem'}}>{r.costume_score} <span style={{fontSize:'0.75rem', color:'#94a3b8', fontWeight:500}}>/ 5</span></td>
+                              <td>{r.vote_count}</td>
+                            </>
+                          )}
                         </tr>
                       ))}
                     </tbody>

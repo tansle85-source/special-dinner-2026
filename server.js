@@ -162,6 +162,10 @@ const initDB = async () => {
       if (!cols.some(c => c.Field === 'claimed_at')) {
         await connection.query('ALTER TABLE m26_employees ADD COLUMN claimed_at DATETIME DEFAULT NULL');
       }
+      if (!cols.some(c => c.Field === 'prize_session')) {
+        console.log("[MIGRATE] Adding prize_session to m26_employees");
+        await connection.query('ALTER TABLE m26_employees ADD COLUMN prize_session VARCHAR(50) DEFAULT NULL');
+      }
     } catch (migErr) { console.warn("Migration warning:", migErr.message); }
 
     await connection.query(`
@@ -1044,11 +1048,12 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     });
 });
 
-// Upload Winners CSV (name, prize) �?matches by name, sets won_prize
-// CSV columns: name, prize  (case-insensitive, partial match allowed)
+// Upload Winners CSV (name, prize) ?matches by name, sets won_prize
+// CSV columns: name, prize, department  (case-insensitive, partial match allowed)
 app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded.');
 
+  const targetSession = req.body.session || 'Session 1'; // From frontend
   const rows = [];
   fs.createReadStream(req.file.path)
     .pipe(csv())
@@ -1073,8 +1078,8 @@ app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
         if (rows.length === 0) throw new Error('No valid winner rows found. CSV must have name and prize columns.');
         await fs.remove(req.file.path);
 
-        // Reset all m26_prizes first
-        await pool.query('UPDATE m26_employees SET won_prize = NULL');
+        // Reset ONLY the target session
+        await pool.query('UPDATE m26_employees SET won_prize = NULL, prize_session = NULL WHERE prize_session = ?', [targetSession]);
 
         let matched = 0, skipped = 0;
         for (const { name, prize, department } of rows) {
@@ -1083,7 +1088,11 @@ app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
             'SELECT id FROM m26_employees WHERE LOWER(name) = LOWER(?)', [name.trim()]
           );
           if (found.length > 0) {
-            await pool.query('UPDATE m26_employees SET won_prize = ? WHERE id = ?', [prize, found[0].id]);
+            if (department) {
+                await pool.query('UPDATE m26_employees SET won_prize = ?, prize_session = ?, department = ? WHERE id = ?', [prize, targetSession, department, found[0].id]);
+            } else {
+                await pool.query('UPDATE m26_employees SET won_prize = ?, prize_session = ? WHERE id = ?', [prize, targetSession, found[0].id]);
+            }
             matched++;
           } else {
             // Try partial name match
@@ -1091,14 +1100,18 @@ app.post('/api/upload-winners', upload.single('file'), async (req, res) => {
               'SELECT id FROM m26_employees WHERE LOWER(name) LIKE ? LIMIT 1', [`%${name.trim().toLowerCase()}%`]
             );
             if (partial.length > 0) {
-              await pool.query('UPDATE m26_employees SET won_prize = ? WHERE id = ?', [prize, partial[0].id]);
+              if (department) {
+                  await pool.query('UPDATE m26_employees SET won_prize = ?, prize_session = ?, department = ? WHERE id = ?', [prize, targetSession, department, partial[0].id]);
+              } else {
+                  await pool.query('UPDATE m26_employees SET won_prize = ?, prize_session = ? WHERE id = ?', [prize, targetSession, partial[0].id]);
+              }
               matched++;
             } else {
               // Employee not found, so we insert them!
               const newId = generateId();
               await pool.query(
-                'INSERT INTO m26_employees (id, name, department, won_prize) VALUES (?, ?, ?, ?)', 
-                [newId, name.trim(), department || '', prize]
+                'INSERT INTO m26_employees (id, name, department, won_prize, prize_session) VALUES (?, ?, ?, ?, ?)', 
+                [newId, name.trim(), department || '', prize, targetSession]
               );
               matched++;
             }
@@ -1181,13 +1194,13 @@ app.get('/api/eligible-employees', async (req, res) => {
 });
 
 app.post('/api/draw/publish', async (req, res) => {
-  const { winnerId, prizeName } = req.body;
+  const { winnerId, prizeName, session } = req.body;
   try {
     // Validate winner is still eligible
     const [rows] = await pool.query('SELECT name FROM m26_employees WHERE id = ? AND won_prize IS NULL', [winnerId]);
     if (rows.length === 0) return res.status(400).json({ error: 'Employee ineligible or already won' });
     
-    await pool.query('UPDATE m26_employees SET won_prize = ? WHERE id = ?', [prizeName, winnerId]);
+    await pool.query('UPDATE m26_employees SET won_prize = ?, prize_session = ? WHERE id = ?', [prizeName, session || 'Session 1', winnerId]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).send(err.message);
@@ -1267,7 +1280,7 @@ app.post('/api/draw', async (req, res) => {
     if (eligible.length === 0) return res.status(400).json({ error: 'No eligible m26_employees' });
 
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
-    await connection.query('UPDATE m26_employees SET won_prize = ? WHERE id = ?', [prize.name, winner.id]);
+    await connection.query('UPDATE m26_employees SET won_prize = ?, prize_session = ? WHERE id = ?', [prize.name, prize.session || 'Session 1', winner.id]);
     
     res.json({ winner, prize });
   } catch (err) {
@@ -1303,7 +1316,7 @@ app.post('/api/draw/next', async (req, res) => {
     if (eligible.length === 0) return res.status(400).json({ error: 'No eligible m26_employees' });
 
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
-    await connection.query('UPDATE m26_employees SET won_prize = ? WHERE id = ?', [targetPrize.name, winner.id]);
+    await connection.query('UPDATE m26_employees SET won_prize = ?, prize_session = ? WHERE id = ?', [targetPrize.name, targetPrize.session || 'Session 1', winner.id]);
     
     res.json({ winner, prize: targetPrize });
   } catch (err) {
@@ -1331,7 +1344,7 @@ app.post('/api/draw/session-all', async (req, res) => {
 
       const [eligible] = await connection.query('SELECT * FROM m26_employees WHERE won_prize IS NULL LIMIT ?', [needed]);
       for (const winner of eligible) {
-        await connection.query('UPDATE m26_employees SET won_prize = ? WHERE id = ?', [prize.name, winner.id]);
+        await connection.query('UPDATE m26_employees SET won_prize = ?, prize_session = ? WHERE id = ?', [prize.name, prize.session || 'Session 1', winner.id]);
         winners_added.push({ winner: winner.name, prize: prize.name });
       }
     }
@@ -1355,7 +1368,7 @@ app.post('/api/draw/session-reset', async (req, res) => {
     if (m26_prizes.length === 0) return res.json({ message: 'No m26_prizes in session' });
 
     const prizeNames = m26_prizes.map(p => p.name);
-    await pool.query('UPDATE m26_employees SET won_prize = NULL WHERE won_prize IN (?)', [prizeNames]);
+    await pool.query('UPDATE m26_employees SET won_prize = NULL, prize_session = NULL WHERE won_prize IN (?)', [prizeNames]);
     
     res.json({ message: 'Session reset success' });
   } catch (err) {
@@ -1377,8 +1390,12 @@ app.post('/api/draw/redraw', async (req, res) => {
     const [eligible] = await connection.query('SELECT * FROM m26_employees WHERE won_prize IS NULL');
     if (eligible.length === 0) throw new Error('No eligible m26_employees left');
 
+    // Retrieve prize session
+    const [prizeInfo] = await connection.query('SELECT session FROM m26_prizes WHERE name = ? LIMIT 1', [prizeName]);
+    const prizeSession = prizeInfo.length > 0 ? prizeInfo[0].session : 'Session 1';
+
     const newWinner = eligible[Math.floor(Math.random() * eligible.length)];
-    await connection.query('UPDATE m26_employees SET won_prize = ? WHERE id = ?', [prizeName, newWinner.id]);
+    await connection.query('UPDATE m26_employees SET won_prize = ?, prize_session = ? WHERE id = ?', [prizeName, prizeSession, newWinner.id]);
 
     await connection.commit();
     res.json({ winner: newWinner });
@@ -1391,7 +1408,7 @@ app.post('/api/draw/redraw', async (req, res) => {
 });
 
 app.post('/api/reset-draw', async (req, res) => {
-  await pool.query('UPDATE m26_employees SET won_prize = NULL');
+  await pool.query('UPDATE m26_employees SET won_prize = NULL, prize_session = NULL');
   res.json({ message: 'Success' });
 });
 

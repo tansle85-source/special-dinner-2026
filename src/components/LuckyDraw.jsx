@@ -35,6 +35,16 @@ const LuckyDraw = () => {
 
   const winners = allEmployees.filter(e => e.won_prize);
 
+  const winnersBySession = winners.reduce((acc, e) => {
+    const session = e.prize_session || 'Session 1';
+    if (!acc[session]) acc[session] = [];
+    acc[session].push(e);
+    return acc;
+  }, {});
+  
+  // Sort sessions alphabetically
+  const sessions = Object.keys(winnersBySession).sort();
+
   const handleSearch = () => {
     const q = query.trim().toLowerCase();
     if (!q) { setSearched(false); setResults([]); return; }
@@ -74,6 +84,10 @@ const LuckyDraw = () => {
         .ld-btn { border:none; padding:0 1.3rem; background:#0A8276; color:white; font-family:Outfit,sans-serif; font-weight:800; font-size:0.9rem; cursor:pointer; }
         .ld-btn:hover { background:#076b61; }
         .ld-winner-row:hover { border-color:#0A8276 !important; background:rgba(10,130,118,0.04) !important; }
+        @media (max-width: 480px) {
+          .ld-winner-row { flex-direction: column !important; align-items: flex-start !important; padding: 1rem !important; gap: 0.25rem !important; }
+          .ld-prize-badge { align-self: flex-start !important; margin-top: 0.4rem !important; white-space: normal !important; text-align: left !important; line-height: 1.3 !important; }
+        }
       `}</style>
 
       {/* Header — identical to BestDress */}
@@ -124,7 +138,7 @@ const LuckyDraw = () => {
                       </div>
                     </div>
                     {e.won_prize
-                      ? <span style={s.prize}>🎉 {e.won_prize}</span>
+                      ? <span className="ld-prize-badge" style={s.prize}>🎉 {e.won_prize}</span>
                       : <span style={{ color:'#9ca3af', fontSize:'0.78rem', fontWeight:600 }}>Not drawn yet</span>
                     }
                   </div>
@@ -149,13 +163,20 @@ const LuckyDraw = () => {
               <p style={{ color:'#9ca3af', fontSize:'0.85rem', marginTop:'0.3rem' }}>Results will appear here once published.</p>
             </div>
           ) : (
-            winners.map(e => (
-              <div key={e.id} className="ld-winner-row" style={{ ...s.wRow, transition:'all 0.15s' }}>
-                <div>
-                  <div style={{ fontWeight:800, fontSize:'0.95rem' }}>{e.name}</div>
-                  <div style={{ color:'#6b7280', fontSize:'0.78rem', marginTop:'1px' }}>{e.department}</div>
-                </div>
-                <span style={s.prize}>{e.won_prize}</span>
+            sessions.map(session => (
+              <div key={session} style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0A8276', borderBottom: '2px solid rgba(10,130,118,0.1)', paddingBottom: '0.5rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {session}
+                </h3>
+                {winnersBySession[session].map(e => (
+                  <div key={e.id} className="ld-winner-row" style={{ ...s.wRow, transition:'all 0.15s' }}>
+                    <div>
+                      <div style={{ fontWeight:800, fontSize:'0.95rem' }}>{e.name}</div>
+                      {e.department && <div style={{ color:'#6b7280', fontSize:'0.78rem', marginTop:'2px' }}>{e.department}</div>}
+                    </div>
+                    <span className="ld-prize-badge" style={s.prize}>{e.won_prize}</span>
+                  </div>
+                ))}
               </div>
             ))
           )}

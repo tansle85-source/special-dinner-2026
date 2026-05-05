@@ -380,29 +380,55 @@ const Admin = () => {
                 <div className="card shadow-card" style={{ flex:1, minWidth:'280px' }}>
                   <h3 style={{ marginBottom:'0.4rem' }}>🏆 Upload Winners Result</h3>
                   <p style={{ color:'#64748b', fontSize:'0.85rem', marginBottom:'1.25rem' }}>
-                    Upload CSV with columns: <strong>name, prize</strong>.<br/>
-                    This publishes the draw results. All previous results will be cleared.
+                    Upload CSV with columns: <strong>name, prize, department</strong>.<br/>
+                    Uploading to a session will clear that session's previous results.
                   </p>
-                  <label style={{ display:'inline-flex', alignItems:'center', gap:'0.5rem', background:'#0A8276', color:'white', padding:'0.65rem 1.2rem', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'0.9rem' }}>
-                    📤 Upload Winners CSV
-                    <input type="file" accept=".csv" style={{ display:'none' }}
-                      onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        if (!confirm('This will REPLACE all current winner results. Continue?')) { e.target.value=''; return; }
-                        const fd = new FormData();
-                        fd.append('file', file);
-                        try {
-                          setLoading(true);
-                          setUploadStatus('Publishing results…');
-                          const r = await axios.post('/api/upload-winners', fd, { headers:{ 'Content-Type':'multipart/form-data' } });
-                          setUploadStatus(`✅ ${r.data.matched} winners published (${r.data.skipped} skipped)`);
-                          fetchAllData();
-                        } catch(err) { setUploadStatus('❌ ' + (err.response?.data || err.message)); }
-                        finally { setLoading(false); e.target.value = ''; }
-                      }}
-                    />
-                  </label>
+                  
+                  <div style={{ display:'flex', gap:'1rem', flexWrap:'wrap' }}>
+                    <label style={{ flex:1, display:'inline-flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', background:'#0A8276', color:'white', padding:'0.65rem 1.2rem', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'0.9rem', textAlign:'center' }}>
+                      📤 Session 1 Winners
+                      <input type="file" accept=".csv" style={{ display:'none' }}
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          if (!confirm('This will REPLACE Session 1 winners. Continue?')) { e.target.value=''; return; }
+                          const fd = new FormData();
+                          fd.append('file', file);
+                          fd.append('session', 'Session 1');
+                          try {
+                            setLoading(true);
+                            setUploadStatus('Publishing Session 1 results…');
+                            const r = await axios.post('/api/upload-winners', fd, { headers:{ 'Content-Type':'multipart/form-data' } });
+                            setUploadStatus(`✅ ${r.data.matched} Session 1 winners published`);
+                            fetchAllData();
+                          } catch(err) { setUploadStatus('❌ ' + (err.response?.data || err.message)); }
+                          finally { setLoading(false); e.target.value = ''; }
+                        }}
+                      />
+                    </label>
+
+                    <label style={{ flex:1, display:'inline-flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', background:'#1e293b', color:'white', padding:'0.65rem 1.2rem', borderRadius:'10px', cursor:'pointer', fontWeight:700, fontSize:'0.9rem', textAlign:'center' }}>
+                      📤 Session 2 Winners
+                      <input type="file" accept=".csv" style={{ display:'none' }}
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          if (!confirm('This will REPLACE Session 2 winners. Continue?')) { e.target.value=''; return; }
+                          const fd = new FormData();
+                          fd.append('file', file);
+                          fd.append('session', 'Session 2');
+                          try {
+                            setLoading(true);
+                            setUploadStatus('Publishing Session 2 results…');
+                            const r = await axios.post('/api/upload-winners', fd, { headers:{ 'Content-Type':'multipart/form-data' } });
+                            setUploadStatus(`✅ ${r.data.matched} Session 2 winners published`);
+                            fetchAllData();
+                          } catch(err) { setUploadStatus('❌ ' + (err.response?.data || err.message)); }
+                          finally { setLoading(false); e.target.value = ''; }
+                        }}
+                      />
+                    </label>
+                  </div>
                   {uploadStatus && <p style={{ marginTop:'0.75rem', fontSize:'0.82rem', color:'#0A8276', fontWeight:700 }}>{uploadStatus}</p>}
                 </div>
               </div>
@@ -447,7 +473,10 @@ const Admin = () => {
                         <tr key={e.id}>
                           <td className="bold">{e.name}</td>
                           <td style={{ color:'#64748b' }}>{e.department}</td>
-                          <td><span style={{ background:'rgba(10,130,118,0.1)', color:'#0A8276', padding:'3px 10px', borderRadius:'99px', fontWeight:800, fontSize:'0.82rem' }}>{e.won_prize}</span></td>
+                          <td>
+                             <span style={{ background:'rgba(10,130,118,0.1)', color:'#0A8276', padding:'3px 10px', borderRadius:'99px', fontWeight:800, fontSize:'0.82rem' }}>{e.won_prize}</span>
+                             {e.prize_session && <span style={{ marginLeft:'0.5rem', background:'#f1f5f9', color:'#64748b', padding:'3px 10px', borderRadius:'99px', fontWeight:800, fontSize:'0.75rem' }}>{e.prize_session}</span>}
+                          </td>
                         </tr>
                       ))
                     }

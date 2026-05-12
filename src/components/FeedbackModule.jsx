@@ -6,7 +6,7 @@ const FeedbackModule = () => {
   const [fbQuestions, setFbQuestions] = useState([]);
   const [fbResponses, setFbResponses] = useState({ questions: [], total: 0 });
   const [fbTab, setFbTab] = useState('questions');
-  const [newQ, setNewQ] = useState({ text: '', type: 'text', options: '' });
+  const [newQ, setNewQ] = useState({ text: '', type: 'text', options: '', max_choices: 1 });
   const [editingQ, setEditingQ] = useState(null);
   const [aiSummary, setAiSummary] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -34,17 +34,19 @@ const FeedbackModule = () => {
     const r = await axios.post('/api/feedback/questions', { 
       question_text: newQ.text, 
       type: newQ.type,
-      options: newQ.type === 'choice' ? newQ.options : null
+      options: newQ.type === 'choice' ? newQ.options : null,
+      max_choices: newQ.type === 'choice' ? newQ.max_choices : 1
     });
-    setFbQuestions(q => [...q, { id: r.data.id, question_text: newQ.text, type: newQ.type, options: newQ.options }]);
-    setNewQ({ text: '', type: 'text', options: '' });
+    setFbQuestions(q => [...q, { id: r.data.id, ...newQ }]);
+    setNewQ({ text: '', type: 'text', options: '', max_choices: 1 });
   };
 
   const saveEdit = async () => {
     await axios.put(`/api/feedback/questions/${editingQ.id}`, { 
       question_text: editingQ.question_text, 
       type: editingQ.type,
-      options: editingQ.type === 'choice' ? editingQ.options : null
+      options: editingQ.type === 'choice' ? editingQ.options : null,
+      max_choices: editingQ.type === 'choice' ? editingQ.max_choices : 1
     });
     setFbQuestions(q => q.map(x => x.id === editingQ.id ? editingQ : x));
     setEditingQ(null);
@@ -183,16 +185,29 @@ const FeedbackModule = () => {
               </div>
 
               {newQ.type === 'choice' && (
-                <div style={{ background:'#f1f5f9', padding:'1rem', borderRadius:'10px', border:'1px dashed #cbd5e1' }}>
-                  <label style={{ fontSize:'0.75rem', fontWeight:800, color:'#475569', display:'block', marginBottom:'0.5rem' }}>
-                    ENTER OPTIONS (Separated by commas)
-                  </label>
-                  <input
-                    placeholder="e.g. Photo Booth, Food, Performance, Floor Games"
-                    value={newQ.options}
-                    onChange={e => setNewQ(q => ({...q, options: e.target.value}))}
-                    style={{ width:'100%', padding:'0.6rem 0.8rem', borderRadius:'8px', border:'1.5px solid #cbd5e1', fontSize:'0.85rem', fontFamily:'Outfit,sans-serif' }}
-                  />
+                <div style={{ background:'#f1f5f9', padding:'1rem', borderRadius:'10px', border:'1px dashed #cbd5e1', display:'flex', gap:'1rem', alignItems:'flex-end' }}>
+                  <div style={{ flex:1 }}>
+                    <label style={{ fontSize:'0.75rem', fontWeight:800, color:'#475569', display:'block', marginBottom:'0.5rem' }}>
+                      ENTER OPTIONS (Separated by commas)
+                    </label>
+                    <input
+                      placeholder="e.g. Photo Booth, Food, Performance, Floor Games"
+                      value={newQ.options}
+                      onChange={e => setNewQ(q => ({...q, options: e.target.value}))}
+                      style={{ width:'100%', padding:'0.6rem 0.8rem', borderRadius:'8px', border:'1.5px solid #cbd5e1', fontSize:'0.85rem', fontFamily:'Outfit,sans-serif' }}
+                    />
+                  </div>
+                  <div style={{ width:'140px' }}>
+                    <label style={{ fontSize:'0.75rem', fontWeight:800, color:'#475569', display:'block', marginBottom:'0.5rem' }}>
+                      MAX CHOICES
+                    </label>
+                    <input
+                      type="number" min="1"
+                      value={newQ.max_choices}
+                      onChange={e => setNewQ(q => ({...q, max_choices: parseInt(e.target.value) || 1}))}
+                      style={{ width:'100%', padding:'0.6rem 0.8rem', borderRadius:'8px', border:'1.5px solid #cbd5e1', fontSize:'0.85rem', fontWeight:700 }}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -218,10 +233,15 @@ const FeedbackModule = () => {
                         </select>
                       </div>
                       {editingQ.type === 'choice' && (
-                        <input value={editingQ.options || ''} 
-                          placeholder="Options (comma separated)"
-                          onChange={e => setEditingQ(x => ({...x, options: e.target.value}))}
-                          style={{ padding:'0.5rem 0.75rem', borderRadius:'8px', border:'1.5px solid #e2e8f0' }} />
+                        <div style={{ display:'flex', gap:'1rem' }}>
+                          <input value={editingQ.options || ''} 
+                            placeholder="Options (comma separated)"
+                            onChange={e => setEditingQ(x => ({...x, options: e.target.value}))}
+                            style={{ flex:1, padding:'0.5rem 0.75rem', borderRadius:'8px', border:'1.5px solid #e2e8f0' }} />
+                          <input type="number" min="1" value={editingQ.max_choices || 1}
+                            onChange={e => setEditingQ(x => ({...x, max_choices: parseInt(e.target.value) || 1}))}
+                            style={{ width:'80px', padding:'0.5rem 0.75rem', borderRadius:'8px', border:'1.5px solid #e2e8f0', fontWeight:700 }} />
+                        </div>
                       )}
                       <div style={{ display:'flex', gap:'0.5rem' }}>
                         <button onClick={saveEdit} style={{ padding:'0.5rem 1rem', background:'#0A8276', color:'white', border:'none', borderRadius:'8px', fontWeight:700 }}>Save Changes</button>
@@ -233,7 +253,12 @@ const FeedbackModule = () => {
                       <span style={{ color:'#94a3b8', fontWeight:700, fontSize:'0.85rem' }}>Q{i+1}</span>
                       <div style={{ flex:1 }}>
                         <div style={{ fontWeight:700, fontSize:'0.95rem', color:'#1e293b' }}>{q.question_text}</div>
-                        {q.type === 'choice' && <div style={{ fontSize:'0.75rem', color:'#64748b', marginTop:'4px' }}>Options: {q.options}</div>}
+                        {q.type === 'choice' && (
+                          <div style={{ fontSize:'0.75rem', color:'#64748b', marginTop:'4px' }}>
+                            Options: {q.options} 
+                            <span style={{ marginLeft:'10px', color:'#0A8276', fontWeight:700 }}>[Max: {q.max_choices || 1}]</span>
+                          </div>
+                        )}
                       </div>
                       <span style={{ fontSize:'0.72rem', padding:'2px 10px', borderRadius:'99px', fontWeight:800, background: pill(q.type).bg, color: pill(q.type).color }}>
                         {pill(q.type).label.toUpperCase()}
@@ -304,8 +329,9 @@ const FeedbackModule = () => {
                     <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem', paddingLeft:'2.5rem' }}>
                       {(q.options || '').split(',').map(opt => {
                         const trimmed = opt.trim();
-                        const count = q.answers?.filter(a => a.answer_text === trimmed).length || 0;
-                        const pct = q.answers?.length ? Math.round((count / q.answers.length) * 100) : 0;
+                        // Count occurrences correctly even in comma-separated strings
+                        const count = q.answers?.filter(a => (a.answer_text || '').split(',').map(s => s.trim()).includes(trimmed)).length || 0;
+                        const pct = fbResponses.total > 0 ? Math.round((count / fbResponses.total) * 100) : 0;
                         
                         return (
                           <div key={trimmed}>
@@ -317,6 +343,10 @@ const FeedbackModule = () => {
                               <div style={{ width: `${pct}%`, height:'100%', background: pct > 50 ? '#0A8276' : '#94a3b8', transition:'width 0.5s ease-out' }} />
                             </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                  ) : q.type === 'rating' ? (div>
                         );
                       })}
                     </div>

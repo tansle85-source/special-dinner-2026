@@ -244,6 +244,9 @@ const initDB = async () => {
       if (!fbCols.some(c => c.Field === 'options')) {
         await connection.query('ALTER TABLE m26_feedback_questions ADD COLUMN options TEXT');
       }
+      if (!fbCols.some(c => c.Field === 'max_choices')) {
+        await connection.query('ALTER TABLE m26_feedback_questions ADD COLUMN max_choices INT DEFAULT 1');
+      }
     } catch (e) {}
     await connection.query(`CREATE TABLE IF NOT EXISTS m26_feedback_responses (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -569,14 +572,14 @@ app.get('/api/feedback/questions', async (req, res) => {
   res.json(rows);
 });
 app.post('/api/feedback/questions', async (req, res) => {
-  const { question_text, type, options } = req.body;
+  const { question_text, type, options, max_choices } = req.body;
   if (!question_text) return res.status(400).json({ error: 'question_text required' });
-  const [r] = await pool.query('INSERT INTO m26_feedback_questions (question_text, type, options) VALUES (?, ?, ?)', [question_text, type || 'text', options || null]);
+  const [r] = await pool.query('INSERT INTO m26_feedback_questions (question_text, type, options, max_choices) VALUES (?, ?, ?, ?)', [question_text, type || 'text', options || null, max_choices || 1]);
   res.json({ id: r.insertId });
 });
 app.put('/api/feedback/questions/:id', async (req, res) => {
-  const { question_text, type, options } = req.body;
-  await pool.query('UPDATE m26_feedback_questions SET question_text = ?, type = ?, options = ? WHERE id = ?', [question_text, type, options, req.params.id]);
+  const { question_text, type, options, max_choices } = req.body;
+  await pool.query('UPDATE m26_feedback_questions SET question_text = ?, type = ?, options = ?, max_choices = ? WHERE id = ?', [question_text, type, options, max_choices, req.params.id]);
   res.json({ success: true });
 });
 app.delete('/api/feedback/questions/:id', async (req, res) => {

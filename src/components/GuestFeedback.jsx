@@ -154,13 +154,40 @@ const GuestFeedback = () => {
                       </div>
                     ) : q.type === 'choice' ? (
                       <div style={{ display:'flex', flexDirection:'column', gap:'0.6rem' }}>
+                        {q.max_choices > 1 && (
+                          <div style={{ fontSize:'0.75rem', color:'#b45309', fontWeight:800, marginBottom:'0.25rem', textAlign:'right' }}>
+                            CHOOSE UP TO {q.max_choices}
+                          </div>
+                        )}
                         {(q.options || '').split(',').map(opt => {
                           const trimmed = opt.trim();
-                          const isSelected = answers[q.id]?.text === trimmed;
+                          const currentVal = answers[q.id]?.text || '';
+                          const selectedList = currentVal ? currentVal.split(',').map(s => s.trim()) : [];
+                          const isSelected = selectedList.includes(trimmed);
+                          
+                          const handleToggle = () => {
+                            let newList;
+                            if (isSelected) {
+                              newList = selectedList.filter(s => s !== trimmed);
+                            } else {
+                              if (selectedList.length >= (q.max_choices || 1)) {
+                                if (q.max_choices === 1) {
+                                  newList = [trimmed];
+                                } else {
+                                  alert(`You can only select up to ${q.max_choices} options.`);
+                                  return;
+                                }
+                              } else {
+                                newList = [...selectedList, trimmed];
+                              }
+                            }
+                            setAnswer(q.id, 'text', newList.join(', '));
+                          };
+
                           return (
                             <button
                               key={trimmed}
-                              onClick={() => setAnswer(q.id, 'text', trimmed)}
+                              onClick={handleToggle}
                               style={{
                                 padding:'0.9rem 1.1rem',
                                 borderRadius:'14px',

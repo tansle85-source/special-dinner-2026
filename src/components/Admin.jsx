@@ -20,6 +20,7 @@ const Admin = () => {
   // Navigation State
   const [activeModule, setActiveModule] = useState('lucky-draw'); 
   const [activeSubTab, setActiveSubTab] = useState('conduct');
+  const [activeBdSubTab, setActiveBdSubTab] = useState('submissions'); // New
   const [performanceRankType, setPerformanceRankType] = useState('general');
 
   // Data State
@@ -39,6 +40,8 @@ const Admin = () => {
   // UI State
   const [loading, setLoading] = useState(false);
   const [showStageView, setShowStageView] = useState(false);
+  const [viewingPhoto, setViewingPhoto] = useState(null); // New
+  const [aiRankProgress, setAiRankProgress] = useState(null); // New: { current, total, name }
   const [drawResult, setDrawResult] = useState(null);
   const [selectedPrizeId, setSelectedPrizeId] = useState('');
   const [editingItem, setEditingItem] = useState(null);
@@ -589,7 +592,7 @@ const Admin = () => {
                     <div>
                       <h3 style={{ margin:0 }}>Performance Rankings</h3>
                       <p style={{ margin:'4px 0 0', color:'#94a3b8', fontSize:'0.82rem', fontWeight:600 }}>
-                        {performanceRankType === 'general' ? '70% Guest (Vocal/Stage) + 30% Admin' : 'Ranked by Average Costume Score only'}
+                        {performanceRankType === 'general' ? 'Overall = Guest Score + Admin Score' : 'Ranked by Average Costume Score only'}
                       </p>
                     </div>
                     <div style={{ display:'flex', gap:'4px', background:'#f1f5f9', padding:'4px', borderRadius:'10px' }}>
@@ -597,7 +600,7 @@ const Admin = () => {
                         onClick={() => setPerformanceRankType('general')}
                         style={{ padding:'0.5rem 1rem', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:700, fontSize:'0.85rem', transition:'0.2s', background: performanceRankType === 'general' ? '#0A8276' : 'transparent', color: performanceRankType === 'general' ? 'white' : '#64748b' }}
                       >
-                        General (70/30)
+                        General Rank
                       </button>
                       <button 
                         onClick={() => setPerformanceRankType('costume')}
@@ -614,8 +617,8 @@ const Admin = () => {
                         <tr>
                           <th>RANK</th>
                           <th>PERFORMER</th>
-                          <th style={{color:'#0A8276'}}>GUEST (70%)</th>
-                          <th>ADMIN LK1 (30%)</th>
+                          <th style={{color:'#0A8276'}}>GUEST SCORE</th>
+                          <th>ADMIN LK1</th>
                           <th>OVERALL</th>
                           <th>VOTES</th>
                         </tr>
@@ -648,17 +651,30 @@ const Admin = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                   <input 
                                     type="number" 
-                                    min="0" 
-                                    max="100"
                                     className="inline-edit-input" 
                                     style={{ width: '80px', border: '1px solid #e2e8f0', textAlign: 'center' }}
-                                    defaultValue={r.manual_score}
-                                    onBlur={async (e) => {
-                                      await axios.put(`/api/performance/participants/${r.id}/manual-score`, { score: e.target.value });
-                                      fetchAllData();
+                                    value={r.manual_score || 0}
+                                    onChange={async (e) => {
+                                      const newVal = parseInt(e.target.value) || 0;
+                                      // 1. Update local state for "Live Switching"
+                                      const updatedResults = performanceResults.map(item => {
+                                        if (item.id === r.id) {
+                                          const newTotal = (parseFloat(item.guest_portion) + newVal).toFixed(2);
+                                          return { ...item, manual_score: newVal, total: newTotal };
+                                        }
+                                        return item;
+                                      });
+                                      setPerformanceResults(updatedResults);
+                                      
+                                      // 2. Debounced API call (simple version)
+                                      clearTimeout(window.perfSaveTimeout);
+                                      window.perfSaveTimeout = setTimeout(async () => {
+                                        try {
+                                          await axios.put(`/api/performance/participants/${r.id}/manual-score`, { score: newVal });
+                                        } catch (err) { console.error("Auto-save failed", err); }
+                                      }, 500);
                                     }}
                                   />
-                                  <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>/ 100</span>
                                 </div>
                               </td>
                               <td className="bold" style={{fontSize: '1.2rem', color: '#0a8276'}}>{r.total}</td>
@@ -681,123 +697,172 @@ const Admin = () => {
 
           {activeModule === 'best-dress' && (
             <div className="best-dress-module">
-              <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
-                <div className="card shadow-card" style={{ flex: 1 }}>
-                  <h3>Best Dress Status</h3>
-                  <div style={{ margin: '1rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div className={`status-pill ${bestDressStatus === 'CLOSED' ? 'closed' : 'open'}`}>
-                       {bestDressStatus === 'CLOSED' && '🔴 CLOSED'}
-                       {bestDressStatus === 'NOMINATING' && '🟡 NOMINATING'}
-                       {bestDressStatus === 'VOTING' && '🟢 VOTING LIVE'}
+              <div className="tabs-strip">
+                <button className={activeBdSubTab === 'config' ? 'active' : ''} onClick={() => setActiveBdSubTab('config')}>Setup & Config</button>
+                <button className={activeBdSubTab === 'submissions' ? 'active' : ''} onClick={() => setActiveBdSubTab('submissions')}>Photo Submissions ({bdSubmissions.length})</button>
+                <button className={activeBdSubTab === 'finalists' ? 'active' : ''} onClick={() => setActiveBdSubTab('finalists')}>Voting Finalists ({bestDressNominees.length})</button>
+              </div>
+
+              {activeBdSubTab === 'config' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  <div style={{ display: 'flex', gap: '2rem' }}>
+                    <div className="card shadow-card" style={{ flex: 1 }}>
+                      <h3>Best Dress Status</h3>
+                      <div style={{ margin: '1rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div className={`status-pill ${bestDressStatus === 'CLOSED' ? 'closed' : 'open'}`}>
+                          {bestDressStatus === 'CLOSED' && '🔴 CLOSED'}
+                          {bestDressStatus === 'NOMINATING' && '🟡 NOMINATING'}
+                          {bestDressStatus === 'VOTING' && '🟢 VOTING LIVE'}
+                        </div>
+                        <select 
+                          value={bestDressStatus} 
+                          className="modern-select"
+                          style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontWeight: 700 }}
+                          onChange={async (e) => {
+                            const newStat = e.target.value;
+                            await axios.post('/api/best-dress/status', { status: newStat });
+                            setBestDressStatus(newStat);
+                            fetchAllData();
+                          }}
+                        >
+                          <option value="CLOSED">CLOSED</option>
+                          <option value="NOMINATING">NOMINATING</option>
+                          <option value="VOTING">VOTING</option>
+                        </select>
+                        <button 
+                          className="table-btn" 
+                          style={{ color: '#f43f5e', border: '1px solid #f43f5e' }}
+                          onClick={async () => {
+                            if (confirm('RESET ALL Best Dress nominations and votes? This cannot be undone.')) {
+                              await axios.post('/api/best-dress/reset');
+                              fetchAllData();
+                            }
+                          }}
+                        >
+                          Reset All
+                        </button>
+                      </div>
                     </div>
-                    <select 
-                      value={bestDressStatus} 
-                      className="modern-select"
-                      style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontWeight: 700 }}
-                      onChange={async (e) => {
-                        const newStat = e.target.value;
-                        await axios.post('/api/best-dress/status', { status: newStat });
-                        setBestDressStatus(newStat);
-                        fetchAllData();
-                      }}
-                    >
-                      <option value="CLOSED">CLOSED</option>
-                      <option value="NOMINATING">NOMINATING</option>
-                      <option value="VOTING">VOTING</option>
-                    </select>
-                    <button 
-                      className="table-btn" 
-                      style={{ color: '#f43f5e', border: '1px solid #f43f5e' }}
-                      onClick={async () => {
-                        if (confirm('RESET ALL Best Dress nominations and votes? This cannot be undone.')) {
-                          await axios.post('/api/best-dress/reset');
+                    <div className="card shadow-card" style={{ flex: 1 }}>
+                      <h3>Quick Add Finalist</h3>
+                      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                        <input id="new-nominee" className="modern-input" placeholder="Enter name..." />
+                        <button className="modern-add-btn" onClick={async () => {
+                          const name = document.getElementById('new-nominee').value;
+                          if (!name) return;
+                          await axios.post('/api/best-dress/nominees', { name });
+                          document.getElementById('new-nominee').value = '';
                           fetchAllData();
-                        }
-                      }}
-                    >
-                      Reset All
-                    </button>
+                        }}>Add</button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="card shadow-card" style={{ flex: 1 }}>
-                  <h3>Quick Add Finalist</h3>
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                    <input id="new-nominee" className="modern-input" placeholder="Enter name..." />
-                    <button className="modern-add-btn" onClick={async () => {
-                      const name = document.getElementById('new-nominee').value;
-                      if (!name) return;
-                      await axios.post('/api/best-dress/nominees', { name });
-                      document.getElementById('new-nominee').value = '';
-                      fetchAllData();
-                    }}>Add</button>
-                  </div>
-                </div>
-              </div>
 
-              {/* AI Criteria Config */}
-              <div className="card shadow-card" style={{ marginBottom:'1.5rem', background:'linear-gradient(135deg,#f5f3ff,#ede9fe)', border:'1px solid #c4b5fd' }}>
-                <div style={{ display:'flex', alignItems:'flex-start', gap:'1rem' }}>
-                  <div style={{ fontSize:'2rem' }}>🤖</div>
-                  <div style={{ flex:1 }}>
-                    <h4 style={{ margin:'0 0 4px', color:'#6d28d9', fontWeight:800 }}>AI Judging Criteria</h4>
-                    <p style={{ margin:'0 0 8px', fontSize:'0.78rem', color:'#7c3aed' }}>Gemini will score each photo based on these criteria. Edit to customise what the AI looks for.</p>
-                    <textarea
-                      value={aiCriteria}
-                      onChange={e => setAiCriteria(e.target.value)}
-                      rows={3}
-                      style={{ width:'100%', borderRadius:'10px', border:'1px solid #c4b5fd', padding:'0.6rem 0.75rem', fontFamily:'Outfit,sans-serif', fontSize:'0.82rem', color:'#1D1D1D', resize:'vertical', boxSizing:'border-box', background:'#fff' }}
-                    />
+                  <div className="card shadow-card" style={{ background:'linear-gradient(135deg,#f5f3ff,#ede9fe)', border:'1px solid #c4b5fd' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', gap:'1rem' }}>
+                      <div style={{ fontSize:'2rem' }}>🤖</div>
+                      <div style={{ flex:1 }}>
+                        <h4 style={{ margin:'0 0 4px', color:'#6d28d9', fontWeight:800 }}>AI Judging Criteria</h4>
+                        <p style={{ margin:'0 0 8px', fontSize:'0.78rem', color:'#7c3aed' }}>Gemini will score each photo based on these criteria. Edit to customise what the AI looks for.</p>
+                        <textarea
+                          value={aiCriteria}
+                          onChange={e => setAiCriteria(e.target.value)}
+                          rows={3}
+                          style={{ width:'100%', borderRadius:'10px', border:'1px solid #c4b5fd', padding:'0.6rem 0.75rem', fontFamily:'Outfit,sans-serif', fontSize:'0.82rem', color:'#1D1D1D', resize:'vertical', boxSizing:'border-box', background:'#fff' }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              <div style={{ display: 'flex', gap: '2rem' }}>
-                {/* Photo Submissions */}
-                <div className="card shadow-card" style={{ flex: 2 }}>
+              {activeBdSubTab === 'submissions' && (
+                <div className="card shadow-card">
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem' }}>
                     <div>
                       <h3 style={{ margin:0 }}>Photo Submissions ({bdSubmissions.length})</h3>
-                      <p style={{ color:'#64748b', fontSize:'0.8rem', margin:'4px 0 0' }}>All photos submitted by employees. Click AI Rank to auto-select top 3M + 3F.</p>
+                      <p style={{ color:'#64748b', fontSize:'0.8rem', margin:'4px 0 0' }}>Click a photo to view full size. Click AI Rank to auto-select top 3M + 3F.</p>
                     </div>
-                    <button
-                      className="modern-add-btn"
-                      style={{ background:'linear-gradient(135deg,#7c3aed,#0A8276)', whiteSpace:'nowrap' }}
-                      onClick={async () => {
-                        if (!confirm('Run AI ranking? This will score all photos and replace current finalists with top 3 Male + top 3 Female.')) return;
-                        try {
-                          setLoading(true);
-                          const res = await axios.post('/api/best-dress/ai-rank', { criteria: aiCriteria });
-                          const lines = res.data.selected.map(s => `${s.gender}: ${s.name} — "${s.reasoning || 'no comment'}"`);
-                          const errLines = (res.data.errors || []).map(e => `⚠️ ${e.name}: ${e.error}`);
-                          alert(`✅ AI Ranking Done!\n\n${lines.join('\n')}${errLines.length ? '\n\nErrors:\n' + errLines.join('\n') : ''}`);
-                          fetchAllData();
-                        } catch(e) { alert('AI Rank failed: ' + (e.response?.data?.error || e.message)); }
-                        finally { setLoading(false); }
-                      }}
-                    >AI Rank (Gemini)</button>
+                    <div style={{ display:'flex', alignItems:'center', gap:'1rem' }}>
+                      {aiRankProgress && (
+                        <div style={{ textAlign:'right' }}>
+                          <div style={{ fontSize:'0.75rem', fontWeight:800, color:'#0A8276' }}>AI Ranking: {aiRankProgress.current} / {aiRankProgress.total}</div>
+                          <div style={{ width:'120px', height:'6px', background:'#e2e8f0', borderRadius:'3px', marginTop:'4px', overflow:'hidden' }}>
+                            <div style={{ width: `${(aiRankProgress.current / aiRankProgress.total) * 100}%`, height:'100%', background:'#0A8276', transition:'width 0.3s' }} />
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        className="modern-add-btn"
+                        disabled={!!aiRankProgress}
+                        style={{ background:'linear-gradient(135deg,#7c3aed,#0A8276)', whiteSpace:'nowrap', opacity: aiRankProgress ? 0.6 : 1 }}
+                        onClick={async () => {
+                          const subsWithPhotos = bdSubmissions.filter(s => s.has_photo || s.photo_data);
+                          if (subsWithPhotos.length === 0) return alert('No photos to rank');
+                          if (!confirm(`Run AI ranking for ${subsWithPhotos.length} photos? This will replace current finalists.`)) return;
+                          
+                          try {
+                            setAiRankProgress({ current: 0, total: subsWithPhotos.length, name: 'Starting...' });
+                            
+                            // Process each photo individually for real progress tracking
+                            for (let i = 0; i < subsWithPhotos.length; i++) {
+                              const sub = subsWithPhotos[i];
+                              setAiRankProgress({ current: i + 1, total: subsWithPhotos.length, name: sub.name });
+                              await axios.post('/api/best-dress/ai-score-single', { id: sub.id, criteria: aiCriteria });
+                              // Small delay to ensure UI updates and avoid intense server load
+                              await new Promise(r => setTimeout(r, 500));
+                            }
+                            
+                            setAiRankProgress({ current: subsWithPhotos.length, total: subsWithPhotos.length, name: 'Finalizing...' });
+                            await axios.post('/api/best-dress/ai-promote');
+                            
+                            setTimeout(() => {
+                              setAiRankProgress(null);
+                              fetchAllData();
+                              alert('✅ AI Ranking Complete! Top finalists have been promoted.');
+                            }, 800);
+                          } catch(e) { 
+                            setAiRankProgress(null);
+                            alert('AI Rank failed: ' + (e.response?.data?.error || e.message)); 
+                          }
+                        }}
+                      >{aiRankProgress ? '⌛ Processing...' : 'AI Rank (Gemini)'}</button>
+                    </div>
                   </div>
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:'1rem', maxHeight:'500px', overflowY:'auto' }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:'1.5rem', maxHeight:'650px', overflowY:'auto', padding:'4px' }}>
                     {bdSubmissions.map(sub => (
-                      <div key={sub.id} style={{ background:'#f8fafc', borderRadius:'16px', padding:'0.75rem', border:'1px solid #e2e8f0', textAlign:'center' }}>
-                        {sub.has_photo
-                          ? <img src={`/api/photos/bd/sub/${sub.id}`} alt={sub.name} style={{ width:'100%', height:'120px', objectFit:'cover', borderRadius:'12px', marginBottom:'0.5rem' }}
-                              onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
-                            />
-                          : null}
-                        <div style={{ width:'100%', height:'120px', background:'#e2e8f0', borderRadius:'12px', marginBottom:'0.5rem', display: sub.has_photo ? 'none' : 'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem' }}>📷</div>
-                        <div style={{ fontWeight:800, fontSize:'0.85rem', color:'#1e293b', marginBottom:'2px' }}>{sub.name}</div>
-                        <div style={{ fontSize:'0.72rem', color:'#64748b' }}>{sub.department}</div>
-                        <div style={{ marginTop:'4px' }}>
-                          <span style={{ background: sub.gender==='Female' ? 'rgba(236,72,153,0.1)' : 'rgba(99,102,241,0.1)', color: sub.gender==='Female' ? '#db2777' : '#4f46e5', padding:'2px 8px', borderRadius:'99px', fontSize:'0.7rem', fontWeight:700 }}>
+                      <div key={sub.id} style={{ background:'#f8fafc', borderRadius:'20px', padding:'1rem', border:'1px solid #e2e8f0', textAlign:'center', transition:'0.2s' }}>
+                        <div 
+                          style={{ cursor:'pointer', position:'relative', borderRadius:'14px', overflow:'hidden', marginBottom:'0.75rem', height:'160px', background:'#e2e8f0', display:'flex', alignItems:'center', justifyContent:'center' }}
+                          onClick={() => sub.has_photo && setViewingPhoto(`/api/photos/bd/sub/${sub.id}`)}
+                        >
+                          {sub.has_photo
+                            ? <img src={`/api/photos/bd/sub/${sub.id}`} alt={sub.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                            : <span style={{ fontSize:'2.5rem' }}>📷</span>
+                          }
+                          <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.2)', opacity:0, transition:'0.2s', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'0.8rem', fontWeight:800 }} className="photo-hover">VIEW FULL</div>
+                        </div>
+                        <div style={{ fontWeight:800, fontSize:'0.9rem', color:'#1e293b', marginBottom:'2px' }}>{sub.name}</div>
+                        <div style={{ fontSize:'0.75rem', color:'#64748b' }}>{sub.department}</div>
+                        <div style={{ marginTop:'6px' }}>
+                          <span style={{ background: sub.gender==='Female' ? 'rgba(236,72,153,0.1)' : 'rgba(99,102,241,0.1)', color: sub.gender==='Female' ? '#db2777' : '#4f46e5', padding:'3px 10px', borderRadius:'99px', fontSize:'0.72rem', fontWeight:700 }}>
                             {sub.gender}
                           </span>
                         </div>
-                        {sub.ai_score != null && <div style={{ marginTop:'4px', fontSize:'0.7rem', color:'#0A8276', fontWeight:700 }}>AI: {sub.ai_score}/100</div>}
-                        {sub.ai_reasoning && <div style={{ marginTop:'2px', fontSize:'0.65rem', color:'#64748b', fontStyle:'italic', lineHeight:1.3, maxHeight:'48px', overflow:'hidden' }} title={sub.ai_reasoning}>{sub.ai_reasoning}</div>}
-                        <div style={{ display:'flex', gap:'4px', marginTop:'6px' }}>
-                          {/* 📷 Upload photo directly to DB */}
-                          <label style={{ flex:1, padding:'4px', borderRadius:'8px', border:'1px solid #bbf7d0', background:'#f0fdf4', color:'#15803d', fontSize:'0.7rem', fontWeight:700, cursor:'pointer', textAlign:'center', lineHeight:'1.6' }}>
-                            📷 Photo
+                        
+                        <div style={{ marginTop:'10px', padding:'8px', background:'white', borderRadius:'12px', border:'1px solid #f1f5f9' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'4px' }}>
+                            <span style={{ fontSize:'0.7rem', color:'#94a3b8', fontWeight:700 }}>AI SCORE</span>
+                            <span style={{ fontSize:'0.85rem', color:'#0A8276', fontWeight:900 }}>{sub.ai_score || '—'}/100</span>
+                          </div>
+                          <div style={{ fontSize:'0.68rem', color:'#64748b', fontStyle:'italic', lineHeight:1.3, textAlign:'left', minHeight:'32px' }}>
+                            {sub.ai_reasoning || 'No feedback yet...'}
+                          </div>
+                        </div>
+
+                        <div style={{ display:'flex', gap:'6px', marginTop:'12px' }}>
+                          <label style={{ flex:1, padding:'6px', borderRadius:'10px', border:'1px solid #bbf7d0', background:'#f0fdf4', color:'#15803d', fontSize:'0.72rem', fontWeight:700, cursor:'pointer', textAlign:'center' }}>
+                            📷
                             <input type="file" accept="image/*" style={{ display:'none' }}
                               onChange={async (e) => {
                                 const file = e.target.files[0];
@@ -807,7 +872,7 @@ const Admin = () => {
                                   try {
                                     await axios.patch(`/api/best-dress/submissions/${sub.id}/photo`, { photo_data: ev.target.result });
                                     fetchAllData();
-                                  } catch(err) { alert('Photo upload failed: ' + (err.response?.data?.error || err.message)); }
+                                  } catch(err) { alert('Photo upload failed'); }
                                 };
                                 reader.readAsDataURL(file);
                                 e.target.value = '';
@@ -816,55 +881,68 @@ const Admin = () => {
                           </label>
                           <button
                             onClick={() => setEditingSub({ id: sub.id, name: sub.name, department: sub.department, gender: sub.gender })}
-                            style={{ flex:1, padding:'4px', borderRadius:'8px', border:'1px solid #bae6fd', background:'#f0f9ff', color:'#0369a1', fontSize:'0.7rem', fontWeight:700, cursor:'pointer' }}
-                          >Edit</button>
+                            style={{ flex:1, padding:'6px', borderRadius:'10px', border:'1px solid #bae6fd', background:'#f0f9ff', color:'#0369a1', fontSize:'0.72rem', fontWeight:700, cursor:'pointer' }}
+                          >✏️</button>
                           <button
                             onClick={async () => {
                               if (!confirm(`Delete ${sub.name}'s submission?`)) return;
-                              try { await axios.delete(`/api/best-dress/submissions/${sub.id}`); fetchAllData(); }
-                              catch(e) { alert('Delete failed'); }
+                              await axios.delete(`/api/best-dress/submissions/${sub.id}`);
+                              fetchAllData();
                             }}
-                            style={{ flex:1, padding:'4px', borderRadius:'8px', border:'1px solid #fca5a5', background:'#fef2f2', color:'#ef4444', fontSize:'0.7rem', fontWeight:700, cursor:'pointer' }}
-                          >Delete</button>
+                            style={{ flex:1, padding:'6px', borderRadius:'10px', border:'1px solid #fca5a5', background:'#fef2f2', color:'#ef4444', fontSize:'0.72rem', fontWeight:700, cursor:'pointer' }}
+                          >🗑️</button>
                         </div>
                       </div>
                     ))}
-                    {bdSubmissions.length === 0 && <div style={{ gridColumn:'1/-1', textAlign:'center', color:'#94a3b8', padding:'2rem' }}>No submissions yet</div>}
+                    {bdSubmissions.length === 0 && <div style={{ gridColumn:'1/-1', textAlign:'center', color:'#94a3b8', padding:'3rem' }}>No submissions yet</div>}
                   </div>
                 </div>
+              )}
 
-                {/* Finalists & Voting Standings */}
-                <div className="card shadow-card" style={{ flex: 1 }}>
-                  <h3 style={{ marginBottom:'0.5rem' }}>Voting Finalists</h3>
-                  <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1rem' }}>These names appear on the guest voting page during the VOTING phase.</p>
-
-                  {/* Announce button — prominent */}
-                  <button
-                    onClick={() => window.open('/bestdress/announce', '_blank')}
-                    style={{ width:'100%', padding:'0.85rem', marginBottom:'1.5rem', borderRadius:'14px', border:'none',
-                      background:'linear-gradient(135deg,#7c3aed,#4f46e5)',
-                      color:'white', fontWeight:800, fontSize:'1rem', cursor:'pointer',
-                      boxShadow:'0 6px 24px rgba(124,58,237,0.4)', letterSpacing:'0.3px' }}
-                  >🖥️ Open Fullscreen Announce Page ↗</button>
+              {activeBdSubTab === 'finalists' && (
+                <div className="card shadow-card">
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.5rem' }}>
+                    <div>
+                      <h3 style={{ marginBottom:'0.5rem' }}>Voting Finalists ({bestDressNominees.length})</h3>
+                      <p style={{ color: '#64748b', fontSize: '0.85rem', margin:0 }}>These are the finalists shown to guests for voting.</p>
+                    </div>
+                    <button
+                      onClick={() => window.open('/bestdress/announce', '_blank')}
+                      style={{ padding:'0.75rem 1.25rem', borderRadius:'12px', border:'none',
+                        background:'linear-gradient(135deg,#7c3aed,#4f46e5)',
+                        color:'white', fontWeight:800, fontSize:'0.9rem', cursor:'pointer' }}
+                    >🖥️ Open Announce Page ↗</button>
+                  </div>
 
                   <table className="modern-table">
-                    <thead><tr><th>Finalist</th><th>Gender</th><th>AI Score</th><th>AI Comment</th><th>Votes</th><th>Del</th></tr></thead>
+                    <thead><tr><th>Photo</th><th>Finalist</th><th>Category</th><th>AI Score</th><th>AI Feedback</th><th>Votes</th><th>Actions</th></tr></thead>
                     <tbody>
                       {bestDressNominees.map(n => (
                         <tr key={n.id}>
+                          <td>
+                            <div 
+                              style={{ width:'50px', height:'50px', borderRadius:'8px', overflow:'hidden', cursor:'pointer', background:'#f1f5f9' }}
+                              onClick={() => n.photo_data && setViewingPhoto(n.photo_data)}
+                            >
+                              {n.photo_data 
+                                ? <img src={n.photo_data} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                                : <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.2rem' }}>📷</div>
+                              }
+                            </div>
+                          </td>
                           <td className="bold">{n.nominee_name}<br/><span style={{ color:'#94a3b8', fontSize:'0.75rem', fontWeight:400 }}>{n.department}</span></td>
                           <td><span style={{ padding:'2px 8px', borderRadius:'99px', fontSize:'0.72rem', fontWeight:700, background: n.gender==='Female'?'#fce7f3':'#dbeafe', color: n.gender==='Female'?'#be185d':'#1d4ed8' }}>{n.gender || '—'}</span></td>
                           <td style={{ fontWeight:800, color:'#0A8276', fontSize:'0.85rem' }}>{n.ai_score != null ? `${n.ai_score}/100` : '—'}</td>
-                          <td style={{ fontSize:'0.75rem', color:'#64748b', maxWidth:'160px', lineHeight:1.4 }}>{n.ai_reasoning || '—'}</td>
-                          <td className="text-teal" style={{fontWeight: 900}}>{n.vote_count}</td>
-                          <td><button onClick={async () => { if(confirm('Remove finalist?')) { await axios.delete(`/api/best-dress/nominees/${n.id}`); fetchAllData(); } }} className="table-btn" style={{color:'#f43f5e'}}>✕</button></td>
+                          <td style={{ fontSize:'0.75rem', color:'#64748b', maxWidth:'220px', lineHeight:1.4 }}>{n.ai_reasoning || '—'}</td>
+                          <td className="text-teal" style={{fontWeight: 900, fontSize:'1.1rem'}}>{n.vote_count}</td>
+                          <td><button onClick={async () => { if(confirm('Remove finalist?')) { await axios.delete(`/api/best-dress/nominees/${n.id}`); fetchAllData(); } }} className="table-btn" style={{color:'#f43f5e'}}>Remove</button></td>
                         </tr>
                       ))}
-                      {bestDressNominees.length === 0 && <tr><td colSpan="6" style={{textAlign:'center', color:'#94a3b8'}}>No finalists added yet. Run AI Rank first.</td></tr>}
+                      {bestDressNominees.length === 0 && <tr><td colSpan="7" style={{textAlign:'center', color:'#94a3b8', padding:'3rem'}}>No finalists added yet. Go to Submissions tab and run AI Rank.</td></tr>}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -909,7 +987,18 @@ const Admin = () => {
         />
       )}
 
+      {/* Full Photo Modal */}
+      {viewingPhoto && (
+        <div className="modal-overlay" onClick={() => setViewingPhoto(null)} style={{ zIndex: 2000 }}>
+          <div className="modal-content" style={{ maxWidth: '90vw', maxHeight: '90vh', background: 'transparent', padding: 0, border: 'none', position: 'relative' }}>
+             <button style={{ position: 'absolute', top: '-40px', right: '0', background: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: 900 }}>✕</button>
+             <img src={viewingPhoto} style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }} />
+          </div>
+        </div>
+      )}
+
       <style>{`
+        .photo-hover:hover { opacity: 1 !important; }
         .status-pill { padding: 4px 12px; border-radius: 99px; font-weight: 800; font-size: 0.8rem; }
         .status-pill.open { background: #ecfdf5; color: #10b981; }
         .status-pill.closed { background: #fef2f2; color: #ef4444; }

@@ -513,8 +513,8 @@ app.get('/api/performance/results', async (req, res) => {
     return {
       ...r,
       guest_portion: guestPortion.toFixed(2),
-      admin_portion: adminPortion.toFixed(2),
-      total: (guestPortion + adminPortion).toFixed(2),
+      admin_portion: Number(r.manual_score || 0).toFixed(2),
+      total: (Number(guestPortion) + Number(r.manual_score || 0)).toFixed(2),
       costume_score: costumeScore
     };
   });
@@ -797,6 +797,19 @@ app.delete('/api/best-dress/submissions/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Admin: upload / replace photo for a submission — stores base64 in DB
+app.patch('/api/best-dress/submissions/:id/photo', async (req, res) => {
+  const { photo_data } = req.body;
+  if (!photo_data) return res.status(400).json({ error: 'No photo_data provided' });
+  try {
+    await pool.query(
+      'UPDATE m26_best_dress_submissions SET photo_data = ?, photo_path = NULL WHERE id = ?',
+      [photo_data, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Admin: edit a submission's name / department / gender
 app.put('/api/best-dress/submissions/:id', async (req, res) => {
   const { name, department, gender } = req.body;
@@ -810,20 +823,57 @@ app.put('/api/best-dress/submissions/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin: upload / replace photo for a submission �?stores base64 in DB (survives redeployment)
-app.patch('/api/best-dress/submissions/:id/photo', async (req, res) => {
-  const { photo_data } = req.body;
-  if (!photo_data) return res.status(400).json({ error: 'No photo_data provided' });
+// Admin: AI score a single photo (allows frontend to show real progress)
+app.post('/api/best-dress/ai-score-single', async (req, res) => {
+  const { id, criteria } = req.body;
   try {
-    await pool.query(
-      'UPDATE m26_best_dress_submissions SET photo_data = ?, photo_path = NULL WHERE id = ?',
-      [photo_data, req.params.id]
-    );
-    res.json({ success: true });
+    const [rows] = await pool.query('SELECT * FROM m26_best_dress_submissions WHERE id = ?', [id]);
+    if (!rows.length || !rows[0].photo_data) return res.status(400).json({ error: 'No photo data' });
+    
+    const sub = rows[0];
+    const matches = sub.photo_data.match(/^data:(.+);base64,(.+)$/);
+    if (!matches) return res.status(400).json({ error: 'Invalid format' });
+    
+    const mime = matches[1];
+    const b64  = matches[2];
+    const prompt = `Rate this outfit 0-100 based on: ${req.body.criteria || criteria}\nReturn JSON: {"score": 85, "reasoning": "brief reason"}`;
+
+    const text = await geminiVision(b64, mime, prompt);
+    let parsed = { score: 50, reasoning: "Error parsing" };
+    try {
+      const clean = text.replace(/```json|```/gi, '').trim();
+      const matchJson = clean.match(/\{[\s\S]*\}/);
+      if (matchJson) parsed = JSON.parse(matchJson[0]);
+    } catch (e) {}
+
+    const score = Number(parsed.score) || 50;
+    const reasoning = String(parsed.reasoning || '').trim();
+    await pool.query('UPDATE m26_best_dress_submissions SET ai_score=?, ai_reasoning=? WHERE id=?', [score, reasoning, id]);
+    
+    res.json({ success: true, score, reasoning });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin: AI ranking �?pick top 3 male + top 3 female and promote to nominees
+// Admin: Promote finalists after scoring (final step of AI ranking)
+app.post('/api/best-dress/ai-promote', async (req, res) => {
+  try {
+    const [scored] = await pool.query('SELECT * FROM m26_best_dress_submissions WHERE ai_score IS NOT NULL');
+    const byGender = (g) => scored.filter(s => s.gender === g).sort((a, b) => b.ai_score - a.ai_score).slice(0, 3);
+    const finalists = [...byGender('Female'), ...byGender('Male')];
+
+    await pool.query('DELETE FROM m26_best_dress_votes');
+    await pool.query('DELETE FROM m26_best_dress_voters');
+    for (const f of finalists) {
+      await pool.query(
+        'INSERT INTO m26_best_dress_votes (id, nominee_name, vote_count, gender, department, photo_data, ai_score, ai_reasoning) VALUES (?, ?, 0, ?, ?, ?, ?, ?)',
+        [generateId(), f.name, f.gender, f.department, f.photo_data || null, f.ai_score || null, f.ai_reasoning || '']
+      );
+    }
+    res.json({ success: true, count: finalists.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Admin: AI ranking — pick top 3 male + top 3 female and promote to nominees
 app.post('/api/best-dress/ai-rank', async (req, res) => {
   try {
     const [subs] = await pool.query('SELECT * FROM m26_best_dress_submissions WHERE photo_data IS NOT NULL');
@@ -832,50 +882,57 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
     if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set on server' });
 
     const errors = [];
-
-    // Score each submission — sequentially with delay to avoid 429 rate limits
-    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     const scored = [];
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
     for (const sub of subs) {
       try {
-        if (!sub.photo_data) { scored.push({ ...sub, ai_score: 50, ai_reasoning: 'No photo provided' }); continue; }
+        if (!sub.photo_data) { scored.push({ ...sub, ai_score: 50, ai_reasoning: 'No photo' }); continue; }
         const matches = sub.photo_data.match(/^data:(.+);base64,(.+)$/);
-        if (!matches) { scored.push({ ...sub, ai_score: 50, ai_reasoning: 'Invalid photo format' }); continue; }
+        if (!matches) { scored.push({ ...sub, ai_score: 50, ai_reasoning: 'Invalid format' }); continue; }
+        
         const mime = matches[1];
         const b64  = matches[2];
-        const criteria = req.body.criteria || 'Elegance and sophistication. Style and colour coordination. Appropriateness for a formal gala dinner. Overall presentation.';
-        const prompt = `You are a fashion judge for a company dinner Best Dress competition. Rate this outfit from 0-100 based on these criteria:\n\n${criteria}\n\nReturn ONLY valid JSON with no markdown: {"score": 85, "reasoning": "brief reason under 20 words"}`;
+        const criteria = req.body.criteria || 'Elegance and sophistication.';
+        const prompt = `Rate this outfit 0-100 based on: ${criteria}\nReturn JSON: {"score": 85, "reasoning": "brief reason"}`;
 
         let text;
         try {
           text = await geminiVision(b64, mime, prompt);
         } catch (e1) {
           if (e1.response?.status === 429 || (e1.message||'').includes('429')) {
-            console.log(`[AI-RANK] 429 for ${sub.name}, retrying after 8s...`);
+            console.log(`[AI-RANK] 429 for ${sub.name}, retrying...`);
             await sleep(8000);
-            text = await geminiVision(b64, mime, prompt); // retry once
+            text = await geminiVision(b64, mime, prompt);
           } else { throw e1; }
         }
 
-        console.log(`[AI-RANK] ${sub.name} raw response: ${text.substring(0, 120)}`);
-        const clean = text.replace(/```json|```/gi, '').trim();
-        const matchJson = clean.match(/\{[\s\S]*\}/);
-        if (!matchJson) {
-          errors.push({ name: sub.name, error: 'Gemini did not return valid JSON: ' + text.substring(0, 80) });
-          scored.push({ ...sub, ai_score: 50, ai_reasoning: '' });
-        } else {
-          const parsed = JSON.parse(matchJson[0]);
-          const score     = Number(parsed.score) || 50;
-          const reasoning = String(parsed.reasoning || '').trim();
-          await pool.query('UPDATE m26_best_dress_submissions SET ai_score=?, ai_reasoning=? WHERE id=?', [score, reasoning, sub.id]);
-          scored.push({ ...sub, ai_score: score, ai_reasoning: reasoning });
-        }
+        console.log(`[AI-RANK] ${sub.name} response: ${text.substring(0, 100)}`);
+        
+        let parsed = { score: 50, reasoning: "Error parsing AI response" };
+        try {
+          const clean = text.replace(/```json|```/gi, '').trim();
+          const matchJson = clean.match(/\{[\s\S]*\}/);
+          if (matchJson) {
+            parsed = JSON.parse(matchJson[0]);
+          } else {
+            const scoreMatch = text.match(/\d+/);
+            if (scoreMatch) parsed.score = parseInt(scoreMatch[0]);
+            parsed.reasoning = text.substring(0, 60);
+          }
+        } catch (e) { console.error("JSON Parse fail", e); }
+
+        const score     = Number(parsed.score) || 50;
+        const reasoning = String(parsed.reasoning || '').trim();
+        await pool.query('UPDATE m26_best_dress_submissions SET ai_score=?, ai_reasoning=? WHERE id=?', [score, reasoning, sub.id]);
+        scored.push({ ...sub, ai_score: score, ai_reasoning: reasoning });
+
       } catch (subErr) {
         console.error(`[AI-RANK] Failed for ${sub.name}:`, subErr.message);
         errors.push({ name: sub.name, error: subErr.message });
-        scored.push({ ...sub, ai_score: 50, ai_reasoning: '' });
+        scored.push({ ...sub, ai_score: 50, ai_reasoning: subErr.message.substring(0, 50) });
       }
-      await sleep(1500); // 1.5s between each call — well within free tier 15 RPM
+      await sleep(1500); 
     }
 
     // Pick top 3 per gender

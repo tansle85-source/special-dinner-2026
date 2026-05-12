@@ -152,6 +152,34 @@ const GuestFeedback = () => {
                           >⭐</span>
                         ))}
                       </div>
+                    ) : q.type === 'choice' ? (
+                      <div style={{ display:'flex', flexDirection:'column', gap:'0.6rem' }}>
+                        {(q.options || '').split(',').map(opt => {
+                          const trimmed = opt.trim();
+                          const isSelected = answers[q.id]?.text === trimmed;
+                          return (
+                            <button
+                              key={trimmed}
+                              onClick={() => setAnswer(q.id, 'text', trimmed)}
+                              style={{
+                                padding:'0.9rem 1.1rem',
+                                borderRadius:'14px',
+                                border: isSelected ? '2.5px solid #b45309' : '1.5px solid #e2e8f0',
+                                background: isSelected ? 'rgba(180,83,9,0.05)' : '#f8fafc',
+                                color: isSelected ? '#b45309' : '#475569',
+                                fontWeight: isSelected ? 800 : 600,
+                                fontSize:'0.92rem',
+                                textAlign:'left',
+                                cursor:'pointer',
+                                transition:'0.2s',
+                                fontFamily:"'Outfit',sans-serif"
+                              }}
+                            >
+                              {trimmed} {isSelected && ' ✅'}
+                            </button>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <textarea
                         rows={3}

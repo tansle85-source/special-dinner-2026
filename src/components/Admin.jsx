@@ -663,11 +663,12 @@ const Admin = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                   <input 
                                     type="number" 
+                                    step="any"
                                     className="inline-edit-input" 
                                     style={{ width: '80px', border: '1px solid #e2e8f0', textAlign: 'center' }}
                                     value={r.manual_score || 0}
                                     onChange={async (e) => {
-                                      const newVal = parseInt(e.target.value) || 0;
+                                      const newVal = parseFloat(e.target.value) || 0;
                                       // 1. Update local state for "Live Switching"
                                       const updatedResults = performanceResults.map(item => {
                                         if (item.id === r.id) {

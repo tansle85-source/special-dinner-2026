@@ -166,6 +166,13 @@ const initDB = async () => {
         console.log("[MIGRATE] Adding prize_session to m26_employees");
         await connection.query('ALTER TABLE m26_employees ADD COLUMN prize_session VARCHAR(50) DEFAULT NULL');
       }
+      // Migration: upgrade manual_score to DECIMAL for decimals
+      const [perfCols] = await connection.query('SHOW COLUMNS FROM m26_performance_participants');
+      const scoreCol = perfCols.find(c => c.Field === 'manual_score');
+      if (scoreCol && scoreCol.Type.toLowerCase().includes('int')) {
+        console.log("[MIGRATE] Upgrading manual_score to DECIMAL in m26_performance_participants");
+        await connection.query('ALTER TABLE m26_performance_participants MODIFY COLUMN manual_score DECIMAL(10,2) DEFAULT 0.00');
+      }
     } catch (migErr) { console.warn("Migration warning:", migErr.message); }
 
     await connection.query(`

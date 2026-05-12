@@ -346,10 +346,6 @@ const FeedbackModule = () => {
                         );
                       })}
                     </div>
-                  ) : q.type === 'rating' ? (div>
-                        );
-                      })}
-                    </div>
                   ) : q.type === 'rating' ? (
                     <div style={{ display:'flex', gap:'1.5rem', flexWrap:'wrap', paddingLeft:'2.5rem' }}>
                       {[1,2,3,4,5].map(star => {

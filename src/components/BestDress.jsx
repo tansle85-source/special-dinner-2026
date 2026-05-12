@@ -27,7 +27,14 @@ const BestDress = () => {
 
   const voterId = (() => {
     let id = localStorage.getItem('bd_voter_id');
-    if (!id) { id = crypto.randomUUID(); localStorage.setItem('bd_voter_id', id); }
+    if (!id) {
+      try {
+        id = crypto.randomUUID();
+      } catch (e) {
+        id = 'v-' + Date.now().toString(36) + Math.random().toString(36).substring(2);
+      }
+      localStorage.setItem('bd_voter_id', id);
+    }
     return id;
   })();
 
@@ -71,7 +78,7 @@ const BestDress = () => {
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
-      const MAX = 1200;
+      const MAX = 1000;
       let { width, height } = img;
       if (width > MAX || height > MAX) {
         if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
@@ -80,7 +87,7 @@ const BestDress = () => {
       const canvas = document.createElement('canvas');
       canvas.width = width; canvas.height = height;
       canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
       setPhoto(dataUrl);   // store base64 data URL
       setPreview(dataUrl);
     };
@@ -213,7 +220,7 @@ const BestDress = () => {
                                const y = (size - h) / 2 + (offset.y * (size/300));
                                
                                ctx.drawImage(img, x, y, w, h);
-                               setPhoto(canvas.toDataURL('image/jpeg', 0.85));
+                               setPhoto(canvas.toDataURL('image/jpeg', 0.75));
                                showToast('Photo Adjusted! ✨', '#0A8276');
                              };
                              img.src = preview;

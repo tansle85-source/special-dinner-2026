@@ -65,11 +65,11 @@ const BestDressAnnounce = () => {
 
       <div style={{ flex:1, padding:'1.5rem 2rem', display:'flex', flexDirection:'column', zIndex:1 }}>
         {/* Header - Compact */}
-        <div style={{ textAlign:'center', marginBottom:'1.5rem' }}>
-          <h1 style={{ fontSize:'2.2rem', fontWeight:900, margin:0, color: C.teal, letterSpacing:'-1px' }}>
+        <div style={{ textAlign:'center', marginBottom:'1rem' }}>
+          <h1 style={{ fontSize:'clamp(2.5rem, 8vw, 4rem)', fontWeight:900, margin:0, color: C.teal, letterSpacing:'-2px', textTransform:'uppercase' }}>
             Best Dress Finalists
           </h1>
-          <p style={{ color:'#64748b', fontSize:'0.9rem', margin:0, fontWeight:700, textTransform:'uppercase', letterSpacing:'1px' }}>
+          <p style={{ color:'#64748b', fontSize:'1rem', margin:0, fontWeight:800, letterSpacing:'2px' }}>
             Appreciation Night 2026
           </p>
         </div>

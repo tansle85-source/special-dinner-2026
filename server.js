@@ -974,6 +974,11 @@ app.post('/api/best-dress/status', async (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/api/best-dress/finalists', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM m26_best_dress_votes ORDER BY vote_count DESC');
+  res.json(rows);
+});
+
 app.get('/api/best-dress/nominees', async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM m26_best_dress_votes ORDER BY vote_count DESC');
   res.json(rows);

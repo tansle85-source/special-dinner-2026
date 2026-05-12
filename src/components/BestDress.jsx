@@ -18,6 +18,8 @@ const BestDress = () => {
   const [preview, setPreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x:0, y:0 });
   const [toast, setToast] = useState(null);
   const fileRef = useRef(null);
   const cameraRef = useRef(null);
@@ -170,9 +172,54 @@ const BestDress = () => {
 
             <div style={s.photoBox}>
               {preview
-                ? <div style={{ position:'relative', width:'100%', height:'100%' }}>
-                    <img src={preview} alt="preview" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                    <button onClick={()=>setPreview(null)} style={{ position:'absolute', top:8, right:8, background:'rgba(0,0,0,0.5)', color:'white', border:'none', borderRadius:'99px', padding:'4px 10px', fontSize:'0.75rem', cursor:'pointer' }}>✕ Redo</button>
+                ? <div style={{ position:'relative', width:'100%', height:'100%', overflow:'hidden', background:'#000' }}>
+                    <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <img 
+                        src={preview} 
+                        alt="preview" 
+                        style={{ 
+                          width:'auto', 
+                          height:'auto', 
+                          maxWidth:'none',
+                          maxHeight:'none',
+                          transform: `scale(${zoom}) translate(${offset.x}px, ${offset.y}px)`,
+                          transition: 'transform 0.1s ease-out'
+                        }} 
+                      />
+                    </div>
+                    <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(0,0,0,0.6)', padding:'10px', display:'flex', flexDirection:'column', gap:'10px' }}>
+                       <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
+                          <span style={{ color:'white', fontSize:'0.7rem', fontWeight:800 }}>ZOOM</span>
+                          <input type="range" min="0.5" max="3" step="0.1" value={zoom} onChange={e => setZoom(parseFloat(e.target.value))} style={{ flex:1 }} />
+                       </div>
+                       <div style={{ display:'flex', gap:'10px' }}>
+                          <button onClick={()=>setPreview(null)} style={{ flex:1, background:'#f43f5e', color:'white', border:'none', borderRadius:'8px', padding:'6px', fontSize:'0.75rem', fontWeight:800 }}>✕ Reset</button>
+                          <button onClick={async () => {
+                             // Finalise the crop by drawing to a new canvas
+                             const img = new Image();
+                             img.onload = () => {
+                               const canvas = document.createElement('canvas');
+                               const size = 800;
+                               canvas.width = size; canvas.height = size;
+                               const ctx = canvas.getContext('2d');
+                               ctx.fillStyle = '#000';
+                               ctx.fillRect(0,0,size,size);
+                               
+                               // Calculate dimensions
+                               const ratio = Math.min(size / img.width, size / img.height) * zoom;
+                               const w = img.width * ratio;
+                               const h = img.height * ratio;
+                               const x = (size - w) / 2 + (offset.x * (size/300));
+                               const y = (size - h) / 2 + (offset.y * (size/300));
+                               
+                               ctx.drawImage(img, x, y, w, h);
+                               setPhoto(canvas.toDataURL('image/jpeg', 0.85));
+                               showToast('Photo Adjusted! ✨', '#0A8276');
+                             };
+                             img.src = preview;
+                          }} style={{ flex:1, background:'#0A8276', color:'white', border:'none', borderRadius:'8px', padding:'6px', fontSize:'0.75rem', fontWeight:800 }}>✓ Lock View</button>
+                       </div>
+                    </div>
                   </div>
                 : <div style={{ textAlign:'center', padding:'1rem' }}>
                     <div style={{ fontSize:'2.5rem', marginBottom:'0.75rem' }}>📸</div>

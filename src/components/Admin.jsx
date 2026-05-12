@@ -35,6 +35,8 @@ const Admin = () => {
   const [bestDressNominees, setBestDressNominees] = useState([]);
   const [bdSubmissions, setBdSubmissions] = useState([]);
   const [aiCriteria, setAiCriteria] = useState('Elegance and sophistication of the outfit. Style and colour coordination. Appropriateness for a formal gala dinner. Overall presentation and confidence shown in the photo.');
+  const [showBdStage, setShowBdStage] = useState(false);
+  const [bdStageIndex, setBdStageIndex] = useState(0);
 
   
   // UI State
@@ -804,6 +806,11 @@ const Admin = () => {
                       )}
                       <button
                         className="modern-add-btn"
+                        style={{ background:'#1e293b' }}
+                        onClick={() => setShowBdStage(true)}
+                      >📺 Live Stage View</button>
+                      <button
+                        className="modern-add-btn"
                         disabled={!!aiRankProgress}
                         style={{ background:'linear-gradient(135deg,#7c3aed,#0A8276)', whiteSpace:'nowrap', opacity: aiRankProgress ? 0.6 : 1 }}
                         onClick={async () => {
@@ -1011,6 +1018,72 @@ const Admin = () => {
           onFinish={handlePublishWinner} 
           onClose={() => { setShowStageView(false); setDrawResult(null); }} 
         />
+      )}
+
+      {/* Best Dress Live Stage View - Direct Full Screen */}
+      {showBdStage && bdSubmissions.length > 0 && (
+        <div style={{ position:'fixed', top:0, left:0, width:'100vw', height:'100vh', background:'#0f172a', zIndex:5000, display:'flex', flexDirection:'column', color:'white', fontFamily:'Outfit, sans-serif' }}>
+          <header style={{ padding:'2rem 4rem', display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(0,0,0,0.3)' }}>
+            <div>
+              <h1 style={{ fontSize:'2.5rem', fontWeight:900, margin:0, background:'linear-gradient(to right, #fbbf24, #f59e0b)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>Best Dress 2026</h1>
+              <p style={{ margin:0, color:'#94a3b8', fontWeight:700 }}>LIVE GALLERY • {bdStageIndex + 1} / {bdSubmissions.length}</p>
+            </div>
+            <button 
+              onClick={() => setShowBdStage(false)}
+              style={{ background:'#f43f5e', color:'white', border:'none', borderRadius:'12px', padding:'0.8rem 1.5rem', fontWeight:800, cursor:'pointer' }}
+            >Close Stage View</button>
+          </header>
+
+          <main style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden' }}>
+             {/* Navigation Buttons */}
+             <button 
+               onClick={() => setBdStageIndex(prev => (prev > 0 ? prev - 1 : bdSubmissions.length - 1))}
+               style={{ position:'absolute', left:'2rem', background:'rgba(255,255,255,0.1)', border:'none', borderRadius:'50%', width:'80px', height:'80px', fontSize:'2rem', color:'white', cursor:'pointer', zIndex:10 }}
+             >‹</button>
+             <button 
+               onClick={() => setBdStageIndex(prev => (prev < bdSubmissions.length - 1 ? prev + 1 : 0))}
+               style={{ position:'absolute', right:'2rem', background:'rgba(255,255,255,0.1)', border:'none', borderRadius:'50%', width:'80px', height:'80px', fontSize:'2rem', color:'white', cursor:'pointer', zIndex:10 }}
+             >›</button>
+
+             {/* Main Photo Card */}
+             <div style={{ width:'80%', height:'85%', display:'flex', gap:'3rem', alignItems:'center' }}>
+                <div style={{ flex:1, height:'100%', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <img 
+                    src={bdSubmissions[bdStageIndex].photo_data} 
+                    style={{ maxHeight:'100%', maxWidth:'100%', borderRadius:'24px', boxShadow:'0 40px 100px rgba(0,0,0,0.6)', border:'4px solid rgba(255,255,255,0.1)' }} 
+                  />
+                </div>
+                <div style={{ width:'400px', display:'flex', flexDirection:'column', gap:'1.5rem' }}>
+                   <div style={{ background:'rgba(255,255,255,0.05)', padding:'2rem', borderRadius:'24px', border:'1px solid rgba(255,255,255,0.1)' }}>
+                      <span style={{ background:'#0A8276', padding:'6px 12px', borderRadius:'8px', fontSize:'0.8rem', fontWeight:800, textTransform:'uppercase' }}>{bdSubmissions[bdStageIndex].gender}</span>
+                      <h2 style={{ fontSize:'3.5rem', fontWeight:900, margin:'1rem 0 0.5rem' }}>{bdSubmissions[bdStageIndex].name}</h2>
+                      <p style={{ fontSize:'1.5rem', color:'#94a3b8', fontWeight:600, margin:0 }}>{bdSubmissions[bdStageIndex].department}</p>
+                   </div>
+                   
+                   {bdSubmissions[bdStageIndex].ai_score && (
+                     <div style={{ background:'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(10,130,118,0.2))', padding:'2rem', borderRadius:'24px', border:'1px solid rgba(139,92,246,0.3)' }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem' }}>
+                          <span style={{ fontWeight:800, color:'#c4b5fd' }}>AI SCORE</span>
+                          <span style={{ fontSize:'2.5rem', fontWeight:900, color:'#fbbf24' }}>{bdSubmissions[bdStageIndex].ai_score}/100</span>
+                        </div>
+                        <p style={{ margin:0, fontSize:'1.1rem', fontStyle:'italic', color:'#e2e8f0', lineHeight:1.6 }}>"{bdSubmissions[bdStageIndex].ai_reasoning}"</p>
+                     </div>
+                   )}
+                </div>
+             </div>
+          </main>
+          
+          <footer style={{ padding:'2rem', background:'rgba(0,0,0,0.2)', display:'flex', gap:'1rem', overflowX:'auto', justifyContent:'center' }}>
+             {bdSubmissions.map((sub, idx) => (
+                <img 
+                  key={sub.id}
+                  src={sub.photo_data}
+                  onClick={() => setBdStageIndex(idx)}
+                  style={{ width:'80px', height:'80px', objectFit:'cover', borderRadius:'12px', cursor:'pointer', border: bdStageIndex === idx ? '3px solid #fbbf24' : '3px solid transparent', opacity: bdStageIndex === idx ? 1 : 0.5, transition:'0.2s' }}
+                />
+             ))}
+          </footer>
+        </div>
       )}
 
       {/* Full Photo Modal - Direct Full Screen */}

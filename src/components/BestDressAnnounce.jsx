@@ -48,45 +48,38 @@ const BestDressAnnounce = () => {
   );
 
   return (
-    <div style={{ minHeight:'100vh', background:C.bg, fontFamily:'Outfit,sans-serif', color:C.dark, position:'relative', overflowX:'hidden', paddingBottom:'4rem' }}>
+    <div style={{ height:'100vh', background:C.bg, fontFamily:'Outfit,sans-serif', color:C.dark, position:'relative', overflow:'hidden', display:'flex', flexDirection:'column' }}>
 
       {/* Decorative Elements */}
-      <div style={{ position:'fixed', top:0, left:0, right:0, height:'400px', background:`linear-gradient(180deg, ${C.teal}11 0%, transparent 100%)`, pointerEvents:'none' }} />
+      <div style={{ position:'fixed', top:0, left:0, right:0, height:'200px', background:`linear-gradient(180deg, ${C.teal}11 0%, transparent 100%)`, pointerEvents:'none' }} />
 
       {/* Controls */}
-      <div style={{ position:'fixed', top:'1.5rem', right:'1.5rem', zIndex:100, display:'flex', gap:'0.75rem' }}>
+      <div style={{ position:'fixed', top:'1rem', right:'1rem', zIndex:100, display:'flex', gap:'0.5rem' }}>
         <button onClick={() => setShowVotes(!showVotes)} style={btn(showVotes ? C.teal : '#cbd5e1', showVotes ? 'white' : '#475569')}>
-          {showVotes ? '🔒 Hide Votes' : '👁️ Show Votes'}
+          {showVotes ? '🔒' : '👁️'}
         </button>
         <button onClick={toggleFullscreen} style={btn(C.teal, 'white')}>
-          {isFullscreen ? '⊠ Exit' : '⛶ Fullscreen'}
+          {isFullscreen ? '⊠' : '⛶'}
         </button>
       </div>
 
-      <div style={{ position:'relative', zIndex:1, padding:'4rem 2rem' }}>
-        {/* Header */}
-        <div style={{ textAlign:'center', marginBottom:'4rem' }}>
-          <div style={{ fontSize:'3.5rem', marginBottom:'1rem' }}>🏆</div>
-          <h1 style={{
-            fontSize:'clamp(2.5rem, 6vw, 4rem)',
-            fontWeight:900, margin:0,
-            letterSpacing:'-1.5px',
-            color: C.teal
-          }}>
+      <div style={{ flex:1, padding:'1.5rem 2rem', display:'flex', flexDirection:'column', zIndex:1 }}>
+        {/* Header - Compact */}
+        <div style={{ textAlign:'center', marginBottom:'1.5rem' }}>
+          <h1 style={{ fontSize:'2.2rem', fontWeight:900, margin:0, color: C.teal, letterSpacing:'-1px' }}>
             Best Dress Finalists
           </h1>
-          <p style={{ color:'#64748b', fontSize:'1.1rem', marginTop:'0.5rem', fontWeight:600 }}>
-            Appreciation Night 2026 • Live Rankings
+          <p style={{ color:'#64748b', fontSize:'0.9rem', margin:0, fontWeight:700, textTransform:'uppercase', letterSpacing:'1px' }}>
+            Appreciation Night 2026
           </p>
-          <div style={{ width:'60px', height:'4px', background:C.teal, margin:'1.5rem auto', borderRadius:'99px' }} />
         </div>
 
         {finalists.length === 0 ? (
-          <div style={{ textAlign:'center', color:'#94a3b8', fontSize:'1.2rem', marginTop:'8rem' }}>
-            Waiting for results from the judges...
+          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8', fontSize:'1.2rem' }}>
+            Waiting for results...
           </div>
         ) : (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(500px, 1fr))', gap:'2.5rem', maxWidth:'1400px', margin:'0 auto' }}>
+          <div style={{ flex:1, display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2rem', maxWidth:'1600px', margin:'0 auto', width:'100%', minHeight:0 }}>
              <AnnounceSection title="Best Dressed Female" emoji="👗" items={females} accent={C.teal} showVotes={showVotes} />
              <AnnounceSection title="Best Dressed Male"   emoji="👔" items={males}   accent={C.teal} showVotes={showVotes} />
           </div>
@@ -95,71 +88,77 @@ const BestDressAnnounce = () => {
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');
-        @keyframes fadeInSlide { from { opacity:0; transform: translateY(15px); } to { opacity:1; transform: translateY(0); } }
+        @keyframes fadeInSlide { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
         .announce-card { transition: 0.3s; }
-        .announce-card:hover { transform: translateY(-3px); box-shadow: 0 20px 40px rgba(0,0,0,0.1) !important; }
       `}</style>
     </div>
   );
 };
 
 const btn = (bg, color) => ({
-  padding:'0.6rem 1.2rem', borderRadius:'12px', border:'none',
+  width:'40px', height:'40px', padding:0, borderRadius:'10px', border:'none',
   background: bg, color: color,
-  fontFamily:'Outfit,sans-serif', fontWeight:800, fontSize:'0.85rem', cursor:'pointer',
+  fontFamily:'Outfit,sans-serif', fontWeight:800, fontSize:'1.1rem', cursor:'pointer',
+  display:'flex', alignItems:'center', justifyContent:'center',
   boxShadow: '0 4px 12px rgba(0,0,0,0.05)', transition: '0.2s'
 });
 
 const AnnounceSection = ({ title, emoji, items, accent, showVotes }) => (
-  <div style={{ display:'flex', flexDirection:'column', gap:'1.5rem' }}>
+  <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem', height:'100%' }}>
     <div style={{ 
-      display:'flex', alignItems:'center', gap:'0.75rem', 
-      padding:'0.5rem 0', borderBottom:`3px solid ${accent}`
+      display:'flex', alignItems:'center', gap:'0.5rem', 
+      paddingBottom:'0.5rem', borderBottom:`2px solid ${accent}44`
     }}>
-      <span style={{ fontSize:'2rem' }}>{emoji}</span>
-      <h2 style={{ fontSize:'1.75rem', fontWeight:900, margin:0, color:C.dark }}>{title}</h2>
+      <span style={{ fontSize:'1.5rem' }}>{emoji}</span>
+      <h2 style={{ fontSize:'1.3rem', fontWeight:800, margin:0, color:C.dark }}>{title}</h2>
     </div>
 
-    {items.map((item, i) => (
-      <div key={item.id} className="announce-card" style={{
-        background: C.white,
-        borderRadius:'24px',
-        border: `1px solid #e2e8f0`,
-        padding:'1.25rem',
-        display:'flex',
-        gap:'1.5rem',
-        animation:`fadeInSlide 0.5s ease ${i*0.15}s both`,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
-      }}>
-        <div style={{ width:'140px', height:'180px', flexShrink:0, borderRadius:'16px', overflow:'hidden', border:`1px solid #f1f5f9` }}>
-          <img 
-            src={`/api/photos/bd/vote/${item.id}`} 
-            style={{ width:'100%', height:'100%', objectFit:'cover' }} 
-            onError={e => { e.target.src = 'https://via.placeholder.com/140x180?text=No+Photo'; }}
-          />
-        </div>
-        
-        <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center' }}>
-          <div style={{ marginBottom:'0.75rem' }}>
-            <h3 style={{ fontSize:'1.6rem', fontWeight:900, margin:0, color:C.dark }}>{item.nominee_name}</h3>
-            <p style={{ fontSize:'0.95rem', color:C.teal, margin:'2px 0 0', fontWeight:700 }}>{item.department}</p>
+    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'0.75rem', justifyContent:'space-between', paddingBottom:'1rem' }}>
+      {items.map((item, i) => (
+        <div key={item.id} className="announce-card" style={{
+          background: C.white,
+          borderRadius:'16px',
+          border: `1px solid #e2e8f0`,
+          padding:'0.75rem 1rem',
+          display:'flex',
+          gap:'1rem',
+          flex: 1,
+          maxHeight:'calc(33vh - 80px)',
+          animation:`fadeInSlide 0.5s ease ${i*0.1}s both`,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        }}>
+          <div style={{ height:'100%', aspectRatio:'3/4', flexShrink:0, borderRadius:'12px', overflow:'hidden', border:`1px solid #f1f5f9` }}>
+            <img 
+              src={`/api/photos/bd/vote/${item.id}`} 
+              style={{ width:'100%', height:'100%', objectFit:'cover' }} 
+              onError={e => { e.target.src = 'https://via.placeholder.com/100x130?text=Photo'; }}
+            />
           </div>
-
-          {item.ai_reasoning && (
-            <div style={{ background:'#f8fafc', padding:'0.75rem 1rem', borderRadius:'12px', borderLeft:`4px solid ${accent}` }}>
-               <p style={{ margin:0, fontSize:'0.85rem', color:'#475569', fontStyle:'italic', lineHeight:1.5 }}>"{item.ai_reasoning}"</p>
+          
+          <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', overflow:'hidden' }}>
+            <div style={{ marginBottom:'0.4rem' }}>
+              <h3 style={{ fontSize:'1.2rem', fontWeight:900, margin:0, color:C.dark, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.nominee_name}</h3>
+              <p style={{ fontSize:'0.8rem', color:C.teal, margin:'0', fontWeight:800 }}>{item.department}</p>
             </div>
-          )}
 
-          {showVotes && (
-            <div style={{ marginTop:'1rem', display:'flex', alignItems:'center', gap:'0.5rem' }}>
-               <span style={{ fontSize:'0.7rem', fontWeight:800, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'1px' }}>Votes:</span>
-               <span style={{ fontSize:'1.25rem', fontWeight:900, color:C.teal }}>{item.vote_count}</span>
-            </div>
-          )}
+            {item.ai_reasoning && (
+              <div style={{ background:'#f8fafc', padding:'0.5rem 0.75rem', borderRadius:'10px', borderLeft:`3px solid ${accent}`, overflow:'hidden' }}>
+                 <p style={{ margin:0, fontSize:'0.75rem', color:'#475569', fontStyle:'italic', lineHeight:1.3, display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+                   "{item.ai_reasoning}"
+                 </p>
+              </div>
+            )}
+
+            {showVotes && (
+              <div style={{ marginTop:'0.4rem', display:'flex', alignItems:'center', gap:'0.4rem' }}>
+                 <span style={{ fontSize:'0.6rem', fontWeight:800, color:'#94a3b8', textTransform:'uppercase' }}>Votes:</span>
+                 <span style={{ fontSize:'1.1rem', fontWeight:900, color:C.teal }}>{item.vote_count}</span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    ))}
+      ))}
+    </div>
   </div>
 );
 

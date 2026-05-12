@@ -355,16 +355,4 @@ const FeedbackModule = () => {
   );
 };
 
-export default FeedbackModule;/div>
-                  )}
-                </div>
-              ))
-            }
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
 export default FeedbackModule;

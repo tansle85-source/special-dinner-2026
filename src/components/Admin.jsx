@@ -630,7 +630,7 @@ const Admin = () => {
                           <th>RANK</th>
                           <th>PERFORMER</th>
                           <th style={{color:'#0A8276'}}>GUEST SCORE</th>
-                          <th>ADMIN LK1</th>
+                          <th>ADMIN SCORE</th>
                           <th>OVERALL</th>
                           <th>VOTES</th>
                         </tr>
@@ -640,25 +640,37 @@ const Admin = () => {
                         <tr>
                           <th>RANK</th>
                           <th>PERFORMER</th>
-                          <th style={{color:'#0A8276'}}>COSTUME SCORE (Avg)</th>
+                          <th style={{color:'#0A8276'}}>COSTUME (Avg)</th>
+                          <th>ADMIN SCORE</th>
+                          <th>OVERALL</th>
                           <th>VOTES</th>
                         </tr>
                       </thead>
                     )}
                     <tbody>
                       {[...performanceResults]
-                        .sort((a, b) => performanceRankType === 'general' ? (b.total - a.total) : (b.costume_score - a.costume_score))
-                        .map((r, i) => (
-                        <tr key={r.id || i}>
-                          <td style={{fontWeight: 900, color: '#94a3b8'}}>#{i+1}</td>
-                          <td>
-                            <div className="bold">{r.name}</div>
-                            <div style={{fontSize: '0.8rem', color: '#64748b'}}>{r.song_name}</div>
-                          </td>
+                        .sort((a, b) => {
+                          const totalA = parseFloat(performanceRankType === 'general' ? a.guest_portion : a.costume_score) + parseFloat(a.manual_score || 0);
+                          const totalB = parseFloat(performanceRankType === 'general' ? b.guest_portion : b.costume_score) + parseFloat(b.manual_score || 0);
+                          return totalB - totalA;
+                        })
+                        .map((r, i) => {
+                          const baseScore = parseFloat(performanceRankType === 'general' ? r.guest_portion : r.costume_score) || 0;
+                          const overall = (baseScore + parseFloat(r.manual_score || 0)).toFixed(2);
                           
-                          {performanceRankType === 'general' ? (
-                            <>
-                              <td className="bold text-teal">{r.guest_portion}</td>
+                          return (
+                            <tr key={r.id || i}>
+                              <td style={{fontWeight: 900, color: '#94a3b8'}}>#{i+1}</td>
+                              <td>
+                                <div className="bold">{r.name}</div>
+                                <div style={{fontSize: '0.8rem', color: '#64748b'}}>{r.song_name}</div>
+                              </td>
+                              
+                              <td className="bold text-teal">
+                                {baseScore.toFixed(2)}
+                                {performanceRankType === 'costume' && <span style={{fontSize:'0.75rem', color:'#94a3b8', fontWeight:500}}> / 5</span>}
+                              </td>
+
                               <td>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                   <input 
@@ -669,17 +681,14 @@ const Admin = () => {
                                     value={r.manual_score || 0}
                                     onChange={async (e) => {
                                       const newVal = parseFloat(e.target.value) || 0;
-                                      // 1. Update local state for "Live Switching"
                                       const updatedResults = performanceResults.map(item => {
                                         if (item.id === r.id) {
-                                          const newTotal = (parseFloat(item.guest_portion) + newVal).toFixed(2);
-                                          return { ...item, manual_score: newVal, total: newTotal };
+                                          return { ...item, manual_score: newVal };
                                         }
                                         return item;
                                       });
                                       setPerformanceResults(updatedResults);
                                       
-                                      // 2. Debounced API call (simple version)
                                       clearTimeout(window.perfSaveTimeout);
                                       window.perfSaveTimeout = setTimeout(async () => {
                                         try {
@@ -690,17 +699,12 @@ const Admin = () => {
                                   />
                                 </div>
                               </td>
-                              <td className="bold" style={{fontSize: '1.2rem', color: '#0a8276'}}>{r.total}</td>
+                              <td className="bold" style={{fontSize: '1.2rem', color: '#0a8276'}}>{overall}</td>
                               <td>{r.vote_count}</td>
-                            </>
-                          ) : (
-                            <>
-                              <td className="bold text-teal" style={{fontSize:'1.2rem'}}>{r.costume_score} <span style={{fontSize:'0.75rem', color:'#94a3b8', fontWeight:500}}>/ 5</span></td>
-                              <td>{r.vote_count}</td>
-                            </>
-                          )}
-                        </tr>
-                      ))}
+                            </tr>
+                          );
+                        })
+                      }
                     </tbody>
                   </table>
                 </div>

@@ -107,10 +107,10 @@ const AnnounceSection = ({ title, emoji, items, accent, showVotes }) => (
   <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem', height:'100%' }}>
     <div style={{ 
       display:'flex', alignItems:'center', gap:'0.5rem', 
-      paddingBottom:'0.5rem', borderBottom:`2px solid ${accent}44`
+      paddingBottom:'0.5rem', borderBottom:`3px solid ${accent}44`
     }}>
-      <span style={{ fontSize:'1.5rem' }}>{emoji}</span>
-      <h2 style={{ fontSize:'1.3rem', fontWeight:800, margin:0, color:C.dark }}>{title}</h2>
+      <span style={{ fontSize:'1.75rem' }}>{emoji}</span>
+      <h2 style={{ fontSize:'1.6rem', fontWeight:900, margin:0, color:C.dark }}>{title}</h2>
     </div>
 
     <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'0.75rem', justifyContent:'space-between', paddingBottom:'1rem' }}>
@@ -137,8 +137,8 @@ const AnnounceSection = ({ title, emoji, items, accent, showVotes }) => (
           
           <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', overflow:'hidden' }}>
             <div style={{ marginBottom:'0.4rem' }}>
-              <h3 style={{ fontSize:'1.2rem', fontWeight:900, margin:0, color:C.dark, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.nominee_name}</h3>
-              <p style={{ fontSize:'0.8rem', color:C.teal, margin:'0', fontWeight:800 }}>{item.department}</p>
+              <h3 style={{ fontSize:'1.5rem', fontWeight:900, margin:0, color:C.dark, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.nominee_name}</h3>
+              <p style={{ fontSize:'1rem', color:C.teal, margin:'0', fontWeight:800 }}>{item.department}</p>
             </div>
 
             {item.ai_reasoning && (

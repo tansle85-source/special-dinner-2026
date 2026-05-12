@@ -93,6 +93,15 @@ const Admin = () => {
     fetchAllData();
   }, [activeModule]);
 
+  // Debounced Save AI Criteria
+  useEffect(() => {
+    if (!aiCriteria) return;
+    const timer = setTimeout(() => {
+      axios.post('/api/best-dress/status', { criteria: aiCriteria });
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [aiCriteria]);
+
   const fetchAllData = async () => {
     setLoading(true);
     try {
@@ -100,7 +109,7 @@ const Admin = () => {
         axios.get('/api/employees'),
         axios.get('/api/prizes'),
         axios.get('/api/performance/results'),
-        axios.get('/api/feedback/status'), // Changed from /api/feedback which was returning 404 and breaking Promise.all
+        axios.get('/api/feedback/status'), 
         axios.get('/api/performance/criteria'),
         axios.get('/api/performance/participants'),
         axios.get('/api/performance/status'),
@@ -116,6 +125,7 @@ const Admin = () => {
       setParticipants(partRes.data);
       setPerformanceStatus(pStatRes.data);
       setBestDressStatus(bdStatRes.data.best_dress_status);
+      setAiCriteria(bdStatRes.data.best_dress_ai_criteria || 'Elegance and sophistication of the outfit. Style and colour coordination. Appropriateness for a formal gala dinner. Overall presentation and confidence shown in the photo.');
       setBestDressNominees(bdNomRes.data);
       setBdSubmissions(bdSubRes.data || []);
     } catch (err) {
@@ -808,7 +818,11 @@ const Admin = () => {
                             for (let i = 0; i < subsWithPhotos.length; i++) {
                               const sub = subsWithPhotos[i];
                               setAiRankProgress({ current: i + 1, total: subsWithPhotos.length, name: sub.name });
-                              await axios.post('/api/best-dress/ai-score-single', { id: sub.id, criteria: aiCriteria });
+                              try {
+                                await axios.post('/api/best-dress/ai-score-single', { id: sub.id, criteria: aiCriteria });
+                              } catch (innerErr) {
+                                console.error(`Failed to score ${sub.name}:`, innerErr);
+                              }
                               // Small delay to ensure UI updates and avoid intense server load
                               await new Promise(r => setTimeout(r, 500));
                             }
@@ -829,6 +843,18 @@ const Admin = () => {
                       >{aiRankProgress ? '⌛ Processing...' : 'AI Rank (Gemini)'}</button>
                     </div>
                   </div>
+                  
+                  {/* Criteria Summary in Submissions Tab */}
+                  <div style={{ marginBottom:'1.5rem', background:'#f0f9ff', padding:'0.75rem 1rem', borderRadius:'12px', border:'1px solid #e0f2fe', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div style={{ fontSize:'0.75rem', color:'#0369a1', fontStyle:'italic' }}>
+                      <strong>AI Criteria:</strong> {aiCriteria.length > 80 ? aiCriteria.substring(0, 80) + '...' : aiCriteria}
+                    </div>
+                    <button 
+                      onClick={() => setActiveBdSubTab('config')}
+                      style={{ background:'white', border:'1px solid #bae6fd', padding:'4px 10px', borderRadius:'6px', fontSize:'0.7rem', fontWeight:700, color:'#0369a1', cursor:'pointer' }}
+                    >Edit Prompt</button>
+                  </div>
+
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:'1.5rem', maxHeight:'650px', overflowY:'auto', padding:'4px' }}>
                     {bdSubmissions.map(sub => (
                       <div key={sub.id} style={{ background:'#f8fafc', borderRadius:'20px', padding:'1rem', border:'1px solid #e2e8f0', textAlign:'center', transition:'0.2s' }}>
@@ -987,12 +1013,12 @@ const Admin = () => {
         />
       )}
 
-      {/* Full Photo Modal */}
+      {/* Full Photo Modal - Direct Full Screen */}
       {viewingPhoto && (
-        <div className="modal-overlay" onClick={() => setViewingPhoto(null)} style={{ zIndex: 2000 }}>
-          <div className="modal-content" style={{ maxWidth: '90vw', maxHeight: '90vh', background: 'transparent', padding: 0, border: 'none', position: 'relative' }}>
-             <button style={{ position: 'absolute', top: '-40px', right: '0', background: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: 900 }}>✕</button>
-             <img src={viewingPhoto} style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '16px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }} />
+        <div className="modal-overlay" onClick={() => setViewingPhoto(null)} style={{ zIndex: 2000, background: 'rgba(0,0,0,0.92)' }}>
+          <div className="modal-content" style={{ width: '100vw', height: '100vh', maxWidth: '100vw', maxHeight: '100vh', background: 'transparent', padding: 0, border: 'none', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+             <button style={{ position: 'fixed', top: '20px', right: '20px', background: '#f43f5e', color: 'white', border: 'none', borderRadius: '50%', width: '44px', height: '44px', cursor: 'pointer', fontWeight: 900, fontSize: '1.2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', zIndex: 2001 }}>✕</button>
+             <img src={viewingPhoto} style={{ maxWidth: '95%', maxHeight: '95%', borderRadius: '8px', boxShadow: '0 0 100px rgba(0,0,0,0.5)', objectFit: 'contain' }} />
           </div>
         </div>
       )}

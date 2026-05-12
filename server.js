@@ -205,9 +205,15 @@ const initDB = async () => {
       CREATE TABLE IF NOT EXISTS m26_performance_settings (
         id VARCHAR(255) PRIMARY KEY,
         voting_status VARCHAR(50) DEFAULT 'CLOSED',
-        best_dress_status VARCHAR(50) DEFAULT 'CLOSED'
+        best_dress_status VARCHAR(50) DEFAULT 'CLOSED',
+        best_dress_ai_criteria TEXT
       )
     `);
+
+    // Ensure criteria column exists if table was already created
+    try {
+      await connection.query('ALTER TABLE m26_performance_settings ADD COLUMN best_dress_ai_criteria TEXT');
+    } catch (e) {}
 
     await connection.query(`CREATE TABLE IF NOT EXISTS m26_best_dress_votes (id VARCHAR(255) PRIMARY KEY, nominee_name VARCHAR(255) NOT NULL, vote_count INT DEFAULT 0, gender VARCHAR(10), department VARCHAR(255), photo_path VARCHAR(500), ai_reasoning TEXT)`);
     await connection.query(`CREATE TABLE IF NOT EXISTS m26_best_dress_submissions (id VARCHAR(255) PRIMARY KEY, name VARCHAR(255) NOT NULL, department VARCHAR(255), gender VARCHAR(10), photo_path VARCHAR(500), photo_data LONGTEXT, voter_id VARCHAR(255), ai_score FLOAT DEFAULT NULL, ai_reasoning TEXT, submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
@@ -953,14 +959,18 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
 });
 
 app.get('/api/best-dress/status', async (req, res) => {
-
-  const [rows] = await pool.query('SELECT best_dress_status FROM m26_performance_settings WHERE id = "global"');
-  res.json(rows[0] || { best_dress_status: 'CLOSED' });
+  const [rows] = await pool.query('SELECT best_dress_status, best_dress_ai_criteria FROM m26_performance_settings WHERE id = "global"');
+  res.json(rows[0] || { best_dress_status: 'CLOSED', best_dress_ai_criteria: '' });
 });
 
 app.post('/api/best-dress/status', async (req, res) => {
-  const { status } = req.body;
-  await pool.query('UPDATE m26_performance_settings SET best_dress_status = ? WHERE id = "global"', [status]);
+  const { status, criteria } = req.body;
+  if (status) {
+    await pool.query('UPDATE m26_performance_settings SET best_dress_status = ? WHERE id = "global"', [status]);
+  }
+  if (criteria !== undefined) {
+    await pool.query('UPDATE m26_performance_settings SET best_dress_ai_criteria = ? WHERE id = "global"', [criteria]);
+  }
   res.json({ success: true });
 });
 

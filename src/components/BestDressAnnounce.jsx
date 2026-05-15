@@ -13,7 +13,7 @@ const BestDressAnnounce = () => {
   const [finalists, setFinalists] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showVotes, setShowVotes] = useState(false);
+  const [revealMode, setRevealMode] = useState('BOTH'); // 'BOTH', 'FEMALE', 'MALE'
 
   useEffect(() => {
     fetchFinalists();
@@ -55,6 +55,10 @@ const BestDressAnnounce = () => {
 
       {/* Controls */}
       <div style={{ position:'fixed', top:'1rem', right:'1rem', zIndex:100, display:'flex', gap:'0.5rem' }}>
+        <button onClick={() => setRevealMode('FEMALE')} style={btn(revealMode === 'FEMALE' ? C.teal : '#cbd5e1', 'white', '80px')}>Women</button>
+        <button onClick={() => setRevealMode('MALE')}   style={btn(revealMode === 'MALE' ? C.teal : '#cbd5e1', 'white', '80px')}>Men</button>
+        <button onClick={() => setRevealMode('BOTH')}   style={btn(revealMode === 'BOTH' ? C.teal : '#cbd5e1', 'white', '80px')}>All</button>
+        <div style={{ width: '1px', background: '#e2e8f0', margin: '0 4px' }} />
         <button onClick={() => setShowVotes(!showVotes)} style={btn(showVotes ? C.teal : '#cbd5e1', showVotes ? 'white' : '#475569')}>
           {showVotes ? '🔒' : '👁️'}
         </button>
@@ -79,9 +83,22 @@ const BestDressAnnounce = () => {
             Waiting for results...
           </div>
         ) : (
-          <div style={{ flex:1, display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2rem', maxWidth:'1600px', margin:'0 auto', width:'100%', minHeight:0 }}>
-             <AnnounceSection title="Best Dressed Female" emoji="👗" items={females} accent={C.teal} showVotes={showVotes} />
-             <AnnounceSection title="Best Dressed Male"   emoji="👔" items={males}   accent={C.teal} showVotes={showVotes} />
+          <div style={{ 
+            flex:1, 
+            display:'grid', 
+            gridTemplateColumns: revealMode === 'BOTH' ? '1fr 1fr' : '1fr', 
+            gap:'2rem', 
+            maxWidth: revealMode === 'BOTH' ? '1600px' : '800px', 
+            margin:'0 auto', 
+            width:'100%', 
+            minHeight:0 
+          }}>
+             {(revealMode === 'BOTH' || revealMode === 'FEMALE') && (
+               <AnnounceSection title="Best Dressed Female" emoji="👗" items={females} accent="#be185d" showVotes={showVotes} />
+             )}
+             {(revealMode === 'BOTH' || revealMode === 'MALE') && (
+               <AnnounceSection title="Best Dressed Male"   emoji="👔" items={males}   accent={C.teal} showVotes={showVotes} />
+             )}
           </div>
         )}
       </div>
@@ -95,12 +112,13 @@ const BestDressAnnounce = () => {
   );
 };
 
-const btn = (bg, color) => ({
-  width:'40px', height:'40px', padding:0, borderRadius:'10px', border:'none',
+const btn = (bg, color, width = '40px') => ({
+  width: width, height:'40px', padding:0, borderRadius:'10px', border:'none',
   background: bg, color: color,
-  fontFamily:'Outfit,sans-serif', fontWeight:800, fontSize:'1.1rem', cursor:'pointer',
+  fontFamily:'Outfit,sans-serif', fontWeight:800, fontSize:'0.75rem', cursor:'pointer',
   display:'flex', alignItems:'center', justifyContent:'center',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.05)', transition: '0.2s'
+  boxShadow: '0 4px 12px rgba(0,0,0,0.05)', transition: '0.2s',
+  textTransform: 'uppercase'
 });
 
 const AnnounceSection = ({ title, emoji, items, accent, showVotes }) => (

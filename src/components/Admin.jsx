@@ -650,13 +650,17 @@ const Admin = () => {
                     <tbody>
                       {[...performanceResults]
                         .sort((a, b) => {
-                          const totalA = parseFloat(performanceRankType === 'general' ? a.guest_portion : a.costume_score) + parseFloat(a.manual_score || 0);
-                          const totalB = parseFloat(performanceRankType === 'general' ? b.guest_portion : b.costume_score) + parseFloat(b.manual_score || 0);
+                          const scoreA = performanceRankType === 'general' ? (((parseFloat(a.s1||0) + parseFloat(a.s2||0))/2) * 7) : ((parseFloat(a.costume_score) || 0) * 7);
+                          const scoreB = performanceRankType === 'general' ? (((parseFloat(b.s1||0) + parseFloat(b.s2||0))/2) * 7) : ((parseFloat(b.costume_score) || 0) * 7);
+                          const totalA = scoreA + (parseFloat(a.manual_score) || 0);
+                          const totalB = scoreB + (parseFloat(b.manual_score) || 0);
                           return totalB - totalA;
                         })
                         .map((r, i) => {
-                          const baseScore = parseFloat(performanceRankType === 'general' ? r.guest_portion : r.costume_score) || 0;
-                          const overall = (baseScore + parseFloat(r.manual_score || 0)).toFixed(2);
+                          const baseScore = performanceRankType === 'general' 
+                            ? (((parseFloat(r.s1||0) + parseFloat(r.s2||0))/2) * 7) 
+                            : ((parseFloat(r.costume_score) || 0) * 7);
+                          const overall = (baseScore + (parseFloat(r.manual_score) || 0)).toFixed(2);
                           
                           return (
                             <tr key={r.id || i}>
@@ -667,8 +671,7 @@ const Admin = () => {
                               </td>
                               
                               <td className="bold text-teal">
-                                {baseScore.toFixed(2)}
-                                {performanceRankType === 'costume' && <span style={{fontSize:'0.75rem', color:'#94a3b8', fontWeight:500}}> / 5</span>}
+                                {performanceRankType === 'general' ? baseScore.toFixed(2) : ((parseFloat(r.costume_score) || 0) * 7).toFixed(2)}
                               </td>
 
                               <td>

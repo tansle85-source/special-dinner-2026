@@ -526,20 +526,22 @@ app.get('/api/performance/results', async (req, res) => {
   const processed = rows.map(r => {
     // General Guest Average (s1: Vocal, s2: Stage Presence) - Weight 70%
     const generalGuestAvg = ((Number(r.s1||0) + Number(r.s2||0)) / 2);
-    const guestPortion = (generalGuestAvg / 5) * 70;
+    const guestPortion = generalGuestAvg * 7;
     
     // Manual Admin Score (max 100) - Weight 30%
     const adminPortion = (Number(r.manual_score || 0) / 100) * 30;
     
     // Costume Score (s3 only) - For separate ranking
-    const costumeScore = Number(r.s3||0).toFixed(2);
+    const costumeAvg = Number(r.s3||0);
+    const costumePortion = costumeAvg * 7;
     
     return {
       ...r,
       guest_portion: guestPortion.toFixed(2),
+      costume_portion: costumePortion.toFixed(2),
       admin_portion: Number(r.manual_score || 0).toFixed(2),
       total: (Number(guestPortion) + Number(r.manual_score || 0)).toFixed(2),
-      costume_score: costumeScore
+      costume_score: costumeAvg.toFixed(2)
     };
   });
 

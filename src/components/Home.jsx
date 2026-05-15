@@ -122,7 +122,27 @@ const Home = () => {
         <p style={{ color:'#0A8276', fontWeight:800, fontSize:'1rem', marginTop:'0.3rem', letterSpacing:'3px', textTransform:'uppercase' }}>
           2026
         </p>
-        <p style={{ color:'#9ca3af', fontSize:'0.85rem', marginTop:'0.6rem', fontWeight:500 }}>
+
+        {/* Rules Section */}
+        <div style={{ 
+          background: '#fef2f2', 
+          border: '1.5px solid #fee2e2', 
+          borderRadius: '16px', 
+          padding: '1rem', 
+          marginTop: '1.5rem',
+          width: '100%', 
+          maxWidth: '440px', 
+          margin: '1.5rem auto 0',
+          textAlign: 'center' 
+        }}>
+          <p style={{ color: '#be185d', fontWeight: 800, fontSize: '0.85rem', marginBottom: '4px' }}>📸 PHOTO SUBMISSION RULES</p>
+          <p style={{ color: '#475569', fontSize: '0.78rem', fontWeight: 600, lineHeight: 1.4 }}>
+            Session closes at 7:30 PM sharp.<br/>
+            Please submit clear and <b>head to toe</b> photos.
+          </p>
+        </div>
+
+        <p style={{ color:'#9ca3af', fontSize:'0.85rem', marginTop:'1.5rem', fontWeight:500 }}>
           Choose a module below to get started
         </p>
       </div>

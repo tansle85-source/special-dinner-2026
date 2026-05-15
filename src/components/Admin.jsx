@@ -650,15 +650,15 @@ const Admin = () => {
                     <tbody>
                       {[...performanceResults]
                         .sort((a, b) => {
-                          const scoreA = performanceRankType === 'general' ? (((parseFloat(a.s1||0) + parseFloat(a.s2||0))/2) * 7) : ((parseFloat(a.costume_score) || 0) * 7);
-                          const scoreB = performanceRankType === 'general' ? (((parseFloat(b.s1||0) + parseFloat(b.s2||0))/2) * 7) : ((parseFloat(b.costume_score) || 0) * 7);
+                          const scoreA = performanceRankType === 'general' ? ((parseFloat(a.s1||0) + parseFloat(a.s2||0)) * 7) : ((parseFloat(a.costume_score) || 0) * 7);
+                          const scoreB = performanceRankType === 'general' ? ((parseFloat(b.s1||0) + parseFloat(b.s2||0)) * 7) : ((parseFloat(b.costume_score) || 0) * 7);
                           const totalA = scoreA + (parseFloat(a.manual_score) || 0);
                           const totalB = scoreB + (parseFloat(b.manual_score) || 0);
                           return totalB - totalA;
                         })
                         .map((r, i) => {
                           const baseScore = performanceRankType === 'general' 
-                            ? (((parseFloat(r.s1||0) + parseFloat(r.s2||0))/2) * 7) 
+                            ? ((parseFloat(r.s1||0) + parseFloat(r.s2||0)) * 7) 
                             : ((parseFloat(r.costume_score) || 0) * 7);
                           const overall = (baseScore + (parseFloat(r.manual_score) || 0)).toFixed(2);
                           

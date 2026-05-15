@@ -525,8 +525,8 @@ app.get('/api/performance/results', async (req, res) => {
   // Calculate Weighted Totals
   const processed = rows.map(r => {
     // General Guest Average (s1: Vocal, s2: Stage Presence) - Weight 70%
-    const generalGuestAvg = ((Number(r.s1||0) + Number(r.s2||0)) / 2);
-    const guestPortion = generalGuestAvg * 7;
+    const guestTotalScore = (Number(r.s1||0) + Number(r.s2||0));
+    const guestPortion = guestTotalScore * 7;
     
     // Manual Admin Score (max 100) - Weight 30%
     const adminPortion = (Number(r.manual_score || 0) / 100) * 30;

@@ -13,7 +13,7 @@ const BestDressAnnounce = () => {
   const [finalists, setFinalists] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [revealMode, setRevealMode] = useState('BOTH'); // 'BOTH', 'FEMALE', 'MALE'
+  const [revealMode, setRevealMode] = useState('INTRO'); // 'INTRO', 'BOTH', 'FEMALE', 'MALE'
   const [showVotes, setShowVotes]   = useState(false);
 
   useEffect(() => {
@@ -56,6 +56,7 @@ const BestDressAnnounce = () => {
 
       {/* Controls */}
       <div style={{ position:'fixed', top:'1rem', right:'1rem', zIndex:100, display:'flex', gap:'0.5rem' }}>
+        <button onClick={() => setRevealMode('INTRO')}  style={btn(revealMode === 'INTRO' ? C.teal : '#cbd5e1', 'white', '80px')}>Intro</button>
         <button onClick={() => setRevealMode('FEMALE')} style={btn(revealMode === 'FEMALE' ? C.teal : '#cbd5e1', 'white', '80px')}>Women</button>
         <button onClick={() => setRevealMode('MALE')}   style={btn(revealMode === 'MALE' ? C.teal : '#cbd5e1', 'white', '80px')}>Men</button>
         <button onClick={() => setRevealMode('BOTH')}   style={btn(revealMode === 'BOTH' ? C.teal : '#cbd5e1', 'white', '80px')}>All</button>
@@ -79,7 +80,24 @@ const BestDressAnnounce = () => {
           </p>
         </div>
 
-        {finalists.length === 0 ? (
+        {revealMode === 'INTRO' ? (
+          <div style={{ 
+            flex:1, 
+            display:'flex', 
+            flexDirection:'column',
+            alignItems:'center', 
+            justifyContent:'center', 
+            textAlign:'center',
+            animation: 'fadeInSlide 1s ease'
+          }}>
+            <div style={{ fontSize:'8rem', marginBottom:'1rem' }}>🏆</div>
+            <h2 style={{ fontSize:'5rem', fontWeight:900, color:C.dark, margin:'0 0 1rem 0', letterSpacing:'-3px', lineHeight:1 }}>
+              THE WINNERS WILL BE <br/>
+              <span style={{ color:C.teal }}>ANNOUNCED RIGHT NOW!</span>
+            </h2>
+            <div style={{ width:'100px', height:'6px', background:C.teal, borderRadius:'3px' }} />
+          </div>
+        ) : finalists.length === 0 ? (
           <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8', fontSize:'1.2rem' }}>
             Waiting for results...
           </div>

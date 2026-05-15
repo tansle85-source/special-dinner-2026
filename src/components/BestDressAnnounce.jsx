@@ -14,6 +14,7 @@ const BestDressAnnounce = () => {
   const [loading, setLoading]     = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [revealMode, setRevealMode] = useState('BOTH'); // 'BOTH', 'FEMALE', 'MALE'
+  const [showVotes, setShowVotes]   = useState(false);
 
   useEffect(() => {
     fetchFinalists();

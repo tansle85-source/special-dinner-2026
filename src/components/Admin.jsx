@@ -650,16 +650,25 @@ const Admin = () => {
                     <tbody>
                       {[...performanceResults]
                         .sort((a, b) => {
-                          const scoreA = performanceRankType === 'general' ? ((parseFloat(a.s1||0) + parseFloat(a.s2||0)) * 7) : ((parseFloat(a.costume_score) || 0) * 7);
-                          const scoreB = performanceRankType === 'general' ? ((parseFloat(b.s1||0) + parseFloat(b.s2||0)) * 7) : ((parseFloat(b.costume_score) || 0) * 7);
+                          const s1A = parseFloat(a.s1) || 0;
+                          const s2A = parseFloat(a.s2) || 0;
+                          const s3A = parseFloat(a.costume_score) || 0;
+                          const scoreA = performanceRankType === 'general' ? ((s1A + s2A) * 7) : (s3A * 7);
                           const totalA = scoreA + (parseFloat(a.manual_score) || 0);
+
+                          const s1B = parseFloat(b.s1) || 0;
+                          const s2B = parseFloat(b.s2) || 0;
+                          const s3B = parseFloat(b.costume_score) || 0;
+                          const scoreB = performanceRankType === 'general' ? ((s1B + s2B) * 7) : (s3B * 7);
                           const totalB = scoreB + (parseFloat(b.manual_score) || 0);
+                          
                           return totalB - totalA;
                         })
                         .map((r, i) => {
-                          const baseScore = performanceRankType === 'general' 
-                            ? ((parseFloat(r.s1||0) + parseFloat(r.s2||0)) * 7) 
-                            : ((parseFloat(r.costume_score) || 0) * 7);
+                          const s1 = parseFloat(r.s1) || 0;
+                          const s2 = parseFloat(r.s2) || 0;
+                          const s3 = parseFloat(r.costume_score) || 0;
+                          const baseScore = performanceRankType === 'general' ? ((s1 + s2) * 7) : (s3 * 7);
                           const overall = (baseScore + (parseFloat(r.manual_score) || 0)).toFixed(2);
                           
                           return (

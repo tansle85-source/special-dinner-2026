@@ -648,7 +648,7 @@ const Admin = () => {
                       </thead>
                     )}
                     <tbody>
-                      {[...performanceResults]
+                      {Array.isArray(performanceResults) && [...performanceResults]
                         .sort((a, b) => {
                           const s1A = parseFloat(a.s1) || 0;
                           const s2A = parseFloat(a.s2) || 0;

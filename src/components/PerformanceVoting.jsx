@@ -366,6 +366,12 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
 const PerformerCard = ({ performer, criteria, onVote, previousScores, disabled }) => {
   const [scores, setScores] = useState(previousScores || [0, 0, 0]);
 
+  useEffect(() => {
+    if (previousScores) {
+      setScores(previousScores);
+    }
+  }, [previousScores]);
+
   const updateVal = (idx, val) => {
     if (disabled) return;
     const next = [...scores];

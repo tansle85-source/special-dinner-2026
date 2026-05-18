@@ -193,7 +193,8 @@ const initDB = async () => {
         name VARCHAR(255) NOT NULL,
         department VARCHAR(255),
         song_name VARCHAR(255),
-        manual_score INT DEFAULT 0
+        manual_score INT DEFAULT 0,
+        sequence INT DEFAULT 0
       )
     `);
 
@@ -343,6 +344,10 @@ const initDB = async () => {
       if (!pCols.some(c => c.Field === 'manual_score')) {
         await connection.query('ALTER TABLE m26_performance_participants ADD COLUMN manual_score INT DEFAULT 0');
       }
+      if (!pCols.some(c => c.Field === 'sequence')) {
+        console.log("[MIGRATE] Adding sequence column to m26_performance_participants");
+        await connection.query('ALTER TABLE m26_performance_participants ADD COLUMN sequence INT DEFAULT 0');
+      }
       const [sCols] = await connection.query('SHOW COLUMNS FROM m26_performance_scores');
       if (!sCols.some(c => c.Field === 'voter_id')) {
         await connection.query('ALTER TABLE m26_performance_scores ADD COLUMN voter_id VARCHAR(255)');
@@ -439,20 +444,20 @@ app.put('/api/performance/criteria/:id', async (req, res) => {
 });
 
 app.get('/api/performance/participants', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM m26_performance_participants');
+  const [rows] = await pool.query('SELECT * FROM m26_performance_participants ORDER BY sequence ASC, id ASC');
   res.json(rows);
 });
 
 app.post('/api/performance/participants', async (req, res) => {
   const id = generateId();
-  const { name, department, song_name } = req.body;
-  await pool.query('INSERT INTO m26_performance_participants (id, name, department, song_name) VALUES (?, ?, ?, ?)', [id, name, department, song_name]);
+  const { name, department, song_name, sequence } = req.body;
+  await pool.query('INSERT INTO m26_performance_participants (id, name, department, song_name, sequence) VALUES (?, ?, ?, ?, ?)', [id, name, department, song_name, Number(sequence || 0)]);
   res.json({ id });
 });
 
 app.put('/api/performance/participants/:id', async (req, res) => {
-  const { name, department, song_name } = req.body;
-  await pool.query('UPDATE m26_performance_participants SET name = ?, department = ?, song_name = ? WHERE id = ?', [name, department, song_name, req.params.id]);
+  const { name, department, song_name, sequence } = req.body;
+  await pool.query('UPDATE m26_performance_participants SET name = ?, department = ?, song_name = ?, sequence = ? WHERE id = ?', [name, department, song_name, Number(sequence || 0), req.params.id]);
   res.json({ message: 'Updated' });
 });
 
@@ -514,7 +519,7 @@ app.post('/api/performance/reset', async (req, res) => {
 
 app.get('/api/performance/results', async (req, res) => {
   const [rows] = await pool.query(`
-    SELECT p.id, p.name, p.department, p.song_name, p.manual_score,
+    SELECT p.id, p.name, p.department, p.song_name, p.manual_score, p.sequence,
     AVG(s.score_1) as s1, AVG(s.score_2) as s2, AVG(s.score_3) as s3,
     COUNT(s.id) as vote_count
     FROM m26_performance_participants p

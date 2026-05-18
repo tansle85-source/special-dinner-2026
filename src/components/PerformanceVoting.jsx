@@ -385,7 +385,14 @@ const PerformerCard = ({ performer, criteria, onVote, previousScores, disabled }
   return (
     <div className={`performer-card ${previousScores ? 'voted' : ''}`}>
       <div className="p-info">
-        <div className="p-name">{performer.name}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <div className="p-name">{performer.name}</div>
+          {performer.sequence !== undefined && performer.sequence !== null && (
+            <div style={{ background: '#0a8276', color: 'white', padding: '3px 8px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: 800 }}>
+              Lineup #{performer.sequence}
+            </div>
+          )}
+        </div>
         <div className="p-song">🎤 {performer.song_name}</div>
         <div className="p-dept">{performer.department}</div>
       </div>

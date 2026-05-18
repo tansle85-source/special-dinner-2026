@@ -316,7 +316,12 @@ const Admin = () => {
     if (isEmployee) {
       data = { name: formData.get('name'), department: formData.get('department'), won_prize: editingItem?.won_prize || null };
     } else if (isPerformance) {
-      data = { name: formData.get('name'), song_name: formData.get('song_name'), department: formData.get('department') };
+      data = { 
+        name: formData.get('name'), 
+        song_name: formData.get('song_name'), 
+        department: formData.get('department'),
+        sequence: parseInt(formData.get('sequence') || 0)
+      };
     } else {
       data = { session: formData.get('session'), rank: parseInt(formData.get('rank')), name: formData.get('name'), quantity: parseInt(formData.get('quantity')) };
     }
@@ -521,10 +526,11 @@ const Admin = () => {
                     <button className="modern-add-btn" onClick={() => { setEditingItem(null); setIsModalOpen(true); }}>+ Add Performer</button>
                   </div>
                   <table className="modern-table">
-                    <thead><tr><th>NAME</th><th>SONG</th><th>DEPT</th><th>ACTIONS</th></tr></thead>
+                    <thead><tr><th>SEQ</th><th>NAME</th><th>SONG</th><th>DEPT</th><th>ACTIONS</th></tr></thead>
                     <tbody>
                       {participants.map(p => (
                         <tr key={p.id}>
+                          <td className="bold" style={{ color: '#0A8276' }}>#{p.sequence || 0}</td>
                           <td className="bold">{p.name}</td>
                           <td className="text-teal">{p.song_name}</td>
                           <td>{p.department}</td>
@@ -676,7 +682,14 @@ const Admin = () => {
                               <td style={{fontWeight: 900, color: '#94a3b8'}}>#{i+1}</td>
                               <td>
                                 <div className="bold">{r.name}</div>
-                                <div style={{fontSize: '0.8rem', color: '#64748b'}}>{r.song_name}</div>
+                                <div style={{fontSize: '0.8rem', color: '#64748b', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  <span>{r.song_name}</span>
+                                  {r.sequence !== undefined && r.sequence !== null && (
+                                    <span style={{ background: '#f1f5f9', color: '#64748b', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800 }}>
+                                      Seq #{r.sequence}
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               
                               <td className="bold text-teal">
@@ -1018,6 +1031,7 @@ const Admin = () => {
                       <label>Name</label><input name="name" defaultValue={editingItem?.name} required />
                       <label>Song Name</label><input name="song_name" defaultValue={editingItem?.song_name} required />
                       <label>Department</label><input name="department" defaultValue={editingItem?.department} required />
+                      <label>Sequence Lineup Order</label><input name="sequence" type="number" defaultValue={editingItem?.sequence || 0} required />
                     </>
                   )}
                   {activeModule === 'lucky-draw' && (

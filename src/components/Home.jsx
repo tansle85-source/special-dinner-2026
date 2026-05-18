@@ -4,17 +4,6 @@ import axios from 'axios';
 
 const modules = [
   {
-    id: 'luckydraw',
-    icon: '🎁',
-    label: 'Lucky Draw',
-    desc: 'Check if you won a prize tonight',
-    path: '/luckydraw',
-    gradient: 'linear-gradient(135deg, #0A8276 0%, #0fd9c0 100%)',
-    light: 'rgba(10,130,118,0.08)',
-    border: 'rgba(10,130,118,0.25)',
-    text: '#0A8276',
-  },
-  {
     id: 'bestdress',
     icon: '👗',
     label: 'Best Dress',
@@ -151,14 +140,18 @@ const Home = () => {
         </p>
       </div>
 
-      {/* 2×2 Grid */}
+      {/* 2×2 Grid with centered odd card */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'0.9rem', padding:'0 1.25rem 3rem', width:'100%', maxWidth:'480px' }}>
-        {modules.map(m => (
+        {modules.map((m, idx) => (
           <div
             key={m.id}
             className="home-card"
             onClick={() => navigate(m.path)}
-            style={{ borderColor: m.border, background: m.light }}
+            style={{ 
+              borderColor: m.border, 
+              background: m.light,
+              gridColumn: (modules.length % 2 !== 0 && idx === modules.length - 1) ? '1 / span 2' : 'auto'
+            }}
           >
             {/* Top accent bar */}
             <div style={{ position:'absolute', top:0, left:0, right:0, height:'4px', background: m.gradient, borderRadius:'20px 20px 0 0' }} />
@@ -166,7 +159,7 @@ const Home = () => {
             <div className="card-icon">{m.icon}</div>
             <div className="card-label">{m.label}</div>
             <div className="card-desc">{m.desc}</div>
-            <div className="card-arrow" style={{ background: m.gradient }}>→</div>
+            <div className="card-arrow" style={{ background: m.gradient, margin: (modules.length % 2 !== 0 && idx === modules.length - 1) ? '1.25rem auto 0' : '1.25rem 0 0' }}>→</div>
           </div>
         ))}
       </div>

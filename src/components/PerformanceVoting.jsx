@@ -18,7 +18,8 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
   const [bdNominees, setBdNominees] = useState([]);
   const [myBdNomination, setMyBdNomination] = useState(null);
   const [myBdVote, setMyBdVote] = useState(null);
-  const [employees, setEmployees] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [submitting, setSubmitting] = useState(false);
@@ -68,17 +69,35 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
     fetchData(vid);
   }, []);
 
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await axios.get(`/api/employees/search?q=${encodeURIComponent(searchQuery)}`);
+        setSearchResults(res.data);
+      } catch (err) {
+        console.error("Search failed", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
   const fetchData = async (vid) => {
     const timeout = setTimeout(() => setLoading(false), 3000);
     const cfg = { timeout: 3000 };
     try {
-      const [pRes, cRes, sRes, bdStatRes, bdNomRes, empRes] = await Promise.all([
+      const [pRes, cRes, sRes, bdStatRes, bdNomRes] = await Promise.all([
         axios.get('/api/performance/participants', cfg),
         axios.get('/api/performance/criteria', cfg),
         axios.get('/api/performance/status', cfg),
         axios.get('/api/best-dress/status', cfg),
-        axios.get('/api/best-dress/nominees', cfg),
-        axios.get('/api/employees', cfg)
+        axios.get('/api/best-dress/nominees', cfg)
       ]);
       
       setParticipants(pRes.data);
@@ -86,7 +105,6 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
       setStatus(sRes.data.voting_status);
       setBdStatus(bdStatRes.data.best_dress_status);
       setBdNominees(bdNomRes.data);
-      setEmployees(empRes.data);
 
       // Secondary calls — non-blocking
       Promise.all([
@@ -176,9 +194,7 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
 
   if (loading) return <div className="voting-container loading">Loading...</div>;
 
-  const filteredEmployees = searchQuery.length > 1 
-    ? employees.filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
-    : [];
+
 
   return (
     <div className="voting-page" id="dinner-voting-app">
@@ -251,9 +267,10 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
-                      {filteredEmployees.length > 0 && (
+                      {searching && <div style={{ fontSize:'0.75rem', color:'#0A8276', marginTop:'4px', fontStyle:'italic', textAlign:'left' }}>Searching...</div>}
+                      {searchResults.length > 0 && (
                         <div className="search-results">
-                          {filteredEmployees.map(e => (
+                          {searchResults.map(e => (
                             <div key={e.id} className="result-item" onClick={() => handleNominate(e)}>
                               <div className="e-name">{e.name}</div>
                               <div className="e-dept">{e.department}</div>

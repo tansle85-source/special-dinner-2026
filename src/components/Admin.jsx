@@ -57,6 +57,24 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingSub, setEditingSub] = useState(null); // { id, name, department, gender }
 
+  const getSubmissionRank = (sub) => {
+    if (sub.ai_score === null || sub.ai_score === undefined) return '—';
+    const sameGenderSubs = bdSubmissions
+      .filter(s => s.gender === sub.gender && s.ai_score !== null && s.ai_score !== undefined)
+      .sort((a, b) => b.ai_score - a.ai_score || a.id.localeCompare(b.id));
+    const rankIndex = sameGenderSubs.findIndex(s => s.id === sub.id);
+    return rankIndex !== -1 ? `#${rankIndex + 1}` : '—';
+  };
+
+  const getNomineeRank = (nominee) => {
+    if (nominee.ai_score === null || nominee.ai_score === undefined) return '—';
+    const sameGenderNominees = bestDressNominees
+      .filter(n => n.gender === nominee.gender && n.ai_score !== null && n.ai_score !== undefined)
+      .sort((a, b) => b.ai_score - a.ai_score || a.id.localeCompare(b.id));
+    const rankIndex = sameGenderNominees.findIndex(n => n.id === nominee.id);
+    return rankIndex !== -1 ? `#${rankIndex + 1}` : '—';
+  };
+
   const sortResults = (list, query) => {
     if (!query) return list;
     const q = query.toLowerCase();
@@ -915,8 +933,8 @@ const Admin = () => {
                         
                         <div style={{ marginTop:'10px', padding:'8px', background:'white', borderRadius:'12px', border:'1px solid #f1f5f9' }}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'4px' }}>
-                            <span style={{ fontSize:'0.7rem', color:'#94a3b8', fontWeight:700 }}>AI SCORE</span>
-                            <span style={{ fontSize:'0.85rem', color:'#0A8276', fontWeight:900 }}>{sub.ai_score || '—'}/100</span>
+                            <span style={{ fontSize:'0.7rem', color:'#94a3b8', fontWeight:700 }}>AI RANK</span>
+                            <span style={{ fontSize:'0.85rem', color:'#0A8276', fontWeight:900 }}>{getSubmissionRank(sub)}</span>
                           </div>
                           <div style={{ fontSize:'0.68rem', color:'#64748b', fontStyle:'italic', lineHeight:1.3, textAlign:'left', minHeight:'32px' }}>
                             {sub.ai_reasoning || 'No feedback yet...'}
@@ -978,7 +996,7 @@ const Admin = () => {
                   </div>
 
                   <table className="modern-table">
-                    <thead><tr><th>Photo</th><th>Finalist</th><th>Category</th><th>AI Score</th><th>AI Feedback</th><th>Votes</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Photo</th><th>Finalist</th><th>Category</th><th>AI Rank</th><th>AI Feedback</th><th>Votes</th><th>Actions</th></tr></thead>
                     <tbody>
                       {bestDressNominees.map(n => (
                         <tr key={n.id}>
@@ -995,7 +1013,7 @@ const Admin = () => {
                           </td>
                           <td className="bold">{n.nominee_name}<br/><span style={{ color:'#94a3b8', fontSize:'0.75rem', fontWeight:400 }}>{n.department}</span></td>
                           <td><span style={{ padding:'2px 8px', borderRadius:'99px', fontSize:'0.72rem', fontWeight:700, background: n.gender==='Female'?'#fce7f3':'#dbeafe', color: n.gender==='Female'?'#be185d':'#1d4ed8' }}>{n.gender || '—'}</span></td>
-                          <td style={{ fontWeight:800, color:'#0A8276', fontSize:'0.85rem' }}>{n.ai_score != null ? `${n.ai_score}/100` : '—'}</td>
+                          <td style={{ fontWeight:800, color:'#0A8276', fontSize:'0.85rem' }}>{getNomineeRank(n)}</td>
                           <td style={{ fontSize:'0.75rem', color:'#64748b', maxWidth:'220px', lineHeight:1.4 }}>{n.ai_reasoning || '—'}</td>
                           <td className="text-teal" style={{fontWeight: 900, fontSize:'1.1rem'}}>{n.vote_count}</td>
                           <td><button onClick={async () => { if(confirm('Remove finalist?')) { await axios.delete(`/api/best-dress/nominees/${n.id}`); fetchAllData(); } }} className="table-btn" style={{color:'#f43f5e'}}>Remove</button></td>
@@ -1094,8 +1112,8 @@ const Admin = () => {
                    {bdSubmissions[bdStageIndex].ai_score && (
                      <div style={{ background:'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(10,130,118,0.2))', padding:'2rem', borderRadius:'24px', border:'1px solid rgba(139,92,246,0.3)' }}>
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem' }}>
-                          <span style={{ fontWeight:800, color:'#c4b5fd' }}>AI SCORE</span>
-                          <span style={{ fontSize:'2.5rem', fontWeight:900, color:'#fbbf24' }}>{bdSubmissions[bdStageIndex].ai_score}/100</span>
+                          <span style={{ fontWeight:800, color:'#c4b5fd' }}>AI RANK</span>
+                          <span style={{ fontSize:'2.5rem', fontWeight:900, color:'#fbbf24' }}>{getSubmissionRank(bdSubmissions[bdStageIndex])}</span>
                         </div>
                         <p style={{ margin:0, fontSize:'1.1rem', fontStyle:'italic', color:'#e2e8f0', lineHeight:1.6 }}>"{bdSubmissions[bdStageIndex].ai_reasoning}"</p>
                      </div>

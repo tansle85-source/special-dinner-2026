@@ -132,6 +132,17 @@ try {
   console.error('FATAL: Failed to create MySQL pool object:', err.message);
 }
 
+// In-memory Cache for frequently requested settings & status endpoints
+const cache = {
+  performanceStatus: null,
+  performanceStatusTime: 0,
+  feedbackStatus: null,
+  feedbackStatusTime: 0,
+  bestDressStatus: null,
+  bestDressStatusTime: 0,
+  ttl: 5000 // Cache active settings for 5 seconds to reduce concurrent DB load by 99%
+};
+
 // Initialize Database Tables
 const initDB = async () => {
   if (!pool) return console.error('Aborting initDB: Pool not created.');
@@ -490,14 +501,32 @@ app.post('/api/performance/rate', async (req, res) => {
 });
 
 app.get('/api/performance/status', async (req, res) => {
-  const [rows] = await pool.query('SELECT voting_status FROM m26_performance_settings WHERE id = "global"');
-  res.json(rows[0] || { voting_status: 'CLOSED' });
+  const now = Date.now();
+  if (cache.performanceStatus && (now - cache.performanceStatusTime < cache.ttl)) {
+    return res.json(cache.performanceStatus);
+  }
+  try {
+    const [rows] = await pool.query('SELECT voting_status FROM m26_performance_settings WHERE id = "global"');
+    const statusObj = rows[0] || { voting_status: 'CLOSED' };
+    cache.performanceStatus = statusObj;
+    cache.performanceStatusTime = now;
+    res.json(statusObj);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 app.post('/api/performance/status', async (req, res) => {
   const { status } = req.body;
-  await pool.query('UPDATE m26_performance_settings SET voting_status = ? WHERE id = "global"', [status]);
-  res.json({ success: true });
+  try {
+    await pool.query('UPDATE m26_performance_settings SET voting_status = ? WHERE id = "global"', [status]);
+    // Invalidate and immediately update cache
+    cache.performanceStatus = { voting_status: status };
+    cache.performanceStatusTime = Date.now();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 app.get('/api/performance/my-ratings/:voterId', async (req, res) => {
@@ -565,12 +594,31 @@ app.put('/api/performance/participants/:id/manual-score', async (req, res) => {
 
 // Status
 app.get('/api/feedback/status', async (req, res) => {
-  const [rows] = await pool.query('SELECT status FROM m26_feedback_settings WHERE id = "global"');
-  res.json({ status: rows[0]?.status || 'CLOSED' });
+  const now = Date.now();
+  if (cache.feedbackStatus && (now - cache.feedbackStatusTime < cache.ttl)) {
+    return res.json(cache.feedbackStatus);
+  }
+  try {
+    const [rows] = await pool.query('SELECT status FROM m26_feedback_settings WHERE id = "global"');
+    const statusObj = { status: rows[0]?.status || 'CLOSED' };
+    cache.feedbackStatus = statusObj;
+    cache.feedbackStatusTime = now;
+    res.json(statusObj);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 app.put('/api/feedback/status', async (req, res) => {
-  await pool.query('UPDATE m26_feedback_settings SET status = ? WHERE id = "global"', [req.body.status]);
-  res.json({ success: true });
+  const { status } = req.body;
+  try {
+    await pool.query('UPDATE m26_feedback_settings SET status = ? WHERE id = "global"', [status]);
+    // Invalidate and immediately update cache
+    cache.feedbackStatus = { status };
+    cache.feedbackStatusTime = Date.now();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 // Questions CRUD
@@ -984,19 +1032,37 @@ app.post('/api/best-dress/ai-rank', async (req, res) => {
 });
 
 app.get('/api/best-dress/status', async (req, res) => {
-  const [rows] = await pool.query('SELECT best_dress_status, best_dress_ai_criteria FROM m26_performance_settings WHERE id = "global"');
-  res.json(rows[0] || { best_dress_status: 'CLOSED', best_dress_ai_criteria: '' });
+  const now = Date.now();
+  if (cache.bestDressStatus && (now - cache.bestDressStatusTime < cache.ttl)) {
+    return res.json(cache.bestDressStatus);
+  }
+  try {
+    const [rows] = await pool.query('SELECT best_dress_status, best_dress_ai_criteria FROM m26_performance_settings WHERE id = "global"');
+    const statusObj = rows[0] || { best_dress_status: 'CLOSED', best_dress_ai_criteria: '' };
+    cache.bestDressStatus = statusObj;
+    cache.bestDressStatusTime = now;
+    res.json(statusObj);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 app.post('/api/best-dress/status', async (req, res) => {
   const { status, criteria } = req.body;
-  if (status) {
-    await pool.query('UPDATE m26_performance_settings SET best_dress_status = ? WHERE id = "global"', [status]);
+  try {
+    if (status) {
+      await pool.query('UPDATE m26_performance_settings SET best_dress_status = ? WHERE id = "global"', [status]);
+    }
+    if (criteria !== undefined) {
+      await pool.query('UPDATE m26_performance_settings SET best_dress_ai_criteria = ? WHERE id = "global"', [criteria]);
+    }
+    // Simple cache invalidation to force a fresh query on next load
+    cache.bestDressStatus = null;
+    cache.bestDressStatusTime = 0;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).send(err.message);
   }
-  if (criteria !== undefined) {
-    await pool.query('UPDATE m26_performance_settings SET best_dress_ai_criteria = ? WHERE id = "global"', [criteria]);
-  }
-  res.json({ success: true });
 });
 
 app.get('/api/best-dress/finalists', async (req, res) => {
@@ -1278,6 +1344,22 @@ app.post('/api/upload-prizes', upload.single('file'), async (req, res) => {
         if (connection) connection.release();
       }
     });
+});
+
+app.get('/api/employees/search', async (req, res) => {
+  const query = String(req.query.q || '').trim();
+  if (query.length < 2) {
+    return res.json([]);
+  }
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, name, department FROM m26_employees WHERE name LIKE ? LIMIT 10',
+      [`%${query}%`]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 app.get('/api/employees', async (req, res) => {

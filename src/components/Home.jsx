@@ -4,6 +4,17 @@ import axios from 'axios';
 
 const modules = [
   {
+    id: 'luckydraw',
+    icon: '🎁',
+    label: 'Lucky Draw',
+    desc: 'Check if you won a prize tonight',
+    path: '/luckydraw',
+    gradient: 'linear-gradient(135deg, #0A8276 0%, #059669 100%)',
+    light: 'rgba(10,130,118,0.07)',
+    border: 'rgba(10,130,118,0.2)',
+    text: '#0A8276',
+  },
+  {
     id: 'bestdress',
     icon: '👗',
     label: 'Best Dress',

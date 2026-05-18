@@ -73,15 +73,6 @@ const modules = [
 
 const Home = () => {
   const navigate = useNavigate();
-  const [performers, setPerformers] = useState([]);
-
-  useEffect(() => {
-    axios.get('/api/performance/participants')
-      .then(res => {
-        setPerformers(res.data || []);
-      })
-      .catch(err => console.error("Failed to load timeline lineup:", err));
-  }, []);
 
   return (
     <div style={{ minHeight:'100vh', background:'#FFFFFF', fontFamily:"'Outfit',sans-serif", display:'flex', flexDirection:'column', alignItems:'center' }}>
@@ -153,55 +144,7 @@ const Home = () => {
           </p>
         </div>
 
-        {performers.length > 0 && (
-          <div style={{
-            background: 'rgba(10, 130, 118, 0.04)',
-            border: '1.5px solid rgba(10, 130, 118, 0.15)',
-            borderRadius: '20px',
-            padding: '1.5rem',
-            marginTop: '1.5rem',
-            width: '100%',
-            maxWidth: '440px',
-            margin: '1.5rem auto 0',
-            textAlign: 'left'
-          }}>
-            <p style={{ color: '#0A8276', fontWeight: 900, fontSize: '0.85rem', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '1rem', textAlign: 'center' }}>
-              🎤 Tonight Performer Lineup
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {performers.map((p, idx) => (
-                <div key={p.id} className="lineup-item" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.5rem 0.75rem',
-                  background: 'white',
-                  borderRadius: '12px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-                  borderLeft: '4px solid #0A8276',
-                  transition: '0.2s'
-                }}>
-                  <div style={{
-                    background: 'rgba(10, 130, 118, 0.1)',
-                    color: '#0A8276',
-                    padding: '3px 8px',
-                    borderRadius: '8px',
-                    fontSize: '0.75rem',
-                    fontWeight: 900,
-                    minWidth: '55px',
-                    textAlign: 'center'
-                  }}>
-                    Seq #{p.sequence || 0}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1D1D1D', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.song_name}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         <p style={{ color:'#9ca3af', fontSize:'0.85rem', marginTop:'1.5rem', fontWeight:500 }}>
           Choose a module below to get started

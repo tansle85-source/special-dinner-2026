@@ -288,6 +288,16 @@ const initDB = async () => {
       }
     } catch (migErr) { console.warn('[MIGRATE] voter_id constraint check:', migErr.message); }
 
+    // Migration: Update Question 5 max_choices to 3 (allow picking 3 choices)
+    try {
+      await connection.query(`
+        UPDATE m26_feedback_questions 
+        SET max_choices = 3 
+        WHERE question_text LIKE '%What was your favorite experience or moment%'
+      `);
+      console.log('[MIGRATE] Successfully updated Question 5 max_choices to 3.');
+    } catch (q5Err) { console.warn('[MIGRATE] Question 5 max_choices update failed:', q5Err.message); }
+
     // Migration: upgrade m26_best_dress_voters to composite PK (voter_id, gender)
     try {
       const [voterCols] = await connection.query('SHOW COLUMNS FROM m26_best_dress_voters');

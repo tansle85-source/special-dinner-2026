@@ -29,8 +29,41 @@ const GuestFeedback = () => {
   const [submitted, setSubmitted]   = useState(false);
 
   const sessionId = (() => {
-    let id = localStorage.getItem(SESSION_KEY);
-    if (!id) { id = crypto.randomUUID(); localStorage.setItem(SESSION_KEY, id); }
+    const key = SESSION_KEY;
+    let id = null;
+    try {
+      id = localStorage.getItem(key);
+    } catch (e) {}
+    if (!id) {
+      try {
+        const match = document.cookie.match(new RegExp('(^| )' + key + '=([^;]+)'));
+        if (match) id = match[2];
+      } catch (e) {}
+    }
+    if (!id) {
+      try {
+        id = crypto.randomUUID();
+      } catch (e) {
+        id = 'v-' + Date.now().toString(36) + Math.random().toString(36).substring(2);
+      }
+      try {
+        localStorage.setItem(key, id);
+      } catch (e) {}
+      try {
+        const date = new Date();
+        date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+        document.cookie = `${key}=${id}; expires=${date.toUTCString()}; path=/; SameSite=Lax`;
+      } catch (e) {}
+    } else {
+      try {
+        localStorage.setItem(key, id);
+      } catch (e) {}
+      try {
+        const date = new Date();
+        date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+        document.cookie = `${key}=${id}; expires=${date.toUTCString()}; path=/; SameSite=Lax`;
+      } catch (e) {}
+    }
     return id;
   })();
 

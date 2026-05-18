@@ -24,12 +24,46 @@ const PerformanceVoting = ({ defaultTab = 'performance' }) => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    let vid = localStorage.getItem('performance_voter_id');
-    if (!vid) {
-      vid = crypto.randomUUID();
-      localStorage.setItem('performance_voter_id', vid);
+  const getPersistentId = (key) => {
+    let id = null;
+    try {
+      id = localStorage.getItem(key);
+    } catch (e) {}
+    if (!id) {
+      try {
+        const match = document.cookie.match(new RegExp('(^| )' + key + '=([^;]+)'));
+        if (match) id = match[2];
+      } catch (e) {}
     }
+    if (!id) {
+      try {
+        id = crypto.randomUUID();
+      } catch (e) {
+        id = 'v-' + Date.now().toString(36) + Math.random().toString(36).substring(2);
+      }
+      try {
+        localStorage.setItem(key, id);
+      } catch (e) {}
+      try {
+        const date = new Date();
+        date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+        document.cookie = `${key}=${id}; expires=${date.toUTCString()}; path=/; SameSite=Lax`;
+      } catch (e) {}
+    } else {
+      try {
+        localStorage.setItem(key, id);
+      } catch (e) {}
+      try {
+        const date = new Date();
+        date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+        document.cookie = `${key}=${id}; expires=${date.toUTCString()}; path=/; SameSite=Lax`;
+      } catch (e) {}
+    }
+    return id;
+  };
+
+  useEffect(() => {
+    const vid = getPersistentId('performance_voter_id');
     setVoterId(vid);
     fetchData(vid);
   }, []);

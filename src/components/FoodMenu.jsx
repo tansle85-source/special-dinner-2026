@@ -77,18 +77,18 @@ const FoodMenu = () => {
     {
       category: "Appetizer",
       icon: "🥗",
-      title: "Vegetarian Four Season Hot & Cold Combinations",
+      title: "Four Season Hot & Cold Combinations",
       items: [
-        "Baked Oyster Mushroom with Egg-Free Mayo",
-        "Crispy Fried Homemade Vegetarian Lobak",
-        "Marinated Mock Scallop with Cucumber and Black Fungus Szechuan Style",
-        "Avocado Gravlax with Citrus"
+        "Golden Fried Yam Deli",
+        "Stir Fried Veg Three Layer Roasted with Dry Chilli",
+        "Crispy Fried Yam Roll",
+        "Mango Kerabu with Cashew Nut"
       ]
     },
     {
       category: "Soup",
       icon: "🥣",
-      title: "Vegetarian Creamy Chowder Soup",
+      title: "Vegetarian Sweet Corn Cream Soup",
       items: [
         "Served with Warm Soft Roll"
       ]
@@ -96,33 +96,33 @@ const FoodMenu = () => {
     {
       category: "Poultry",
       icon: "🥦",
-      title: "Crispy Fried Vegetarian Chicken",
+      title: "Veg Drumstick",
       items: [
-        "Served with Mint Jelly Dips and Almond Flakes"
+        "Served with Mint Jelly Dips"
       ]
     },
     {
       category: "Fish",
       icon: "🌱",
-      title: "Steamed Vegetarian Fish",
+      title: "Veg Fish Salmon",
       items: [
-        "Served with Thai Lemon Sauce"
+        "Served with Sweet and Sour Sauce"
       ]
     },
     {
       category: "Vegetables",
       icon: "🥦",
-      title: "Braised Assorted Mushrooms",
+      title: "Braised Flower Mushroom & Bái Ling Mushroom",
       items: [
-        "Carrots and Japanese Bean Puff with Broccoli"
+        "Japanese Bean Puff with Green Vegetable"
       ]
     },
     {
       category: "Prawns",
       icon: "🍤",
-      title: "Wok-fried Vegetarian Prawns",
+      title: "Crispy Fried Noodle Veg Prawn",
       items: [
-        "Tossed in Nanyang Sauce"
+        "Tossed with Oat"
       ]
     },
     {
@@ -130,7 +130,7 @@ const FoodMenu = () => {
       icon: "🍚",
       title: "Vegetarian Tom Yum Fried Rice",
       items: [
-        "With Pineapple and Mixed Vegetables"
+        "With Pineapple"
       ]
     },
     {

@@ -123,7 +123,7 @@ const GuestFeedback = () => {
       <header style={s.header}>
         <div style={{ fontSize:'3.5rem' }}>💬</div>
         <h1 style={s.title}>Guest Feedback</h1>
-        <p style={s.sub}>Appreciation Night 2026</p>
+        <p style={s.sub}>2026 Infineon Penang Appreciation Dinner</p>
       </header>
 
       <div style={s.body}>

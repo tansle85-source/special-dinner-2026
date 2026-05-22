@@ -76,7 +76,7 @@ const BestDressAnnounce = () => {
             Best Dress Finalists
           </h1>
           <p style={{ color:'#64748b', fontSize:'1rem', margin:0, fontWeight:800, letterSpacing:'2px' }}>
-            Appreciation Night 2026
+            2026 Infineon Penang Appreciation Dinner
           </p>
         </div>
 

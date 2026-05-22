@@ -179,7 +179,7 @@ const BestDress = () => {
       <header style={s.header}>
         <div style={{ fontSize:'3.5rem' }}>👗</div>
         <h1 style={s.title}>Best Dress Award</h1>
-        <p style={{ color:'rgba(255,255,255,0.85)', marginTop:'0.25rem', fontSize:'0.85rem', fontWeight:600 }}>Appreciation Night 2026</p>
+        <p style={{ color:'rgba(255,255,255,0.85)', marginTop:'0.25rem', fontSize:'0.85rem', fontWeight:600 }}>2026 Infineon Penang Appreciation Dinner</p>
         <span style={{ ...s.badge, ...(phase==='NOMINATING'?s.badgeGreen:phase==='VOTING'?s.badgeGold:s.badgeGray) }}>
           <span style={{ width:7, height:7, borderRadius:'50%', background: phase==='NOMINATING'?'#fff':phase==='VOTING'?'#fff':'rgba(255,255,255,0.4)', display:'inline-block', marginRight:6 }}></span>
           {phase==='CLOSED'?'Coming Soon':phase==='NOMINATING'?'Submissions Open':'VOTING LIVE'}

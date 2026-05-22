@@ -398,7 +398,7 @@ const Admin = () => {
         <header className="content-header">
           <div className="header-info">
             <h1>{activeModule.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</h1>
-            <p>Appreciation Dinner 2026 Admin Panel · <VersionBadge /></p>
+            <p>2026 Infineon Penang Appreciation Dinner Admin Panel · <VersionBadge /></p>
           </div>
           <div className="header-actions">
             <div className="upload-indicator">{uploadStatus}</div>

@@ -118,12 +118,9 @@ const Home = () => {
       {/* Header */}
       <div style={{ textAlign:'center', padding:'3rem 1.5rem 1.75rem', width:'100%', maxWidth:'560px' }}>
         <div style={{ fontSize:'2.5rem', marginBottom:'0.5rem' }}>🎊</div>
-        <h1 style={{ color:'#1D1D1D', fontSize:'clamp(1.8rem,6vw,2.6rem)', fontWeight:900, letterSpacing:'-1px', lineHeight:1.1 }}>
-          Appreciation Night
+        <h1 style={{ color:'#1D1D1D', fontSize:'clamp(1.5rem,5.5vw,2.3rem)', fontWeight:900, letterSpacing:'-0.5px', lineHeight:1.2 }}>
+          2026 Infineon Penang<br/>Appreciation Dinner
         </h1>
-        <p style={{ color:'#0A8276', fontWeight:800, fontSize:'1rem', marginTop:'0.3rem', letterSpacing:'3px', textTransform:'uppercase' }}>
-          2026
-        </p>
 
         {/* Rules Section */}
         <div style={{ 
@@ -177,7 +174,7 @@ const Home = () => {
 
       <div style={{ textAlign:'center', paddingBottom:'2.5rem', paddingLeft:'1rem', paddingRight:'1rem' }}>
         <p style={{ color:'#9ca3af', fontSize:'0.72rem', marginBottom:'3px' }}>
-          Penang Appreciation Dinner 2026 Committees
+          2026 Infineon Penang Appreciation Dinner Committees
         </p>
         <p style={{ color:'#d1d5db', fontSize:'0.68rem' }}>
           Developed by : Steven Tan (BE DEV APT APD PNG)

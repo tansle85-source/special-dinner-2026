@@ -249,7 +249,7 @@ const FoodMenu = () => {
             Grand Dinner Menu
           </h1>
           <p style={{ color: '#6B7280', fontSize: '0.88rem', marginTop: '0.25rem', fontWeight: 500 }}>
-            Enjoy the curated cuisines of our Appreciation Night 2026
+            Enjoy the curated cuisines of our 2026 Infineon Penang Appreciation Dinner
           </p>
         </div>
 

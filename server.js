@@ -762,7 +762,7 @@ app.post('/api/feedback/ai-analyze', async (req, res) => {
       }
     }).join('\n\n');
 
-    const prompt = `You are an event analyst reviewing guest feedback from a company dinner event called "Appreciation Night 2026".
+    const prompt = `You are an event analyst reviewing guest feedback from a company dinner event called "2026 Infineon Penang Appreciation Dinner".
 
 Here is the feedback data:
 ${feedbackText}

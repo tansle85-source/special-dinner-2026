@@ -1076,12 +1076,16 @@ app.post('/api/best-dress/status', async (req, res) => {
 });
 
 app.get('/api/best-dress/finalists', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM m26_best_dress_votes ORDER BY vote_count DESC');
+  const [rows] = await pool.query(
+    'SELECT id, nominee_name, gender, department, ai_score, ai_reasoning, vote_count, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_votes ORDER BY gender, vote_count DESC'
+  );
   res.json(rows);
 });
 
 app.get('/api/best-dress/nominees', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM m26_best_dress_votes ORDER BY vote_count DESC');
+  const [rows] = await pool.query(
+    'SELECT id, nominee_name, gender, department, ai_score, ai_reasoning, vote_count, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_votes ORDER BY gender, vote_count DESC'
+  );
   res.json(rows);
 });
 

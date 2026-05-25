@@ -400,7 +400,7 @@ const FinalistCard = ({ item, myVoteForGender, onVote }) => {
   const selected = myVoteForGender === item.id;
   return (
     <div onClick={() => onVote(item.id)} style={{ ...s.fCard, ...(selected ? s.fVoted : {}), cursor:'pointer', transition:'all 0.2s', transform: selected ? 'scale(1.02)' : 'scale(1)' }}>
-      {item.photo_data
+      {item.has_photo
         ? <img src={`/api/photos/bd/vote/${item.id}`} alt="" style={s.fImg} />
         : <div style={{ ...s.fImg, background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.8rem' }}>👤</div>
       }

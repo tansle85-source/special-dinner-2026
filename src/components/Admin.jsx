@@ -1003,10 +1003,10 @@ const Admin = () => {
                           <td>
                             <div 
                               style={{ width:'50px', height:'50px', borderRadius:'8px', overflow:'hidden', cursor:'pointer', background:'#f1f5f9' }}
-                              onClick={() => n.photo_data && setViewingPhoto(n.photo_data)}
+                              onClick={() => n.has_photo && setViewingPhoto(`/api/photos/bd/vote/${n.id}`)}
                             >
-                              {n.photo_data 
-                                ? <img src={n.photo_data} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                              {n.has_photo 
+                                ? <img src={`/api/photos/bd/vote/${n.id}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                                 : <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.2rem' }}>📷</div>
                               }
                             </div>

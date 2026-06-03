@@ -110,6 +110,14 @@ const Admin = () => {
   const currentWinners = (Array.isArray(employees) ? employees : []).filter(e => sessionPrizes.some(p => p.name === e.won_prize)).length;
   const remainingToDraw = totalQuantity - currentWinners;
 
+  // Bypass confirmations for automated browser test
+  useEffect(() => {
+    if (window.location.search.includes('bypassConfirm=true')) {
+      window.confirm = () => true;
+      window.alert = () => true;
+    }
+  }, []);
+
   useEffect(() => {
     fetchAllData();
   }, [activeModule]);

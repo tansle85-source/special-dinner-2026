@@ -8,23 +8,49 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import JSZip from 'jszip';
 
 // ── Gemini REST API helper (uses v1 endpoint — stable, not v1beta) ────────────
 const GEMINI_MODEL = 'gemini-2.5-flash';
-async function geminiText(prompt) {
+
+async function geminiCallWithRetry(url, payload, retries = 5, baseDelay = 1500) {
   const axios = (await import('axios')).default;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-  const r = await axios.post(url, { contents: [{ parts: [{ text: prompt }] }] });
-  return r.data.candidates[0].content.parts[0].text.trim();
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const r = await axios.post(url, payload, { timeout: 30000 });
+      if (r.data && r.data.candidates && r.data.candidates[0] && r.data.candidates[0].content && r.data.candidates[0].content.parts && r.data.candidates[0].content.parts[0]) {
+        return r.data.candidates[0].content.parts[0].text.trim();
+      }
+      throw new Error('Invalid Gemini API response structure: ' + JSON.stringify(r.data));
+    } catch (err) {
+      const isRateLimit = err.response?.status === 429 || (err.message || '').includes('429');
+      const isTransient = !err.response || err.response.status >= 500 || err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT';
+      
+      if ((isRateLimit || isTransient) && attempt < retries - 1) {
+        const delayTime = baseDelay * Math.pow(2, attempt) + Math.floor(Math.random() * 1000);
+        console.warn(`[Gemini API] Request failed (attempt ${attempt + 1}/${retries}). Error: ${err.message}. Retrying in ${delayTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayTime));
+      } else {
+        console.error(`[Gemini API] Failed permanently on attempt ${attempt + 1}. Error: ${err.message}`);
+        throw err;
+      }
+    }
+  }
 }
-async function geminiVision(b64, mimeType, prompt) {
-  const axios = (await import('axios')).default;
+
+async function geminiText(prompt) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-  const r = await axios.post(url, { contents: [{ parts: [
+  const payload = { contents: [{ parts: [{ text: prompt }] }] };
+  return geminiCallWithRetry(url, payload);
+}
+
+async function geminiVision(b64, mimeType, prompt) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const payload = { contents: [{ parts: [
     { inlineData: { mimeType, data: b64 } },
     { text: prompt }
-  ]}]});
-  return r.data.candidates[0].content.parts[0].text.trim();
+  ]}]};
+  return geminiCallWithRetry(url, payload);
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1182,6 +1208,127 @@ app.post('/api/best-dress/reset', async (req, res) => {
     await pool.query('DELETE FROM m26_best_dress_votes');
     res.json({ success: true });
   } catch (err) { res.status(500).send(err.message); }
+});
+
+app.post('/api/best-dress/reset-ai-rank', async (req, res) => {
+  try {
+    await pool.query('UPDATE m26_best_dress_submissions SET ai_score = NULL, ai_reasoning = NULL');
+    await pool.query('DELETE FROM m26_best_dress_votes');
+    await pool.query('DELETE FROM m26_best_dress_voters');
+    res.json({ success: true });
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+let exportStatus = {
+  status: 'idle', // 'idle' | 'processing' | 'completed' | 'failed'
+  current: 0,
+  total: 0,
+  error: null,
+  zipUrl: null
+};
+
+app.post('/api/best-dress/export-start', async (req, res) => {
+  if (exportStatus.status === 'processing') {
+    return res.status(400).json({ error: 'Export already in progress' });
+  }
+
+  exportStatus = {
+    status: 'processing',
+    current: 0,
+    total: 0,
+    error: null,
+    zipUrl: null
+  };
+
+  // Run async in background
+  (async () => {
+    try {
+      // Get all best dress submissions
+      const [rows] = await pool.query('SELECT id, name, department, gender FROM m26_best_dress_submissions');
+      exportStatus.total = rows.length;
+
+      if (rows.length === 0) {
+        exportStatus.status = 'completed';
+        exportStatus.zipUrl = null;
+        return;
+      }
+
+      const exportDir = path.join(__dirname, 'uploads', 'best_dress_export');
+      const femaleDir = path.join(exportDir, 'Female');
+      const maleDir = path.join(exportDir, 'Male');
+
+      // Clear previous export and recreate directories
+      await fs.remove(exportDir);
+      await fs.ensureDir(femaleDir);
+      await fs.ensureDir(maleDir);
+
+      const zip = new JSZip();
+
+      // Retrieve each photo sequentially to remain memory-efficient
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const [photoRows] = await pool.query('SELECT photo_data FROM m26_best_dress_submissions WHERE id = ?', [row.id]);
+        const photoData = photoRows[0]?.photo_data;
+
+        if (photoData) {
+          const matches = photoData.match(/^data:(.+);base64,(.+)$/);
+          if (matches) {
+            const mime = matches[1];
+            const b64 = matches[2];
+            const buffer = Buffer.from(b64, 'base64');
+
+            // Find extension
+            let ext = 'jpg';
+            if (mime.includes('png')) ext = 'png';
+            else if (mime.includes('gif')) ext = 'gif';
+            else if (mime.includes('webp')) ext = 'webp';
+
+            // Clean filenames (safe for windows/linux filesystems)
+            const safeName = row.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const safeDept = (row.department || 'Unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const filename = `${safeName}_${safeDept}_${row.id}.${ext}`;
+            const genderFolder = row.gender === 'Male' ? 'Male' : 'Female';
+
+            // Save to disk
+            const filePath = path.join(exportDir, genderFolder, filename);
+            await fs.writeFile(filePath, buffer);
+
+            // Add to JSZip structure
+            zip.file(`${genderFolder}/${filename}`, buffer);
+          }
+        }
+
+        exportStatus.current = i + 1;
+      }
+
+      // Ensure uploads directory exists for the zip file
+      const uploadDir = path.join(__dirname, 'uploads');
+      await fs.ensureDir(uploadDir);
+
+      // Generate Zip File
+      const zipPath = path.join(uploadDir, 'best_dress_photos.zip');
+      await new Promise((resolve, reject) => {
+        zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
+           .pipe(fs.createWriteStream(zipPath))
+           .on('finish', resolve)
+           .on('error', reject);
+      });
+
+      exportStatus.status = 'completed';
+      exportStatus.zipUrl = '/uploads/best_dress_photos.zip';
+      console.log(`[Export Photos] Success! Exported ${rows.length} photos.`);
+    } catch (err) {
+      console.error('[Export Photos Error]', err);
+      exportStatus.status = 'failed';
+      exportStatus.error = err.message;
+    }
+  })();
+
+  res.json({ success: true });
+});
+
+app.get('/api/best-dress/export-status', (req, res) => {
+  res.json(exportStatus);
 });
 
 // Upload Employees (Name, Department)

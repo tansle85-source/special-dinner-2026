@@ -44,6 +44,7 @@ const Admin = () => {
   const [showStageView, setShowStageView] = useState(false);
   const [viewingPhoto, setViewingPhoto] = useState(null); // New
   const [aiRankProgress, setAiRankProgress] = useState(null); // New: { current, total, name }
+  const [exportProgress, setExportProgress] = useState({ status: 'idle', current: 0, total: 0 });
   const [drawResult, setDrawResult] = useState(null);
   const [selectedPrizeId, setSelectedPrizeId] = useState('');
   const [editingItem, setEditingItem] = useState(null);
@@ -121,6 +122,72 @@ const Admin = () => {
     }, 1200);
     return () => clearTimeout(timer);
   }, [aiCriteria]);
+
+  // Poll Photo Export Status if processing on load
+  useEffect(() => {
+    let interval;
+    const checkStatus = async () => {
+      try {
+        const res = await axios.get('/api/best-dress/export-status');
+        setExportProgress(res.data);
+        if (res.data.status === 'processing') {
+          if (!interval) {
+            interval = setInterval(async () => {
+              const resPoll = await axios.get('/api/best-dress/export-status');
+              setExportProgress(resPoll.data);
+              if (resPoll.data.status !== 'processing') {
+                clearInterval(interval);
+                interval = null;
+                if (resPoll.data.status === 'completed' && resPoll.data.zipUrl) {
+                  window.open(resPoll.data.zipUrl, '_blank');
+                }
+              }
+            }, 1000);
+          }
+        }
+      } catch (err) {
+        console.error("Export status check failed", err);
+      }
+    };
+    checkStatus();
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
+  const handleExportPhotos = async () => {
+    if (exportProgress.status === 'processing') return;
+    try {
+      setExportProgress({ status: 'processing', current: 0, total: bdSubmissions.length });
+      await axios.post('/api/best-dress/export-start');
+      
+      const interval = setInterval(async () => {
+        try {
+          const res = await axios.get('/api/best-dress/export-status');
+          setExportProgress(res.data);
+          if (res.data.status !== 'processing') {
+            clearInterval(interval);
+            if (res.data.status === 'completed') {
+              if (res.data.zipUrl) {
+                window.open(res.data.zipUrl, '_blank');
+                alert('🎉 Photos successfully exported and zipped! Download starting...');
+              } else {
+                alert('No photos found to export.');
+              }
+            } else if (res.data.status === 'failed') {
+              alert('❌ Export failed: ' + res.data.error);
+            }
+          }
+        } catch (pollErr) {
+          clearInterval(interval);
+          alert('Export polling error: ' + pollErr.message);
+        }
+      }, 1000);
+    } catch (err) {
+      alert('Failed to start export: ' + (err.response?.data?.error || err.message));
+      setExportProgress({ status: 'idle', current: 0, total: 0 });
+    }
+  };
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -852,11 +919,42 @@ const Admin = () => {
                           </div>
                         </div>
                       )}
+                      {exportProgress.status === 'processing' && (
+                        <div style={{ textAlign:'right', marginRight:'1rem' }}>
+                          <div style={{ fontSize:'0.75rem', fontWeight:800, color:'#0A8276' }}>Exporting: {exportProgress.current} / {exportProgress.total}</div>
+                          <div style={{ width:'120px', height:'6px', background:'#e2e8f0', borderRadius:'3px', marginTop:'4px', overflow:'hidden' }}>
+                            <div style={{ width: `${(exportProgress.current / (exportProgress.total || 1)) * 100}%`, height:'100%', background:'#0A8276', transition:'width 0.3s' }} />
+                          </div>
+                        </div>
+                      )}
                       <button
                         className="modern-add-btn"
                         style={{ background:'#1e293b' }}
                         onClick={() => setShowBdStage(true)}
                       >📺 Live Stage View</button>
+                      <button
+                        className="modern-add-btn"
+                        disabled={exportProgress.status === 'processing'}
+                        style={{ background:'#0a8276', color:'white', opacity: exportProgress.status === 'processing' ? 0.6 : 1 }}
+                        onClick={handleExportPhotos}
+                      >
+                        {exportProgress.status === 'processing' ? '📥 Exporting...' : '📥 Export & Download'}
+                      </button>
+                      <button
+                        className="modern-add-btn"
+                        disabled={!!aiRankProgress}
+                        style={{ background:'rgba(239,68,68,0.08)', color:'#ef4444', border:'1px solid #ef4444', opacity: aiRankProgress ? 0.6 : 1 }}
+                        onClick={async () => {
+                          if (!confirm('Are you sure you want to reset all AI scores and reasoning? This will also clear current AI-promoted finalists.')) return;
+                          try {
+                            await axios.post('/api/best-dress/reset-ai-rank');
+                            fetchAllData();
+                            alert('AI Ranks and finalists have been reset.');
+                          } catch (e) {
+                            alert('Reset failed: ' + (e.response?.data?.error || e.message));
+                          }
+                        }}
+                      >🔄 Reset AI Rank</button>
                       <button
                         className="modern-add-btn"
                         disabled={!!aiRankProgress}

@@ -13,7 +13,7 @@ import JSZip from 'jszip';
 // ── Gemini REST API helper (uses v1 endpoint — stable, not v1beta) ────────────
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
-async function geminiCallWithRetry(url, payload, retries = 5, baseDelay = 1500) {
+async function geminiCallWithRetry(url, payload, retries = 8, baseDelay = 1500) {
   const axios = (await import('axios')).default;
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
@@ -24,10 +24,29 @@ async function geminiCallWithRetry(url, payload, retries = 5, baseDelay = 1500) 
       throw new Error('Invalid Gemini API response structure: ' + JSON.stringify(r.data));
     } catch (err) {
       const isRateLimit = err.response?.status === 429 || (err.message || '').includes('429');
-      const isTransient = !err.response || err.response.status >= 500 || err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT';
+      const isTransient = !err.response || err.response.status === 503 || err.response.status >= 500 || err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT';
       
       if ((isRateLimit || isTransient) && attempt < retries - 1) {
-        const delayTime = baseDelay * Math.pow(2, attempt) + Math.floor(Math.random() * 1000);
+        let delayTime = baseDelay * Math.pow(2, attempt) + Math.floor(Math.random() * 1000);
+        
+        if (isRateLimit) {
+          const details = err.response?.data?.error?.details;
+          const retryInfo = details?.find(d => d['@type']?.includes('RetryInfo'));
+          if (retryInfo && retryInfo.retryDelay) {
+            const seconds = parseInt(retryInfo.retryDelay.replace('s', '')) || 30;
+            delayTime = (seconds + 2) * 1000;
+          } else {
+            const msg = err.response?.data?.error?.message || '';
+            const match = msg.match(/Please retry in ([\d.]+)s/i);
+            if (match) {
+              const seconds = parseFloat(match[1]);
+              delayTime = Math.ceil(seconds + 2) * 1000;
+            } else {
+              delayTime = 30000; // default fallback 30s
+            }
+          }
+        }
+        
         console.warn(`[Gemini API] Request failed (attempt ${attempt + 1}/${retries}). Error: ${err.message}. Retrying in ${delayTime}ms...`);
         await new Promise(resolve => setTimeout(resolve, delayTime));
       } else {

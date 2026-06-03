@@ -977,7 +977,7 @@ const Admin = () => {
                                 console.error(`Failed to score ${sub.name}:`, innerErr);
                               }
                               // Small delay to ensure UI updates and avoid intense server load
-                              await new Promise(r => setTimeout(r, 500));
+                              await new Promise(r => setTimeout(r, 2000));
                             }
                             
                             setAiRankProgress({ current: subsWithPhotos.length, total: subsWithPhotos.length, name: 'Finalizing...' });

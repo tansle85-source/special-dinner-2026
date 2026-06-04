@@ -972,7 +972,7 @@ app.post('/api/best-dress/ai-score-single', async (req, res) => {
     const b64  = matches[2];
     const prompt = `Rate this outfit 0-100 based on: ${req.body.criteria || criteria}\nReturn JSON: {"score": 85, "reasoning": "brief reason"}`;
 
-    const text = await geminiVision(b64, mime, prompt, 1);
+    const text = await geminiVision(b64, mime, prompt, 5);
     let parsed = { score: 50, reasoning: "Error parsing" };
     try {
       const clean = text.replace(/```json|```/gi, '').trim();

@@ -1005,8 +1005,8 @@ const Admin = () => {
                                   }
                                 }
                               }
-                              // Small delay to ensure UI updates and avoid intense server load
-                              await new Promise(r => setTimeout(r, 2000));
+                              // Small delay to stay under Gemini 15 RPM limit (one req every 4s minimum, using 5s to be safe)
+                              await new Promise(r => setTimeout(r, 5000));
                             }
                             
                             setAiRankProgress({ current: subsWithPhotos.length, total: subsWithPhotos.length, name: 'Finalizing...' });

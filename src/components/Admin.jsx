@@ -979,10 +979,31 @@ const Admin = () => {
                             for (let i = 0; i < subsWithPhotos.length; i++) {
                               const sub = subsWithPhotos[i];
                               setAiRankProgress({ current: i + 1, total: subsWithPhotos.length, name: sub.name });
-                              try {
-                                await axios.post('/api/best-dress/ai-score-single', { id: sub.id, criteria: aiCriteria });
-                              } catch (innerErr) {
-                                console.error(`Failed to score ${sub.name}:`, innerErr);
+                              
+                              let success = false;
+                              let attempts = 0;
+                              const maxAttempts = 5;
+                              
+                              while (!success && attempts < maxAttempts) {
+                                try {
+                                  await axios.post('/api/best-dress/ai-score-single', { id: sub.id, criteria: aiCriteria });
+                                  success = true;
+                                } catch (innerErr) {
+                                  attempts++;
+                                  const isRateLimit = innerErr.response?.status === 429;
+                                  if (isRateLimit && attempts < maxAttempts) {
+                                    const retryAfter = innerErr.response?.data?.retryAfter || 30;
+                                    setAiRankProgress({ 
+                                      current: i + 1, 
+                                      total: subsWithPhotos.length, 
+                                      name: `Waiting ${retryAfter}s (Rate Limit)...` 
+                                    });
+                                    await new Promise(r => setTimeout(r, (retryAfter + 1) * 1000));
+                                  } else {
+                                    console.error(`Failed to score ${sub.name}:`, innerErr);
+                                    break;
+                                  }
+                                }
                               }
                               // Small delay to ensure UI updates and avoid intense server load
                               await new Promise(r => setTimeout(r, 2000));

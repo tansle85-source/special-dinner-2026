@@ -63,13 +63,13 @@ async function geminiText(prompt) {
   return geminiCallWithRetry(url, payload);
 }
 
-async function geminiVision(b64, mimeType, prompt) {
+async function geminiVision(b64, mimeType, prompt, retries = 8) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
   const payload = { contents: [{ parts: [
     { inlineData: { mimeType, data: b64 } },
     { text: prompt }
   ]}]};
-  return geminiCallWithRetry(url, payload);
+  return geminiCallWithRetry(url, payload, retries);
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -972,7 +972,7 @@ app.post('/api/best-dress/ai-score-single', async (req, res) => {
     const b64  = matches[2];
     const prompt = `Rate this outfit 0-100 based on: ${req.body.criteria || criteria}\nReturn JSON: {"score": 85, "reasoning": "brief reason"}`;
 
-    const text = await geminiVision(b64, mime, prompt);
+    const text = await geminiVision(b64, mime, prompt, 1);
     let parsed = { score: 50, reasoning: "Error parsing" };
     try {
       const clean = text.replace(/```json|```/gi, '').trim();
@@ -985,7 +985,23 @@ app.post('/api/best-dress/ai-score-single', async (req, res) => {
     await pool.query('UPDATE m26_best_dress_submissions SET ai_score=?, ai_reasoning=? WHERE id=?', [score, reasoning, id]);
     
     res.json({ success: true, score, reasoning });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    const isRateLimit = err.response?.status === 429 || (err.message || '').includes('429');
+    if (isRateLimit) {
+      let retryAfter = 30;
+      const details = err.response?.data?.error?.details;
+      const retryInfo = details?.find(d => d['@type']?.includes('RetryInfo'));
+      if (retryInfo && retryInfo.retryDelay) {
+        retryAfter = parseInt(retryInfo.retryDelay.replace('s', '')) || 30;
+      } else {
+        const msg = err.response?.data?.error?.message || '';
+        const match = msg.match(/Please retry in ([\d.]+)s/i);
+        if (match) retryAfter = Math.ceil(parseFloat(match[1]));
+      }
+      return res.status(429).json({ error: 'Rate limit exceeded', retryAfter });
+    }
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Admin: Promote finalists after scoring (final step of AI ranking)

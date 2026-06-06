@@ -435,6 +435,26 @@ const initDB = async () => {
       await connection.query('INSERT INTO m26_performance_criteria (name) VALUES (?), (?), (?)', ['Vocal/Talent', 'Stage Presence', 'Costume']);
     }
 
+    // Admin Users table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS m26_admin_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(100) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(50) DEFAULT 'admin',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login DATETIME DEFAULT NULL
+      )
+    `);
+    // Seed default admin if none exist
+    const [admins] = await connection.query('SELECT id FROM m26_admin_users LIMIT 1');
+    if (admins.length === 0) {
+      const bcrypt = await import('bcryptjs');
+      const hash = await bcrypt.default.hash('password123', 10);
+      await connection.query('INSERT INTO m26_admin_users (username, password_hash, role) VALUES (?, ?, ?)', ['admin', hash, 'superadmin']);
+      console.log('[INIT] Default admin user seeded (admin / password123)');
+    }
+
     connection.release();
     console.log('MySQL Database initialized successfully');
   } catch (err) {
@@ -443,6 +463,117 @@ const initDB = async () => {
   }
 };
 
+
+// ── Admin Auth API ────────────────────────────────────────────────────────────
+
+// Simple in-memory session store (token → { username, role, loginTime })
+const adminSessions = new Map();
+
+// POST /api/admin/login
+app.post('/api/admin/login', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  try {
+    const [rows] = await pool.query('SELECT * FROM m26_admin_users WHERE username = ?', [username]);
+    if (!rows.length) return res.status(401).json({ error: 'Invalid credentials' });
+    const user = rows[0];
+    const bcrypt = await import('bcryptjs');
+    const match = await bcrypt.default.compare(password, user.password_hash);
+    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
+    // Generate session token
+    const token = crypto.randomBytes(32).toString('hex');
+    adminSessions.set(token, { id: user.id, username: user.username, role: user.role, loginTime: new Date().toISOString() });
+    await pool.query('UPDATE m26_admin_users SET last_login = NOW() WHERE id = ?', [user.id]);
+    res.json({ success: true, token, username: user.username, role: user.role });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/admin/logout
+app.post('/api/admin/logout', (req, res) => {
+  const token = req.headers['x-admin-token'];
+  if (token) adminSessions.delete(token);
+  res.json({ success: true });
+});
+
+// GET /api/admin/verify  — check if token is still valid
+app.get('/api/admin/verify', (req, res) => {
+  const token = req.headers['x-admin-token'];
+  const session = adminSessions.get(token);
+  if (!session) return res.status(401).json({ error: 'Unauthorized' });
+  res.json({ valid: true, username: session.username, role: session.role, loginTime: session.loginTime });
+});
+
+// Middleware: protect admin-write endpoints
+const requireAdmin = (req, res, next) => {
+  const token = req.headers['x-admin-token'];
+  const session = adminSessions.get(token);
+  if (!session) return res.status(401).json({ error: 'Unauthorized – admin login required' });
+  req.adminUser = session;
+  next();
+};
+
+// GET /api/admin/users — list all admin users
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT id, username, role, created_at, last_login FROM m26_admin_users ORDER BY created_at ASC');
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/admin/users — create new admin user
+app.post('/api/admin/users', requireAdmin, async (req, res) => {
+  const { username, password, role } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  try {
+    const bcrypt = await import('bcryptjs');
+    const hash = await bcrypt.default.hash(password, 10);
+    await pool.query('INSERT INTO m26_admin_users (username, password_hash, role) VALUES (?, ?, ?)', [username, hash, role || 'admin']);
+    res.json({ success: true, message: `User "${username}" created` });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Username already exists' });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/admin/users/:id — update password or role
+app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { password, role } = req.body;
+  try {
+    if (password) {
+      const bcrypt = await import('bcryptjs');
+      const hash = await bcrypt.default.hash(password, 10);
+      await pool.query('UPDATE m26_admin_users SET password_hash = ? WHERE id = ?', [hash, id]);
+    }
+    if (role) await pool.query('UPDATE m26_admin_users SET role = ? WHERE id = ?', [role, id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE /api/admin/users/:id
+app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await pool.query('SELECT username FROM m26_admin_users WHERE id = ?', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'User not found' });
+    if (rows[0].username === 'admin') return res.status(403).json({ error: 'Cannot delete the default admin account' });
+    await pool.query('DELETE FROM m26_admin_users WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/admin/sessions — list active sessions
+app.get('/api/admin/sessions', requireAdmin, (req, res) => {
+  const sessions = Array.from(adminSessions.entries()).map(([token, s]) => ({
+    tokenHint: token.slice(0, 8) + '...',
+    username: s.username,
+    role: s.role,
+    loginTime: s.loginTime
+  }));
+  res.json(sessions);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 // --- PRIZE CRUD ---
 app.post('/api/prizes', async (req, res) => {

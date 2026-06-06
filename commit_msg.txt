@@ -1,0 +1,8 @@
+feat: add password-protected admin login + user management panel
+
+- Added m26_admin_users table (auto-seeded with admin/password123)
+- Backend: /api/admin/login, /api/admin/logout, /api/admin/verify
+- Backend: /api/admin/users (CRUD), /api/admin/sessions (active logins)
+- Frontend: Login gate with dark glassmorphism UI before admin panel
+- Frontend: Admin Users sidebar tab - manage accounts, change passwords, view sessions
+- Installed bcryptjs for secure password hashing

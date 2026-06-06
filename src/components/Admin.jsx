@@ -16,7 +16,174 @@ const VersionBadge = () => {
   return <span style={{ fontWeight:800, color:'#0A8276' }}>{SITE_VERSION} (srv: {ver})</span>;
 };
 
+// ── Admin Users Management Panel ─────────────────────────────────────────────
+const AdminUsersPanel = ({ token, currentUser }) => {
+  const [users, setUsers] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'admin' });
+  const [editPwd, setEditPwd] = useState({}); // { [id]: newPassword }
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const headers = { 'x-admin-token': token };
+
+  const load = async () => {
+    try {
+      const [u, s] = await Promise.all([
+        axios.get('/api/admin/users', { headers }),
+        axios.get('/api/admin/sessions', { headers }),
+      ]);
+      setUsers(u.data);
+      setSessions(s.data);
+    } catch {}
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const flash = (text) => { setMsg(text); setTimeout(() => setMsg(''), 3000); };
+
+  const createUser = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await axios.post('/api/admin/users', newUser, { headers });
+      flash(`✅ User "${newUser.username}" created`);
+      setNewUser({ username: '', password: '', role: 'admin' });
+      load();
+    } catch (err) { flash('❌ ' + (err.response?.data?.error || err.message)); }
+    finally { setBusy(false); }
+  };
+
+  const changePassword = async (id) => {
+    const pwd = editPwd[id];
+    if (!pwd || pwd.length < 4) return flash('❌ Password must be at least 4 characters');
+    setBusy(true);
+    try {
+      await axios.put(`/api/admin/users/${id}`, { password: pwd }, { headers });
+      flash('✅ Password updated');
+      setEditPwd(p => ({ ...p, [id]: '' }));
+    } catch (err) { flash('❌ ' + (err.response?.data?.error || err.message)); }
+    finally { setBusy(false); }
+  };
+
+  const deleteUser = async (id, username) => {
+    if (!window.confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+    try {
+      await axios.delete(`/api/admin/users/${id}`, { headers });
+      flash(`✅ User "${username}" deleted`);
+      load();
+    } catch (err) { flash('❌ ' + (err.response?.data?.error || err.message)); }
+  };
+
+  const fieldStyle = { width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', fontSize: '0.9rem', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' };
+
+  return (
+    <div style={{ padding: '0 1rem', fontFamily: "'Outfit', sans-serif" }}>
+      {/* Header */}
+      <div className="card shadow-card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ margin: '0 0 0.3rem' }}>👤 Admin User Management</h3>
+        <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>Manage who can access the admin panel. Logged in as <strong>{currentUser?.username}</strong> ({currentUser?.role})</p>
+        {msg && <div style={{ marginTop: '0.75rem', padding: '0.6rem 1rem', borderRadius: '10px', background: msg.startsWith('✅') ? '#ecfdf5' : '#fef2f2', color: msg.startsWith('✅') ? '#065f46' : '#b91c1c', fontWeight: 700, fontSize: '0.85rem' }}>{msg}</div>}
+      </div>
+
+      {/* Active Sessions */}
+      <div className="card shadow-card" style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h3 style={{ margin: 0 }}>🟢 Active Sessions ({sessions.length})</h3>
+          <button onClick={load} style={{ background: '#f1f5f9', border: 'none', padding: '0.45rem 1rem', borderRadius: '8px', fontWeight: 700, color: '#475569', cursor: 'pointer', fontSize: '0.85rem' }}>↻ Refresh</button>
+        </div>
+        {sessions.length === 0 ? <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No active sessions</p> : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr style={{ background: '#f8fafc' }}>
+              {['Username', 'Role', 'Logged In At', 'Token'].map(h => <th key={h} style={{ textAlign: 'left', padding: '0.6rem 0.75rem', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>)}
+            </tr></thead>
+            <tbody>{sessions.map((s, i) => (
+              <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
+                <td style={{ padding: '0.6rem 0.75rem', fontWeight: 700 }}>{s.username}</td>
+                <td style={{ padding: '0.6rem 0.75rem', color: '#64748b', fontSize: '0.85rem' }}>{s.role}</td>
+                <td style={{ padding: '0.6rem 0.75rem', color: '#64748b', fontSize: '0.85rem' }}>{new Date(s.loginTime).toLocaleString()}</td>
+                <td style={{ padding: '0.6rem 0.75rem', color: '#94a3b8', fontSize: '0.8rem', fontFamily: 'monospace' }}>{s.tokenHint}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Users List */}
+      <div className="card shadow-card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ margin: '0 0 1rem' }}>🔑 Admin Accounts ({users.length})</h3>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead><tr style={{ background: '#f8fafc' }}>
+            {['Username', 'Role', 'Created', 'Last Login', 'Change Password', ''].map(h => <th key={h} style={{ textAlign: 'left', padding: '0.6rem 0.75rem', fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>)}
+          </tr></thead>
+          <tbody>{users.map(u => (
+            <tr key={u.id} style={{ borderTop: '1px solid #f1f5f9' }}>
+              <td style={{ padding: '0.7rem 0.75rem', fontWeight: 800 }}>
+                {u.username} {u.username === currentUser?.username && <span style={{ background: '#ecfdf5', color: '#059669', fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '99px', marginLeft: '6px' }}>YOU</span>}
+              </td>
+              <td style={{ padding: '0.7rem 0.75rem' }}>
+                <span style={{ background: u.role === 'superadmin' ? 'rgba(124,58,237,0.1)' : 'rgba(10,130,118,0.1)', color: u.role === 'superadmin' ? '#7c3aed' : '#0A8276', fontWeight: 800, fontSize: '0.75rem', padding: '3px 10px', borderRadius: '99px' }}>{u.role}</span>
+              </td>
+              <td style={{ padding: '0.7rem 0.75rem', color: '#64748b', fontSize: '0.82rem' }}>{new Date(u.created_at).toLocaleDateString()}</td>
+              <td style={{ padding: '0.7rem 0.75rem', color: '#64748b', fontSize: '0.82rem' }}>{u.last_login ? new Date(u.last_login).toLocaleString() : '—'}</td>
+              <td style={{ padding: '0.7rem 0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <input
+                    type="password" placeholder="New password" value={editPwd[u.id] || ''}
+                    onChange={e => setEditPwd(p => ({ ...p, [u.id]: e.target.value }))}
+                    style={{ ...fieldStyle, width: '150px', padding: '0.4rem 0.75rem', fontSize: '0.82rem' }}
+                  />
+                  <button disabled={busy} onClick={() => changePassword(u.id)} style={{ background: '#0A8276', color: 'white', border: 'none', borderRadius: '8px', padding: '0.4rem 0.75rem', fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>Save</button>
+                </div>
+              </td>
+              <td style={{ padding: '0.7rem 0.75rem' }}>
+                {u.username !== 'admin' && (
+                  <button disabled={busy} onClick={() => deleteUser(u.id, u.username)} style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', padding: '0.4rem 0.75rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}>🗑 Delete</button>
+                )}
+              </td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+
+      {/* Create User */}
+      <div className="card shadow-card">
+        <h3 style={{ margin: '0 0 1rem' }}>➕ Add New Admin User</h3>
+        <form onSubmit={createUser} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1', minWidth: '150px' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '0.3rem' }}>Username</label>
+            <input required style={fieldStyle} placeholder="username" value={newUser.username} onChange={e => setNewUser(p => ({ ...p, username: e.target.value }))} />
+          </div>
+          <div style={{ flex: '1', minWidth: '150px' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '0.3rem' }}>Password</label>
+            <input required type="password" style={fieldStyle} placeholder="min 4 chars" value={newUser.password} onChange={e => setNewUser(p => ({ ...p, password: e.target.value }))} />
+          </div>
+          <div style={{ minWidth: '130px' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '0.3rem' }}>Role</label>
+            <select style={{ ...fieldStyle }} value={newUser.role} onChange={e => setNewUser(p => ({ ...p, role: e.target.value }))}>
+              <option value="admin">admin</option>
+              <option value="superadmin">superadmin</option>
+            </select>
+          </div>
+          <button type="submit" disabled={busy} style={{ background: 'linear-gradient(135deg,#0A8276,#0369a1)', color: 'white', border: 'none', borderRadius: '10px', padding: '0.7rem 1.5rem', fontWeight: 800, cursor: 'pointer', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
+            {busy ? 'Creating…' : '+ Create User'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 const Admin = () => {
+  // Auth State
+  const [authToken, setAuthToken] = useState(() => sessionStorage.getItem('adminToken') || null);
+  const [authUser, setAuthUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [loginError, setLoginError] = useState('');
+  const [loginBusy, setLoginBusy] = useState(false);
+
   // Navigation State
   const [activeModule, setActiveModule] = useState('lucky-draw'); 
   const [activeSubTab, setActiveSubTab] = useState('conduct');
@@ -117,6 +284,38 @@ const Admin = () => {
       window.alert = () => true;
     }
   }, []);
+
+  // Verify auth token on mount
+  useEffect(() => {
+    const token = sessionStorage.getItem('adminToken');
+    if (!token) { setAuthLoading(false); return; }
+    axios.get('/api/admin/verify', { headers: { 'x-admin-token': token } })
+      .then(r => { setAuthToken(token); setAuthUser(r.data); setAuthLoading(false); })
+      .catch(() => { sessionStorage.removeItem('adminToken'); setAuthToken(null); setAuthLoading(false); });
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginBusy(true);
+    try {
+      const r = await axios.post('/api/admin/login', loginForm);
+      sessionStorage.setItem('adminToken', r.data.token);
+      setAuthToken(r.data.token);
+      setAuthUser({ username: r.data.username, role: r.data.role });
+    } catch (err) {
+      setLoginError(err.response?.data?.error || 'Login failed');
+    } finally {
+      setLoginBusy(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try { await axios.post('/api/admin/logout', {}, { headers: { 'x-admin-token': authToken } }); } catch {}
+    sessionStorage.removeItem('adminToken');
+    setAuthToken(null);
+    setAuthUser(null);
+  };
 
   useEffect(() => {
     fetchAllData();
@@ -444,6 +643,50 @@ const Admin = () => {
     </button>
   );
 
+  // ── Login Screen ────────────────────────────────────────────────────────────
+  if (authLoading) {
+    return (
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#0f172a', fontFamily:"'Outfit',sans-serif" }}>
+        <div style={{ color:'#64748b', fontSize:'1.1rem' }}>Verifying session…</div>
+      </div>
+    );
+  }
+
+  if (!authToken) {
+    return (
+      <div style={{ minHeight:'100vh', background:'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Outfit',sans-serif" }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');
+          .login-input { width:100%; padding:0.85rem 1rem; border-radius:12px; border:1.5px solid #334155; background:#1e293b; color:#f1f5f9; font-size:1rem; font-family:inherit; outline:none; transition:border 0.2s; box-sizing:border-box; }
+          .login-input:focus { border-color:#0A8276; }
+          .login-btn { width:100%; padding:0.9rem; border-radius:12px; border:none; background:linear-gradient(135deg,#0A8276,#0369a1); color:white; font-size:1rem; font-weight:800; cursor:pointer; font-family:inherit; transition:opacity 0.2s; }
+          .login-btn:hover { opacity:0.9; }
+          .login-btn:disabled { opacity:0.5; cursor:not-allowed; }
+        `}</style>
+        <div style={{ background:'#1e293b', borderRadius:'24px', padding:'3rem 2.5rem', width:'100%', maxWidth:'400px', boxShadow:'0 25px 60px rgba(0,0,0,0.5)', border:'1px solid #334155' }}>
+          <div style={{ textAlign:'center', marginBottom:'2rem' }}>
+            <div style={{ fontSize:'2.5rem', marginBottom:'0.5rem' }}>🔐</div>
+            <h1 style={{ color:'#f1f5f9', fontSize:'1.6rem', fontWeight:900, letterSpacing:'-0.5px' }}>Admin Login</h1>
+            <p style={{ color:'#64748b', fontSize:'0.85rem', marginTop:'0.3rem' }}>2026 Infineon Appreciation Dinner</p>
+          </div>
+          <form onSubmit={handleLogin} style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
+            <div>
+              <label style={{ color:'#94a3b8', fontSize:'0.8rem', fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', display:'block', marginBottom:'0.4rem' }}>Username</label>
+              <input id="admin-username" className="login-input" type="text" autoComplete="username" value={loginForm.username} onChange={e => setLoginForm(f => ({...f, username: e.target.value}))} placeholder="admin" required />
+            </div>
+            <div>
+              <label style={{ color:'#94a3b8', fontSize:'0.8rem', fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', display:'block', marginBottom:'0.4rem' }}>Password</label>
+              <input id="admin-password" className="login-input" type="password" autoComplete="current-password" value={loginForm.password} onChange={e => setLoginForm(f => ({...f, password: e.target.value}))} placeholder="••••••••" required />
+            </div>
+            {loginError && <div style={{ background:'rgba(239,68,68,0.12)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:'10px', padding:'0.65rem 1rem', color:'#f87171', fontSize:'0.85rem', fontWeight:600 }}>⚠ {loginError}</div>}
+            <button id="admin-login-btn" className="login-btn" type="submit" disabled={loginBusy}>{loginBusy ? 'Signing in…' : 'Sign In'}</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+  // ─────────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="modern-admin-layout">
       <aside className="modern-sidebar">
@@ -462,8 +705,20 @@ const Admin = () => {
             <SidebarItem id="best-dress" label="Best Dress" icon="👗" />
             <SidebarItem id="feedback" label="Guest Feedback" icon="💬" />
           </div>
+          <div className="nav-group">
+            <div className="group-label">System</div>
+            <SidebarItem id="admin-users" label="Admin Users" icon="👤" />
+          </div>
         </nav>
         <div className="sidebar-footer">
+          <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.6rem 0.75rem', background:'rgba(10,130,118,0.12)', borderRadius:'10px', marginBottom:'0.75rem' }}>
+            <span style={{ fontSize:'1.1rem' }}>👤</span>
+            <div style={{ flex:1, overflow:'hidden' }}>
+              <div style={{ color:'#0A8276', fontWeight:800, fontSize:'0.82rem', textOverflow:'ellipsis', overflow:'hidden', whiteSpace:'nowrap' }}>{authUser?.username || 'admin'}</div>
+              <div style={{ color:'#64748b', fontSize:'0.68rem', textTransform:'uppercase', letterSpacing:'1px' }}>{authUser?.role || 'admin'}</div>
+            </div>
+            <button onClick={handleLogout} title="Logout" style={{ background:'none', border:'none', cursor:'pointer', color:'#ef4444', fontSize:'1rem', padding:'2px' }}>⏏</button>
+          </div>
           <Link to="/" className="back-link">← Back to Dashboard</Link>
           <div className="site-version">Revision: {SITE_VERSION}</div>
         </div>
@@ -1260,6 +1515,11 @@ const Admin = () => {
              ))}
           </footer>
         </div>
+      )}
+
+      {/* ── Admin Users Module ─────────────────────────────────────────────────── */}
+      {activeModule === 'admin-users' && (
+        <AdminUsersPanel token={authToken} currentUser={authUser} />
       )}
 
       {/* Full Photo Modal - Direct Full Screen */}

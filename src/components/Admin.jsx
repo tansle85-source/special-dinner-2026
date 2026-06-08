@@ -173,7 +173,31 @@ const AdminUsersPanel = ({ token, currentUser }) => {
     </div>
   );
 };
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Image Compressor Helper ─────────────────────────────────────────────────
+const compressImage = (file, callback) => {
+  const img = new Image();
+  const objectUrl = URL.createObjectURL(file);
+  img.onload = () => {
+    URL.revokeObjectURL(objectUrl);
+    const MAX = 1000;
+    let { width, height } = img;
+    if (width > MAX || height > MAX) {
+      if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+      else { width = Math.round(width * MAX / height); height = MAX; }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+    callback(dataUrl);
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(objectUrl);
+    callback(null);
+  };
+  img.src = objectUrl;
+};
 
 const Admin = () => {
   // Auth State
@@ -1380,14 +1404,13 @@ const Admin = () => {
                               onChange={async (e) => {
                                 const file = e.target.files[0];
                                 if (!file) return;
-                                const reader = new FileReader();
-                                reader.onload = async (ev) => {
+                                compressImage(file, async (compressedData) => {
+                                  if (!compressedData) return alert('Failed to process image');
                                   try {
-                                    await axios.patch(`/api/best-dress/submissions/${sub.id}/photo`, { photo_data: ev.target.result });
+                                    await axios.patch(`/api/best-dress/submissions/${sub.id}/photo`, { photo_data: compressedData });
                                     fetchAllData();
                                   } catch(err) { alert('Photo upload failed'); }
-                                };
-                                reader.readAsDataURL(file);
+                                });
                                 e.target.value = '';
                               }}
                             />
@@ -1447,14 +1470,13 @@ const Admin = () => {
                                   onChange={async (e) => {
                                     const file = e.target.files[0];
                                     if (!file) return;
-                                    const reader = new FileReader();
-                                    reader.onload = async (ev) => {
+                                    compressImage(file, async (compressedData) => {
+                                      if (!compressedData) return alert('Failed to process image');
                                       try {
-                                        await axios.patch(`/api/best-dress/finalists/${n.id}/photo`, { photo_data: ev.target.result });
+                                        await axios.patch(`/api/best-dress/finalists/${n.id}/photo`, { photo_data: compressedData });
                                         fetchAllData();
                                       } catch(err) { alert('Photo upload failed'); }
-                                    };
-                                    reader.readAsDataURL(file);
+                                    });
                                     e.target.value = '';
                                   }}
                                 />
@@ -1509,14 +1531,13 @@ const Admin = () => {
                                 onChange={async (e) => {
                                   const file = e.target.files[0];
                                   if (!file) return;
-                                  const reader = new FileReader();
-                                  reader.onload = async (ev) => {
+                                  compressImage(file, async (compressedData) => {
+                                    if (!compressedData) return alert('Failed to process image');
                                     try {
-                                      await axios.patch(`/api/best-dress/finalists/${n.id}/photo`, { photo_data: ev.target.result });
+                                      await axios.patch(`/api/best-dress/finalists/${n.id}/photo`, { photo_data: compressedData });
                                       fetchAllData();
                                     } catch(err) { alert('Photo upload failed'); }
-                                  };
-                                  reader.readAsDataURL(file);
+                                  });
                                   e.target.value = '';
                                 }}
                               />

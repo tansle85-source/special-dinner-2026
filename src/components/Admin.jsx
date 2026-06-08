@@ -1292,6 +1292,16 @@ const Admin = () => {
                     >Edit Prompt</button>
                   </div>
 
+                  {/* Shortlist Counter Summary */}
+                  <div style={{ marginBottom:'1.5rem', background:'#fffbeb', padding:'0.75rem 1.25rem', borderRadius:'12px', border:'1px solid #fef3c7', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div style={{ fontSize:'0.9rem', color:'#d97706', fontWeight:800 }}>
+                      👑 Shortlisted Finalists: <span style={{ color:'#b45309' }}>{bestDressNominees.filter(n => n.gender === 'Female').length} Females</span>, <span style={{ color:'#b45309' }}>{bestDressNominees.filter(n => n.gender === 'Male').length} Males</span>
+                    </div>
+                    <div style={{ fontSize:'0.75rem', color:'#78350f', fontStyle:'italic' }}>
+                      Committee pick goal: Top 3 Male + 3 Female
+                    </div>
+                  </div>
+
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:'1.5rem', maxHeight:'650px', overflowY:'auto', padding:'4px' }}>
                     {bdSubmissions.map(sub => (
                       <div key={sub.id} style={{ background:'#f8fafc', borderRadius:'20px', padding:'1rem', border:'1px solid #e2e8f0', textAlign:'center', transition:'0.2s' }}>
@@ -1322,6 +1332,46 @@ const Admin = () => {
                             {sub.ai_reasoning || 'No feedback yet...'}
                           </div>
                         </div>
+
+                        {(() => {
+                          const isShortlisted = bestDressNominees.some(n => n.submission_id === sub.id);
+                          return (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  if (isShortlisted) {
+                                    await axios.post('/api/best-dress/unshortlist', { submissionId: sub.id });
+                                  } else {
+                                    await axios.post('/api/best-dress/shortlist', { submissionId: sub.id });
+                                  }
+                                  fetchAllData();
+                                } catch (err) {
+                                  alert('Failed to update shortlist');
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '8px 12px',
+                                borderRadius: '10px',
+                                border: isShortlisted ? 'none' : '1px solid #d97706',
+                                background: isShortlisted ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'white',
+                                color: isShortlisted ? 'white' : '#d97706',
+                                fontSize: '0.8rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                marginTop: '10px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                boxShadow: isShortlisted ? '0 4px 10px rgba(217, 119, 6, 0.2)' : 'none',
+                                transition: '0.2s'
+                              }}
+                            >
+                              {isShortlisted ? '★ Shortlisted' : '☆ Shortlist'}
+                            </button>
+                          );
+                        })()}
 
                         <div style={{ display:'flex', gap:'6px', marginTop:'12px' }}>
                           <label style={{ flex:1, padding:'6px', borderRadius:'10px', border:'1px solid #bbf7d0', background:'#f0fdf4', color:'#15803d', fontSize:'0.72rem', fontWeight:700, cursor:'pointer', textAlign:'center' }}>

@@ -400,6 +400,14 @@ const initDB = async () => {
         console.log('[MIGRATE] Added ai_score to m26_best_dress_votes');
       }
     } catch (migErr) { console.warn('[MIGRATE] m26_best_dress_votes ai_score migration:', migErr.message); }
+    // Migration: add submission_id to m26_best_dress_votes (needed for manual shortlisting)
+    try {
+      const [voteCols] = await connection.query('SHOW COLUMNS FROM m26_best_dress_votes');
+      if (!voteCols.some(c => c.Field === 'submission_id')) {
+        await connection.query('ALTER TABLE m26_best_dress_votes ADD COLUMN submission_id VARCHAR(255) DEFAULT NULL');
+        console.log('[MIGRATE] Added submission_id to m26_best_dress_votes');
+      }
+    } catch (migErr) { console.warn('[MIGRATE] m26_best_dress_votes submission_id migration:', migErr.message); }
 
     // Migration Logic: Add song_name and voter_id if missing from existing tables
     try {
@@ -982,7 +990,7 @@ app.get('/api/best-dress/my-submission/:voterId', async (req, res) => {
   res.json({ count: rows.length, submissions: rows });
 });
 
-// Serve photo by submission ID �?checks photo_data first, falls back to photo_path file
+// Serve photo by submission ID — checks photo_data first, falls back to photo_path file
 app.get('/api/photos/bd/sub/:id', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT photo_data, photo_path FROM m26_best_dress_submissions WHERE id = ?', [req.params.id]);
@@ -1010,7 +1018,7 @@ app.get('/api/photos/bd/sub/:id', async (req, res) => {
   } catch (err) { res.status(500).send(err.message); }
 });
 
-// Serve photo for finalist by vote record ID �?checks photo_data first, falls back to photo_path
+// Serve photo for finalist by vote record ID — checks photo_data first, falls back to photo_path
 app.get('/api/photos/bd/vote/:id', async (req, res) => {
   try {
     const [voteRows] = await pool.query('SELECT photo_data, photo_path FROM m26_best_dress_votes WHERE id = ?', [req.params.id]);
@@ -1038,15 +1046,14 @@ app.get('/api/photos/bd/vote/:id', async (req, res) => {
   } catch (err) { res.status(500).send(err.message); }
 });
 
-// Finalists for announce page �?photo served separately via /api/photos/bd/vote/:id
 app.get('/api/best-dress/finalists', async (req, res) => {
   const [rows] = await pool.query(
-    'SELECT id, nominee_name, gender, department, ai_score, ai_reasoning, vote_count, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_votes ORDER BY gender, vote_count DESC'
+    'SELECT id, nominee_name, gender, department, ai_score, ai_reasoning, vote_count, submission_id, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_votes ORDER BY gender, vote_count DESC'
   );
   res.json(rows);
 });
 
-// Admin: list all submissions (exclude photo_data blob �?loaded separately via /api/photos/bd/sub/:id)
+// Admin: list all submissions (exclude photo_data blob — loaded separately via /api/photos/bd/sub/:id)
 app.get('/api/best-dress/submissions', async (req, res) => {
   const [rows] = await pool.query(
     'SELECT id, name, department, gender, photo_path, voter_id, ai_score, ai_reasoning, submitted_at, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_submissions ORDER BY submitted_at DESC'
@@ -1058,6 +1065,7 @@ app.get('/api/best-dress/submissions', async (req, res) => {
 app.delete('/api/best-dress/submissions/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM m26_best_dress_submissions WHERE id = ?', [req.params.id]);
+    await pool.query('DELETE FROM m26_best_dress_votes WHERE submission_id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1071,6 +1079,10 @@ app.patch('/api/best-dress/submissions/:id/photo', async (req, res) => {
       'UPDATE m26_best_dress_submissions SET photo_data = ?, photo_path = NULL WHERE id = ?',
       [photo_data, req.params.id]
     );
+    await pool.query(
+      'UPDATE m26_best_dress_votes SET photo_data = ?, photo_path = NULL WHERE submission_id = ?',
+      [photo_data, req.params.id]
+    );
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1082,6 +1094,10 @@ app.put('/api/best-dress/submissions/:id', async (req, res) => {
   try {
     await pool.query(
       'UPDATE m26_best_dress_submissions SET name = ?, department = ?, gender = ? WHERE id = ?',
+      [name, department, gender, req.params.id]
+    );
+    await pool.query(
+      'UPDATE m26_best_dress_votes SET nominee_name = ?, department = ?, gender = ? WHERE submission_id = ?',
       [name, department, gender, req.params.id]
     );
     res.json({ success: true });
@@ -1269,14 +1285,14 @@ app.post('/api/best-dress/status', async (req, res) => {
 
 app.get('/api/best-dress/finalists', async (req, res) => {
   const [rows] = await pool.query(
-    'SELECT id, nominee_name, gender, department, ai_score, ai_reasoning, vote_count, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_votes ORDER BY gender, vote_count DESC'
+    'SELECT id, nominee_name, gender, department, ai_score, ai_reasoning, vote_count, submission_id, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_votes ORDER BY gender, vote_count DESC'
   );
   res.json(rows);
 });
 
 app.get('/api/best-dress/nominees', async (req, res) => {
   const [rows] = await pool.query(
-    'SELECT id, nominee_name, gender, department, ai_score, ai_reasoning, vote_count, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_votes ORDER BY gender, vote_count DESC'
+    'SELECT id, nominee_name, gender, department, ai_score, ai_reasoning, vote_count, submission_id, (photo_data IS NOT NULL OR photo_path IS NOT NULL) AS has_photo FROM m26_best_dress_votes ORDER BY gender, vote_count DESC'
   );
   res.json(rows);
 });
@@ -1291,6 +1307,41 @@ app.post('/api/best-dress/nominees', async (req, res) => {
 app.delete('/api/best-dress/nominees/:id', async (req, res) => {
   await pool.query('DELETE FROM m26_best_dress_votes WHERE id = ?', [req.params.id]);
   res.json({ success: true });
+});
+
+app.post('/api/best-dress/shortlist', async (req, res) => {
+  const { submissionId } = req.body;
+  if (!submissionId) return res.status(400).json({ error: 'submissionId required' });
+  try {
+    const [rows] = await pool.query('SELECT * FROM m26_best_dress_submissions WHERE id = ?', [submissionId]);
+    if (!rows.length) return res.status(404).json({ error: 'Submission not found' });
+    const s = rows[0];
+
+    // Check if already shortlisted
+    const [exist] = await pool.query('SELECT id FROM m26_best_dress_votes WHERE submission_id = ?', [submissionId]);
+    if (exist.length > 0) return res.json({ success: true, message: 'Already shortlisted' });
+
+    // Insert into m26_best_dress_votes
+    const newId = generateId();
+    await pool.query(
+      'INSERT INTO m26_best_dress_votes (id, nominee_name, vote_count, gender, department, photo_data, ai_score, ai_reasoning, submission_id) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)',
+      [newId, s.name, s.gender, s.department, s.photo_data || null, s.ai_score || null, s.ai_reasoning || '', submissionId]
+    );
+    res.json({ success: true, id: newId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/best-dress/unshortlist', async (req, res) => {
+  const { submissionId } = req.body;
+  if (!submissionId) return res.status(400).json({ error: 'submissionId required' });
+  try {
+    await pool.query('DELETE FROM m26_best_dress_votes WHERE submission_id = ?', [submissionId]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/best-dress/nominate', async (req, res) => {

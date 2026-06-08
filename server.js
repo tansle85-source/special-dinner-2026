@@ -103,6 +103,41 @@ const PORT = process.env.PORT || 5000;
 
 app.use(compression());
 app.use(cors());
+
+// --- System Telemetry Tracker ---
+const activeVisitors = new Map();
+const latencyHistory = [];
+const MAX_LATENCY_HISTORY = 100;
+
+const getActiveVisitorCount = () => {
+  const cutoff = Date.now() - 5 * 60 * 1000;
+  let count = 0;
+  for (const [ip, timestamp] of activeVisitors.entries()) {
+    if (timestamp > cutoff) {
+      count++;
+    } else {
+      activeVisitors.delete(ip);
+    }
+  }
+  return count;
+};
+
+app.use((req, res, next) => {
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+  activeVisitors.set(ip, Date.now());
+
+  if (req.url.startsWith('/api') && !req.url.startsWith('/api/admin/metrics')) {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      latencyHistory.push(duration);
+      if (latencyHistory.length > MAX_LATENCY_HISTORY) {
+        latencyHistory.shift();
+      }
+    });
+  }
+  next();
+});
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb', extended: true }));
 
@@ -581,6 +616,21 @@ app.get('/api/admin/sessions', requireAdmin, (req, res) => {
     loginTime: s.loginTime
   }));
   res.json(sessions);
+});
+
+// GET /api/admin/metrics — get real-time active users and API latency
+app.get('/api/admin/metrics', requireAdmin, (req, res) => {
+  const activeGuests = getActiveVisitorCount();
+  const avgLatency = latencyHistory.length > 0 
+    ? Math.round(latencyHistory.reduce((sum, val) => sum + val, 0) / latencyHistory.length) 
+    : 0;
+
+  res.json({
+    activeGuests,
+    avgLatency,
+    activeAdmins: adminSessions.size,
+    uptime: process.uptime()
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

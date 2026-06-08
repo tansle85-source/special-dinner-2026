@@ -248,6 +248,7 @@ const Admin = () => {
   const [isProcessingBatch, setIsProcessingBatch] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingSub, setEditingSub] = useState(null); // { id, name, department, gender }
+  const [metrics, setMetrics] = useState({ activeGuests: 0, avgLatency: 0, activeAdmins: 0, uptime: 0 });
 
   const getSubmissionRank = (sub) => {
     if (sub.ai_score === null || sub.ai_score === undefined) return '—';
@@ -353,6 +354,22 @@ const Admin = () => {
     }, 1200);
     return () => clearTimeout(timer);
   }, [aiCriteria]);
+
+  // Poll System Health Metrics
+  useEffect(() => {
+    if (!authToken) return;
+    const fetchMetrics = async () => {
+      try {
+        const r = await axios.get('/api/admin/metrics', { headers: { 'x-admin-token': authToken } });
+        setMetrics(r.data);
+      } catch (err) {
+        console.error("Failed to fetch metrics", err);
+      }
+    };
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 10000); // refresh every 10s
+    return () => clearInterval(interval);
+  }, [authToken]);
 
   // Poll Photo Export Status if processing on load
   useEffect(() => {
@@ -759,6 +776,66 @@ const Admin = () => {
             <button className="refresh-btn" onClick={fetchAllData}>↻ Sync Data</button>
           </div>
         </header>
+
+        {/* Real-time System Metrics Dashboard Widget */}
+        <div style={{
+          display: 'flex',
+          gap: '1rem',
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+          border: '1px solid #e2e8f0',
+          borderRadius: '16px',
+          padding: '1rem 1.5rem',
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+          fontFamily: "'Outfit', sans-serif"
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '150px' }}>
+            <span style={{ fontSize: '1.5rem' }}>👥</span>
+            <div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Guests</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0A8276' }}>
+                {metrics.activeGuests} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>online (last 5m)</span>
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ width: '1px', background: '#cbd5e1', alignSelf: 'stretch' }}></div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '150px' }}>
+            <span style={{ fontSize: '1.5rem' }}>⚡</span>
+            <div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>API Latency</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: metrics.avgLatency < 100 ? '#0A8276' : metrics.avgLatency < 500 ? '#b45309' : '#b91c1c' }}>
+                {metrics.avgLatency} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ms</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ width: '1px', background: '#cbd5e1', alignSelf: 'stretch' }}></div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '150px' }}>
+            <span style={{ fontSize: '1.5rem' }}>🔑</span>
+            <div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Admin Sessions</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0369a1' }}>
+                {metrics.activeAdmins} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>logged in</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ width: '1px', background: '#cbd5e1', alignSelf: 'stretch' }}></div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '150px' }}>
+            <span style={{ fontSize: '1.5rem' }}>⏱️</span>
+            <div>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Server Uptime</div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#1e293b' }}>
+                {Math.floor(metrics.uptime / 3600)}h {Math.floor((metrics.uptime % 3600) / 60)}m {Math.floor(metrics.uptime % 60)}s
+              </div>
+            </div>
+          </div>
+        </div>
 
         {loading && <div className="loading-bar"></div>}
 

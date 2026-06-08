@@ -1344,6 +1344,55 @@ app.post('/api/best-dress/unshortlist', async (req, res) => {
   }
 });
 
+app.patch('/api/best-dress/finalists/:id/photo', async (req, res) => {
+  const { photo_data } = req.body;
+  if (!photo_data) return res.status(400).json({ error: 'No photo_data provided' });
+  try {
+    // 1. Update finalists table
+    await pool.query(
+      'UPDATE m26_best_dress_votes SET photo_data = ?, photo_path = NULL WHERE id = ?',
+      [photo_data, req.params.id]
+    );
+
+    // 2. Fetch the submission_id to sync back
+    const [rows] = await pool.query('SELECT submission_id FROM m26_best_dress_votes WHERE id = ?', [req.params.id]);
+    if (rows.length > 0 && rows[0].submission_id) {
+      await pool.query(
+        'UPDATE m26_best_dress_submissions SET photo_data = ?, photo_path = NULL WHERE id = ?',
+        [photo_data, rows[0].submission_id]
+      );
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/best-dress/finalists/:id/reasoning', async (req, res) => {
+  const { reasoning } = req.body;
+  try {
+    // 1. Update finalists table
+    await pool.query(
+      'UPDATE m26_best_dress_votes SET ai_reasoning = ? WHERE id = ?',
+      [reasoning || '', req.params.id]
+    );
+
+    // 2. Fetch the submission_id to sync back
+    const [rows] = await pool.query('SELECT submission_id FROM m26_best_dress_votes WHERE id = ?', [req.params.id]);
+    if (rows.length > 0 && rows[0].submission_id) {
+      await pool.query(
+        'UPDATE m26_best_dress_submissions SET ai_reasoning = ? WHERE id = ?',
+        [reasoning || '', rows[0].submission_id]
+      );
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/best-dress/nominate', async (req, res) => {
   const { employee_id, nominee_name, voter_id } = req.body;
   const [settings] = await pool.query('SELECT best_dress_status FROM m26_performance_settings WHERE id = "global"');

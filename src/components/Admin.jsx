@@ -1433,22 +1433,96 @@ const Admin = () => {
                       {bestDressNominees.map(n => (
                         <tr key={n.id}>
                           <td>
-                            <div 
-                              style={{ width:'50px', height:'50px', borderRadius:'8px', overflow:'hidden', cursor:'pointer', background:'#f1f5f9' }}
-                              onClick={() => n.has_photo && setViewingPhoto(`/api/photos/bd/vote/${n.id}`)}
-                            >
-                              {n.has_photo 
-                                ? <img src={`/api/photos/bd/vote/${n.id}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                                : <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.2rem' }}>📷</div>
-                              }
-                            </div>
+                            {n.has_photo ? (
+                              <div 
+                                style={{ width:'50px', height:'50px', borderRadius:'8px', overflow:'hidden', cursor:'pointer', background:'#f1f5f9' }}
+                                onClick={() => setViewingPhoto(`/api/photos/bd/vote/${n.id}`)}
+                              >
+                                <img src={`/api/photos/bd/vote/${n.id}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                              </div>
+                            ) : (
+                              <label style={{ display:'flex', width:'50px', height:'50px', borderRadius:'8px', overflow:'hidden', cursor:'pointer', background:'#f1f5f9', alignItems:'center', justifyContent:'center', fontSize:'1.2rem', border:'1px dashed #cbd5e1', boxSizing:'border-box' }}>
+                                📷
+                                <input type="file" accept="image/*" style={{ display:'none' }}
+                                  onChange={async (e) => {
+                                    const file = e.target.files[0];
+                                    if (!file) return;
+                                    const reader = new FileReader();
+                                    reader.onload = async (ev) => {
+                                      try {
+                                        await axios.patch(`/api/best-dress/finalists/${n.id}/photo`, { photo_data: ev.target.result });
+                                        fetchAllData();
+                                      } catch(err) { alert('Photo upload failed'); }
+                                    };
+                                    reader.readAsDataURL(file);
+                                    e.target.value = '';
+                                  }}
+                                />
+                              </label>
+                            )}
                           </td>
                           <td className="bold">{n.nominee_name}<br/><span style={{ color:'#94a3b8', fontSize:'0.75rem', fontWeight:400 }}>{n.department}</span></td>
                           <td><span style={{ padding:'2px 8px', borderRadius:'99px', fontSize:'0.72rem', fontWeight:700, background: n.gender==='Female'?'#fce7f3':'#dbeafe', color: n.gender==='Female'?'#be185d':'#1d4ed8' }}>{n.gender || '—'}</span></td>
                           <td style={{ fontWeight:800, color:'#0A8276', fontSize:'0.85rem' }}>{getNomineeRank(n)}</td>
-                          <td style={{ fontSize:'0.75rem', color:'#64748b', maxWidth:'220px', lineHeight:1.4 }}>{n.ai_reasoning || '—'}</td>
+                          <td style={{ maxWidth:'220px' }}>
+                            <textarea
+                              style={{ 
+                                width: '100%', 
+                                fontSize: '0.75rem', 
+                                color: '#64748b', 
+                                lineHeight: 1.4,
+                                border: '1px solid transparent',
+                                background: 'transparent',
+                                resize: 'vertical',
+                                padding: '4px',
+                                borderRadius: '4px',
+                                fontFamily: 'inherit',
+                                boxSizing: 'border-box'
+                              }}
+                              rows={2}
+                              key={n.id}
+                              defaultValue={n.ai_reasoning || ''}
+                              onFocus={(e) => {
+                                e.target.style.border = '1px solid #0A8276';
+                                e.target.style.background = 'white';
+                              }}
+                              onBlur={async (e) => {
+                                e.target.style.border = '1px solid transparent';
+                                e.target.style.background = 'transparent';
+                                const newVal = e.target.value;
+                                if (newVal === (n.ai_reasoning || '')) return;
+                                try {
+                                  await axios.put(`/api/best-dress/finalists/${n.id}/reasoning`, { reasoning: newVal });
+                                  fetchAllData();
+                                } catch (err) {
+                                  alert('Failed to save reasoning');
+                                }
+                              }}
+                              placeholder="Enter feedback..."
+                            />
+                          </td>
                           <td className="text-teal" style={{fontWeight: 900, fontSize:'1.1rem'}}>{n.vote_count}</td>
-                          <td><button onClick={async () => { if(confirm('Remove finalist?')) { await axios.delete(`/api/best-dress/nominees/${n.id}`); fetchAllData(); } }} className="table-btn" style={{color:'#f43f5e'}}>Remove</button></td>
+                          <td>
+                            <label className="table-btn" style={{ color:'#0a8276', cursor:'pointer', marginRight:'8px', display:'inline-block', fontWeight:800 }}>
+                              Upload Photo
+                              <input type="file" accept="image/*" style={{ display:'none' }}
+                                onChange={async (e) => {
+                                  const file = e.target.files[0];
+                                  if (!file) return;
+                                  const reader = new FileReader();
+                                  reader.onload = async (ev) => {
+                                    try {
+                                      await axios.patch(`/api/best-dress/finalists/${n.id}/photo`, { photo_data: ev.target.result });
+                                      fetchAllData();
+                                    } catch(err) { alert('Photo upload failed'); }
+                                  };
+                                  reader.readAsDataURL(file);
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                            <button onClick={async () => { if(confirm('Remove finalist?')) { await axios.delete(`/api/best-dress/nominees/${n.id}`); fetchAllData(); } }} className="table-btn" style={{color:'#f43f5e'}}>Remove</button>
+                          </td>
                         </tr>
                       ))}
                       {bestDressNominees.length === 0 && <tr><td colSpan="7" style={{textAlign:'center', color:'#94a3b8', padding:'3rem'}}>No finalists added yet. Go to Submissions tab and run AI Rank.</td></tr>}

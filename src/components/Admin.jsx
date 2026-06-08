@@ -1393,7 +1393,7 @@ const Admin = () => {
                             />
                           </label>
                           <button
-                            onClick={() => setEditingSub({ id: sub.id, name: sub.name, department: sub.department, gender: sub.gender })}
+                            onClick={() => setEditingSub({ id: sub.id, name: sub.name, department: sub.department, gender: sub.gender, ai_reasoning: sub.ai_reasoning })}
                             style={{ flex:1, padding:'6px', borderRadius:'10px', border:'1px solid #bae6fd', background:'#f0f9ff', color:'#0369a1', fontSize:'0.72rem', fontWeight:700, cursor:'pointer' }}
                           >✏️</button>
                           <button
@@ -1755,7 +1755,7 @@ const Admin = () => {
             />
 
             <label style={{ display:'block', fontSize:'0.75rem', fontWeight:700, color:'#64748b', marginBottom:'8px', textTransform:'uppercase' }}>Category</label>
-            <div style={{ display:'flex', gap:'0.75rem', marginBottom:'1.5rem' }}>
+            <div style={{ display:'flex', gap:'0.75rem', marginBottom:'1rem' }}>
               {['Male','Female'].map(g => (
                 <button key={g} onClick={() => setEditingSub(p => ({ ...p, gender: g }))}
                   style={{ flex:1, padding:'0.6rem', borderRadius:'10px', fontWeight:700, fontSize:'0.9rem', cursor:'pointer',
@@ -1766,6 +1766,14 @@ const Admin = () => {
               ))}
             </div>
 
+            <label style={{ display:'block', fontSize:'0.75rem', fontWeight:700, color:'#64748b', marginBottom:'4px', textTransform:'uppercase' }}>AI Feedback</label>
+            <textarea
+              value={editingSub.ai_reasoning || ''}
+              onChange={e => setEditingSub(p => ({ ...p, ai_reasoning: e.target.value }))}
+              rows={3}
+              style={{ width:'100%', padding:'0.6rem 0.9rem', borderRadius:'10px', border:'1.5px solid #e2e8f0', fontSize:'0.95rem', marginBottom:'1.5rem', fontFamily:'inherit', boxSizing:'border-box', resize:'vertical' }}
+            />
+
             <div style={{ display:'flex', gap:'0.75rem' }}>
               <button
                 onClick={() => setEditingSub(null)}
@@ -1775,7 +1783,7 @@ const Admin = () => {
                 onClick={async () => {
                   try {
                     await axios.put(`/api/best-dress/submissions/${editingSub.id}`, {
-                      name: editingSub.name, department: editingSub.department, gender: editingSub.gender
+                      name: editingSub.name, department: editingSub.department, gender: editingSub.gender, ai_reasoning: editingSub.ai_reasoning
                     });
                     setEditingSub(null);
                     fetchAllData();

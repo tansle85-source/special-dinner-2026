@@ -1087,18 +1087,18 @@ app.patch('/api/best-dress/submissions/:id/photo', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Admin: edit a submission's name / department / gender
+// Admin: edit a submission's name / department / gender / ai feedback
 app.put('/api/best-dress/submissions/:id', async (req, res) => {
-  const { name, department, gender } = req.body;
+  const { name, department, gender, ai_reasoning } = req.body;
   if (!name || !department || !gender) return res.status(400).json({ error: 'Missing fields' });
   try {
     await pool.query(
-      'UPDATE m26_best_dress_submissions SET name = ?, department = ?, gender = ? WHERE id = ?',
-      [name, department, gender, req.params.id]
+      'UPDATE m26_best_dress_submissions SET name = ?, department = ?, gender = ?, ai_reasoning = ? WHERE id = ?',
+      [name, department, gender, ai_reasoning || null, req.params.id]
     );
     await pool.query(
-      'UPDATE m26_best_dress_votes SET nominee_name = ?, department = ?, gender = ? WHERE submission_id = ?',
-      [name, department, gender, req.params.id]
+      'UPDATE m26_best_dress_votes SET nominee_name = ?, department = ?, gender = ?, ai_reasoning = ? WHERE submission_id = ?',
+      [name, department, gender, ai_reasoning || null, req.params.id]
     );
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
